@@ -50,6 +50,45 @@ class User {
         return false;
     }
 
+    public function emailExists($email) {
+        $stmt = $this->conn->prepare("SELECT id FROM " . $this->table . " WHERE email = :email");
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function setResetToken($email, $token) {
+        // Expire dans 1 heure
+        $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+        $query = "UPDATE " . $this->table . " SET reset_token = :token, reset_expires = :expires WHERE email = :email";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        $stmt->bindParam(':expires', $expires);
+        $stmt->bindParam(':email', $email);
+        return $stmt->execute();
+    }
+
+    public function resetPassword($token, $newPassword) {
+        // Vérifier si token valide et non expiré
+        $query = "SELECT id FROM " . $this->table . " WHERE reset_token = :token AND reset_expires > NOW()";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        $stmt->execute();
+        
+        if ($user = $stmt->fetch()) {
+            if (!$this->isPasswordStrong($newPassword)) return "weak_password";
+            
+            $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+            // On retire le token après usage
+            $update = "UPDATE " . $this->table . " SET password = :pass, reset_token = NULL, reset_expires = NULL WHERE id = :id";
+            $stmtUpdate = $this->conn->prepare($update);
+            $stmtUpdate->bindParam(':pass', $hash);
+            $stmtUpdate->bindParam(':id', $user['id']);
+            return $stmtUpdate->execute();
+        }
+        return false; // Token invalide
+    }
+
     public function getById($id) {
         $query = "SELECT id, username, email, avatar_url, created_at FROM " . $this->table . " WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
@@ -57,8 +96,6 @@ class User {
         $stmt->execute();
         return $stmt->fetch();
     }
-
-    
 
     public function update($id, $email, $newPassword, $files) {
         $fields = [];

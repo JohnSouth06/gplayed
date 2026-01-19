@@ -1,3 +1,12 @@
+<?php
+// Déterminer l'onglet actif par défaut en fonction des erreurs URL
+$activeTab = 'login'; // Par défaut : Connexion
+// Si l'erreur concerne l'inscription (mot de passe faible ou compte existant)
+if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists', 'register_failed'])) {
+    $activeTab = 'register';
+}
+?>
+
 <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="col-md-5">
         <div class="card shadow-lg border-0 rounded-4 bg-body">
@@ -19,11 +28,16 @@
                 </div>
 
                 <ul class="nav nav-pills nav-fill mb-4 bg-body-tertiary rounded-pill p-1">
-                    <li class="nav-item"><button class="nav-link active rounded-pill" data-bs-toggle="tab" data-bs-target="#login-tab">Connexion</button></li>
-                    <li class="nav-item"><button class="nav-link rounded-pill" data-bs-toggle="tab" data-bs-target="#register-tab">Inscription</button></li>
+                    <li class="nav-item">
+                        <button class="nav-link rounded-pill <?= $activeTab === 'login' ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#login-tab">Connexion</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link rounded-pill <?= $activeTab === 'register' ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#register-tab">Inscription</button>
+                    </li>
                 </ul>
+
                 <div class="tab-content">
-                    <div class="tab-pane fade show active" id="login-tab">
+                    <div class="tab-pane fade <?= $activeTab === 'login' ? 'show active' : '' ?>" id="login-tab">
                         <form action="index.php?action=login" method="POST">
                             <div class="form-floating mb-3">
                                 <input type="text" name="username" class="form-control rounded-3" placeholder="Pseudo" required>
@@ -35,9 +49,15 @@
                             </div>
                             <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">Se connecter</button>
                         </form>
+                        
+                        <div class="text-end mt-2">
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal" class="text-decoration-none small text-secondary">Mot de passe oublié ?</a>
+                        </div>
+
                         <?php if(isset($_GET['error']) && $_GET['error'] == 'invalid') echo '<div class="alert alert-danger mt-3 rounded-3 small"><i class="fas fa-exclamation-circle me-2"></i>Identifiants incorrects</div>'; ?>
                     </div>
-                    <div class="tab-pane fade" id="register-tab">
+
+                    <div class="tab-pane fade <?= $activeTab === 'register' ? 'show active' : '' ?>" id="register-tab">
                         <form action="index.php?action=register" method="POST">
                             <div class="form-floating mb-3">
                                 <input type="text" name="username" class="form-control rounded-3" placeholder="Pseudo" required>
@@ -63,6 +83,29 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form action="index.php?action=forgot_password" method="POST">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold">Réinitialisation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary small">Entrez votre email pour recevoir un lien de réinitialisation.</p>
+                    <div class="form-floating mb-3">
+                        <input type="email" name="email" class="form-control rounded-3" placeholder="Email" required>
+                        <label>Votre adresse Email</label>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="submit" class="btn btn-primary rounded-pill w-100">Envoyer le lien</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

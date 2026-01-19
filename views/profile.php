@@ -32,7 +32,7 @@
                     </div>
                     <div class="card-body">
                         <form action="index.php?action=update_profile" method="POST" enctype="multipart/form-data">
-                            
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-secondary">Adresse Email</label>
                                 <input type="email" name="email" class="form-control rounded-3" value="<?= htmlspecialchars($user['email']) ?>" required>

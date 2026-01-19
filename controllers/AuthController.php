@@ -8,7 +8,7 @@ class AuthController {
         $this->userModel = new User($db);
     }
     
-    // ... reste des méthodes login, register, profile, etc. ...
+    // --- CONNEXION ---
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $this->userModel->login($_POST['username'], $_POST['password']);
@@ -27,6 +27,7 @@ class AuthController {
         }
     }
 
+    // --- INSCRIPTION ---
     public function register() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $this->userModel->register($_POST['username'], $_POST['email'], $_POST['password']);
@@ -36,6 +37,7 @@ class AuthController {
             } elseif ($result === "exists") {
                 header("Location: index.php?error=exists");
             } elseif ($result) {
+                // Connexion automatique après inscription réussie
                 $user = $this->userModel->login($_POST['username'], $_POST['password']); 
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
@@ -50,6 +52,7 @@ class AuthController {
         }
     }
 
+    // --- PROFIL ---
     public function profile() {
         if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
         $user = $this->userModel->getById($_SESSION['user_id']);
@@ -94,6 +97,106 @@ class AuthController {
         session_destroy();
         header("Location: index.php");
         exit();
+    }
+
+    // --- MOT DE PASSE OUBLIÉ (NOUVEAU) ---
+    
+    // 1. Traitement du formulaire "Mot de passe oublié"
+    public function forgotPassword() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = $_POST['email'];
+            
+            // On vérifie si l'email existe (nécessite la méthode emailExists() dans User.php)
+            if ($this->userModel->emailExists($email)) {
+                $token = bin2hex(random_bytes(32)); // Génère un token unique
+                // Enregistre le token en BDD (nécessite la méthode setResetToken() dans User.php)
+                $this->userModel->setResetToken($email, $token);
+                
+                // Lien de réinitialisation
+                // Note : dirname($_SERVER['SCRIPT_NAME']) gère le sous-dossier si le site n'est pas à la racine
+                $link = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']) . "/index.php?action=reset_password&token=" . $token;
+                
+                $subject = "Reinitialisation de mot de passe - GameCol";
+                $message = "Bonjour,\n\nCliquez ici pour changer votre mot de passe :\n" . $link;
+                $headers = "From: no-reply@gamecol.com";
+
+                // TENTATIVE D'ENVOI
+                // En local (WAMP/XAMPP), mail() échoue souvent sans config SMTP.
+                if (@mail($email, $subject, $message, $headers)) {
+                    $_SESSION['toast'] = ['msg' => "Email envoyé (Vérifiez vos spams).", 'type' => 'success'];
+                } else {
+                    // MODE DEBUG (LOCAL) : On affiche le lien pour pouvoir tester sans serveur mail
+                    $_SESSION['toast'] = ['msg' => "DEBUG LOCAL : Token généré. Lien visible dans les logs serveur ou console.", 'type' => 'warning'];
+                    // Vous pouvez décommenter la ligne ci-dessous pour voir le lien à l'écran en local :
+                    // die("Mode Debug Local - Lien de reset : <a href='$link'>$link</a>");
+                }
+            } else {
+                // Message générique par sécurité
+                $_SESSION['toast'] = ['msg' => "Si ce compte existe, un email a été envoyé.", 'type' => 'info'];
+            }
+        }
+        header("Location: index.php");
+        exit();
+    }
+
+    // 2. Affichage du formulaire de nouveau mot de passe (via le lien email)
+    public function showResetForm() {
+        $token = $_GET['token'] ?? '';
+        
+        // Vue simplifiée intégrée directement ici pour éviter de créer un fichier views/reset.php
+        echo '<!DOCTYPE html>
+        <html lang="fr" data-bs-theme="dark">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Réinitialisation</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>body{font-family: sans-serif;}</style>
+        </head>
+        <body class="d-flex align-items-center justify-content-center vh-100 bg-body-tertiary">
+            <div class="card p-4 shadow-lg rounded-4 border-0" style="max-width:400px; width:100%">
+                <div class="text-center mb-4">
+                    <h4 class="fw-bold">Nouveau mot de passe</h4>
+                    <p class="text-secondary small">Choisissez un mot de passe sécurisé.</p>
+                </div>
+                <form action="index.php?action=do_reset" method="POST">
+                    <input type="hidden" name="token" value="'.htmlspecialchars($token).'">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Mot de passe</label>
+                        <input type="password" name="new_password" class="form-control rounded-3" placeholder="********" required>
+                        <div class="form-text small">Min 10 caractères, Maj, Min, Chiffre, Spécial.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">Valider</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="index.php" class="text-decoration-none small text-secondary">Annuler</a>
+                </div>
+            </div>
+        </body>
+        </html>';
+        exit();
+    }
+
+    // 3. Traitement du changement de mot de passe
+    public function doReset() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $token = $_POST['token'];
+            $pass = $_POST['new_password'];
+            
+            // Appel au modèle pour vérifier le token et changer le MDP (méthode resetPassword() dans User.php)
+            $res = $this->userModel->resetPassword($token, $pass);
+            
+            if ($res === "weak_password") {
+                die("Erreur : Le mot de passe est trop faible. <a href='javascript:history.back()'>Retour</a>");
+            } elseif ($res) {
+                $_SESSION['toast'] = ['msg' => "Mot de passe modifié avec succès ! Connectez-vous.", 'type' => 'success'];
+                header("Location: index.php");
+            } else {
+                $_SESSION['toast'] = ['msg' => "Lien invalide ou expiré.", 'type' => 'danger'];
+                header("Location: index.php");
+            }
+            exit();
+        }
     }
 }
 ?>
