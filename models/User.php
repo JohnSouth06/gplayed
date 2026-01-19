@@ -156,5 +156,43 @@ class User {
         imagedestroy($dst);
         return $saved ? $webFilePath : null;
     }
+// --- FONCTIONS SOCIALES ---
+
+    // Récupérer tous les membres sauf l'utilisateur courant
+    public function getAllUsersExcept($currentUserId) {
+        $query = "SELECT id, username, avatar_url, created_at FROM " . $this->table . " WHERE id != :id ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $currentUserId);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    // Suivre un utilisateur
+    public function follow($followerId, $followedId) {
+        if ($followerId == $followedId) return false; // On ne peut pas se suivre soi-même
+        $query = "INSERT IGNORE INTO user_follows (follower_id, followed_id) VALUES (:follower, :followed)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':follower', $followerId);
+        $stmt->bindParam(':followed', $followedId);
+        return $stmt->execute();
+    }
+
+    // Ne plus suivre
+    public function unfollow($followerId, $followedId) {
+        $query = "DELETE FROM user_follows WHERE follower_id = :follower AND followed_id = :followed";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':follower', $followerId);
+        $stmt->bindParam(':followed', $followedId);
+        return $stmt->execute();
+    }
+
+    // Récupérer la liste des ID suivis (pour afficher les bons boutons)
+    public function getFollowedIds($userId) {
+        $query = "SELECT followed_id FROM user_follows WHERE follower_id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $userId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_COLUMN); // Retourne un tableau simple [1, 5, 12...]
+    }
 }
 ?>
