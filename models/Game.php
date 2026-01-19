@@ -44,7 +44,7 @@ class Game {
         $imagePath = $data['image_url_hidden'] ?? '';
         $dominantColor = 'rgb(30, 30, 30)';
 
-        // CAS 1 : Upload manuel d'un fichier
+        // Gestion Image
         if (!empty($file['image_upload']['name'])) {
             $uploaded = $this->uploadImage($file['image_upload']);
             if ($uploaded) {
@@ -54,34 +54,31 @@ class Game {
                 $imagePath = $uploaded;
                 $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
             }
-        } 
-        // CAS 2 : URL Distante (RAWG)
-        elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
+        } elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
             $downloaded = $this->downloadImage($imagePath);
             if ($downloaded) {
                 $imagePath = $downloaded;
                 $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
             }
-        }
-        // CAS 3 : Image déjà locale
-        elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
+        } elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
             $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
         }
 
-        // --- Reste des champs ---
+        // Champs Standards
         $finalPlatform = ($data['platform'] === 'Multiplateforme' && !empty($data['platform_custom'])) ? $data['platform_custom'] : $data['platform'];
         $format = $data['format'] ?? 'digital';
         $releaseDate = !empty($data['release_date']) ? $data['release_date'] : null;
         $metaScore = (isset($data['metacritic']) && $data['metacritic'] !== '') ? $data['metacritic'] : null;
         $userRating = (isset($data['user_rating']) && $data['user_rating'] !== '') ? $data['user_rating'] : null;
         $price = (isset($data['estimated_price']) && $data['estimated_price'] !== '') ? $data['estimated_price'] : null;
+        $personalTags = (isset($data['personal_tags']) && $data['personal_tags'] !== '') ? $data['personal_tags'] : null;
 
         if (!empty($data['game_id'])) {
             // UPDATE
             $query = "UPDATE " . $this->table . " SET 
                 title=:title, platform=:platform, format=:format, status=:status, release_date=:date, 
                 metacritic_score=:meta, user_rating=:rating, comment=:comment, 
-                description=:desc, genres=:genres, dominant_color=:color, estimated_price=:price";
+                description=:desc, genres=:genres, dominant_color=:color, estimated_price=:price, personal_tags=:tags";
             
             if ($imagePath) $query .= ", image_url=:img";
             
@@ -93,8 +90,8 @@ class Game {
         } else {
             // INSERT
             $query = "INSERT INTO " . $this->table . " 
-                (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price) 
-                VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price)";
+                (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price, personal_tags) 
+                VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price, :tags)";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':img', $imagePath);
         }
@@ -112,15 +109,15 @@ class Game {
         $stmt->bindParam(':genres', $data['genres']);
         $stmt->bindParam(':color', $dominantColor);
         $stmt->bindParam(':price', $price);
+        $stmt->bindParam(':tags', $personalTags);
 
         return $stmt->execute();
     }
 
-    // --- IMPORT JSON (Si utilisé) ---
     public function importEntry($game, $userId) {
         $query = "INSERT INTO " . $this->table . " 
-        (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price) 
-        VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price)";
+        (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price, personal_tags) 
+        VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price, :tags)";
         
         $stmt = $this->conn->prepare($query);
         
@@ -144,6 +141,9 @@ class Game {
         $stmt->bindParam(':genres', $game['genres']);
         $stmt->bindParam(':color', $game['dominant_color']);
         $stmt->bindParam(':price', $game['estimated_price']);
+        
+        $tags = $game['personal_tags'] ?? null;
+        $stmt->bindParam(':tags', $tags);
 
         return $stmt->execute();
     }
@@ -151,122 +151,52 @@ class Game {
     private function downloadImage($url) {
         $uploadDir = dirname(__DIR__) . '/uploads/games/';
         if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
-
         $fileName = uniqid() . "_rawg.jpg";
-        $targetPath = $uploadDir . $fileName;
-
         $content = @file_get_contents($url);
         if ($content === false) return null;
-
         $srcImage = @imagecreatefromstring($content);
         if (!$srcImage) return null;
-
         $width = imagesx($srcImage);
         $height = imagesy($srcImage);
         $maxWidth = 800;
-
-        if ($width > $maxWidth) {
-            $newWidth = $maxWidth;
-            $newHeight = floor($height * ($maxWidth / $width));
-        } else {
-            $newWidth = $width;
-            $newHeight = $height;
-        }
-
+        if ($width > $maxWidth) { $newWidth = $maxWidth; $newHeight = floor($height * ($maxWidth / $width)); } else { $newWidth = $width; $newHeight = $height; }
         $dstImage = imagecreatetruecolor($newWidth, $newHeight);
         imagefill($dstImage, 0, 0, imagecolorallocate($dstImage, 255, 255, 255));
         imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-        $saved = imagejpeg($dstImage, $targetPath, 80);
-
-        imagedestroy($srcImage);
-        imagedestroy($dstImage);
-
-        return $saved ? 'uploads/games/' . $fileName : null;
+        imagejpeg($dstImage, $uploadDir . $fileName, 80);
+        imagedestroy($srcImage); imagedestroy($dstImage);
+        return 'uploads/games/' . $fileName;
     }
-
     private function getAverageColor($filepath) {
         $info = @getimagesize($filepath);
         if (!$info) return 'rgb(30, 30, 30)';
-
         $mime = $info['mime'];
-        switch ($mime) {
-            case 'image/jpeg': $img = imagecreatefromjpeg($filepath); break;
-            case 'image/png': $img = imagecreatefrompng($filepath); break;
-            case 'image/webp': 
-                if(function_exists('imagecreatefromwebp')) {
-                    $img = imagecreatefromwebp($filepath); 
-                } else { return 'rgb(30, 30, 30)'; } // Sécurité WebP
-                break;
-            default: return 'rgb(30, 30, 30)';
-        }
-
+        switch ($mime) { case 'image/jpeg': $img = imagecreatefromjpeg($filepath); break; case 'image/png': $img = imagecreatefrompng($filepath); break; case 'image/webp': if(function_exists('imagecreatefromwebp')) { $img = imagecreatefromwebp($filepath); } else { return 'rgb(30, 30, 30)'; } break; default: return 'rgb(30, 30, 30)'; }
         if (!$img) return 'rgb(30, 30, 30)';
-
         $pixel = imagecreatetruecolor(1, 1);
         imagecopyresampled($pixel, $img, 0, 0, 0, 0, 1, 1, imagesx($img), imagesy($img));
-        
         $rgb = imagecolorat($pixel, 0, 0);
-        $r = ($rgb >> 16) & 0xFF;
-        $g = ($rgb >> 8) & 0xFF;
-        $b = $rgb & 0xFF;
-
-        imagedestroy($img);
-        imagedestroy($pixel);
-
+        $r = ($rgb >> 16) & 0xFF; $g = ($rgb >> 8) & 0xFF; $b = $rgb & 0xFF;
+        imagedestroy($img); imagedestroy($pixel);
         return "rgb($r, $g, $b)";
     }
-
     private function uploadImage($file) {
         $uploadDir = dirname(__DIR__) . '/uploads/games/';
         if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
-
         $fileName = uniqid() . "_" . basename($file["name"]);
         $targetFilePath = $uploadDir . $fileName;
-        $webFilePath = 'uploads/games/' . $fileName; 
-        
         $ext = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
-
-        // Validation extensions basiques
         if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) return null;
-
-        switch ($ext) {
-            case 'jpg': case 'jpeg': $src = imagecreatefromjpeg($file["tmp_name"]); break;
-            case 'png': $src = imagecreatefrompng($file["tmp_name"]); break;
-            case 'gif': $src = imagecreatefromgif($file["tmp_name"]); break;
-            case 'webp': 
-                if(function_exists('imagecreatefromwebp')) {
-                    $src = imagecreatefromwebp($file["tmp_name"]); 
-                } else { return null; } // Sécurité WebP
-                break;
-            default: return null;
-        }
+        switch ($ext) { case 'jpg': case 'jpeg': $src = imagecreatefromjpeg($file["tmp_name"]); break; case 'png': $src = imagecreatefrompng($file["tmp_name"]); break; case 'gif': $src = imagecreatefromgif($file["tmp_name"]); break; case 'webp': if(function_exists('imagecreatefromwebp')) { $src = imagecreatefromwebp($file["tmp_name"]); } else { return null; } break; default: return null; }
         if (!$src) return null;
-
         list($width, $height) = getimagesize($file["tmp_name"]);
-        $newWidth = 800;
-        $newHeight = ($width > $newWidth) ? ($height * ($newWidth / $width)) : $height;
-        $newWidth = ($width > $newWidth) ? $newWidth : $width;
-
+        $newWidth = 800; $newHeight = ($width > $newWidth) ? ($height * ($newWidth / $width)) : $height;
         $dst = imagecreatetruecolor($newWidth, $newHeight);
-        if ($ext == 'png' || $ext == 'webp') {
-            imagealphablending($dst, false);
-            imagesavealpha($dst, true);
-        }
+        if ($ext == 'png' || $ext == 'webp') { imagealphablending($dst, false); imagesavealpha($dst, true); }
         imagecopyresampled($dst, $src, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-        $saved = false;
-        if ($ext == 'png') $saved = imagepng($dst, $targetFilePath, 8);
-        elseif ($ext == 'webp') {
-            if(function_exists('imagewebp')) {
-                $saved = imagewebp($dst, $targetFilePath, 85);
-            } else { $saved = false; } // Sécurité sauvegarde WebP
-        }
-        else $saved = imagejpeg($dst, $targetFilePath, 85);
-
-        imagedestroy($src);
-        imagedestroy($dst);
-        return $saved ? $webFilePath : null;
+        $saved = ($ext == 'png') ? imagepng($dst, $targetFilePath, 8) : (($ext == 'webp' && function_exists('imagewebp')) ? imagewebp($dst, $targetFilePath, 85) : imagejpeg($dst, $targetFilePath, 85));
+        imagedestroy($src); imagedestroy($dst);
+        return $saved ? 'uploads/games/' . $fileName : null;
     }
 }
 ?>

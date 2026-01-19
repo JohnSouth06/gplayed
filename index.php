@@ -7,6 +7,20 @@ error_reporting(E_ALL);
 session_start();
 define('ROOT_PATH', __DIR__);
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+if (file_exists(__DIR__ . '/.env')) {
+    $lines = file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos($line, '=') !== false && substr($line, 0, 1) !== '#') {
+            list($name, $value) = explode('=', $line, 2);
+            $_ENV[$name] = $value;
+            putenv("$name=$value");
+        }
+    }
+}
+
 require_once ROOT_PATH . '/config/Database.php';
 require_once ROOT_PATH . '/controllers/AuthController.php';
 require_once ROOT_PATH . '/controllers/GameController.php';

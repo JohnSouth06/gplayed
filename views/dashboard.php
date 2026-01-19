@@ -40,6 +40,18 @@
         z-index: 10;
         position: relative;
     }
+    
+    /* Style pour les tags personnels */
+    .personal-tag {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        margin-right: 4px;
+        display: inline-block;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
 </style>
 
 <!-- CALCULS PHP -->
@@ -62,8 +74,6 @@
     }
     
     $username = $_SESSION['username'] ?? 'Gamer';
-    // URL de partage
-    $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[SCRIPT_NAME]?action=share&user=" . $username;
 ?>
 
 <!-- EN-TÊTE COMPACT -->
@@ -152,6 +162,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <form action="index.php?action=save" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                 <div class="modal-header border-bottom-0 pb-0 d-block">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="modal-title fs-5 fw-bold">Détails du jeu</h5>
@@ -250,6 +261,14 @@
                                         <label class="form-label small fw-bold mb-1 text-secondary">Genres</label>
                                         <input type="text" name="genres" id="gameGenres" class="form-control rounded-3" placeholder="Action, RPG...">
                                     </div>
+                                    <!-- NOUVEAU CHAMP TAGS -->
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-1 text-secondary">Tags Personnels <small class="text-muted fw-normal">(séparés par virgules)</small></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-body-tertiary border-end-0"><i class="fas fa-tags text-secondary"></i></span>
+                                            <input type="text" name="personal_tags" id="gameTags" class="form-control rounded-end border-start-0" placeholder="Ex: Cadeau, Soldes, Priorité...">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="mt-3">
@@ -292,7 +311,7 @@
 </div>
 
 <script>
-    const RAWG_API_KEY = 'ae5a8fa57c704860b5010b3787ab78ef'; 
+    const RAWG_API_KEY = '<?= getenv('RAWG_API_KEY') ?>';
     const localGames = <?= json_encode($games) ?>;
     const statusConfig = {
         'playing': { label: 'En cours', class: 'bg-primary', icon: 'fa-gamepad' },
@@ -311,7 +330,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         modal = new bootstrap.Modal(document.getElementById('gameModal'));
         initViewButtons();
-        // Force l'affichage initial complet
         updateView(); 
     });
 
@@ -399,6 +417,15 @@
                 let priceBadge = ''; if (g.estimated_price > 0) { priceBadge = `<span class="badge badge-adaptive rounded-1 small fw-normal ms-2 px-2" title="Prix Estimé"><i class="fas fa-tag text-info me-1"></i>${g.estimated_price}€</span>`; }
                 let platIconClass = platformIcons[g.platform] || 'fas fa-gamepad';
                 if (g.platform.includes(',')) platIconClass = 'fas fa-layer-group';
+                
+                // Rendu des tags
+                let tagsHtml = '';
+                if(g.personal_tags) {
+                    const tags = g.personal_tags.split(',');
+                    tags.forEach(tag => {
+                        tagsHtml += `<span class="personal-tag">${tag.trim()}</span>`;
+                    });
+                }
 
                 container.innerHTML += `
                 <div class="col-sm-6 col-lg-4 col-xl-3">
@@ -417,6 +444,12 @@
                                 ${metaBadge}
                                 ${priceBadge}
                             </div>
+                            
+                            <!-- TAGS DISPLAY -->
+                            <div class="mb-2">
+                                ${tagsHtml}
+                            </div>
+                            
                             <div class="mt-auto d-flex justify-content-between align-items-end pt-2 border-top" style="border-color: rgba(255,255,255,0.1) !important;">
                                 <div class="d-flex align-items-center gap-2">${formatIcon}<small class="text-adaptive-muted text-truncate" style="max-width: 100px;">${g.genres || ''}</small></div>
                                 <div class="card-actions d-flex gap-1"><button class="btn btn-sm btn-action-adaptive rounded-circle" style="width:32px;height:32px" onclick='edit(${g.id})'><i class="fas fa-pen fa-xs"></i></button><a href="index.php?action=delete&id=${g.id}" class="btn btn-sm btn-action-adaptive rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash fa-xs"></i></a></div>
@@ -433,7 +466,17 @@
                 const price = g.estimated_price > 0 ? `${g.estimated_price}€` : '-';
                 let platIcon = platformIcons[g.platform] || 'fas fa-gamepad';
                 if (g.platform.includes(',')) platIcon = 'fas fa-layer-group';
-                html += `<tr><td class="ps-4"><div class="d-flex align-items-center gap-3">${img}<div><div class="fw-bold text-body">${g.title}</div><div class="small text-secondary">${g.genres || ''}</div></div></div></td><td><span class="badge bg-secondary-subtle text-secondary-emphasis rounded-2 fw-normal"><i class="${platIcon} me-1"></i>${g.platform}</span></td><td>${price}</td><td><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="fas ${s.icon} me-1"></i>${s.label}</span></td><td class="text-end pe-4 fw-bold text-warning">${g.user_rating || '-'}</td><td class="text-end pe-4"><button class="btn btn-sm btn-light rounded-circle me-1" onclick='edit(${g.id})'><i class="fas fa-pen fa-xs text-primary"></i></button><a href="index.php?action=delete&id=${g.id}" class="btn btn-sm btn-light rounded-circle" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash fa-xs text-danger"></i></a></td></tr>`;
+                
+                // Tags table
+                let tagsHtml = '';
+                if(g.personal_tags) {
+                     const tags = g.personal_tags.split(',');
+                     tags.forEach(tag => {
+                         tagsHtml += `<span class="badge bg-secondary-subtle text-secondary me-1 fw-normal">${tag.trim()}</span>`;
+                     });
+                }
+
+                html += `<tr><td class="ps-4"><div class="d-flex align-items-center gap-3">${img}<div><div class="fw-bold text-body">${g.title}</div><div class="small text-secondary">${g.genres || ''}</div><div>${tagsHtml}</div></div></div></td><td><span class="badge bg-secondary-subtle text-secondary-emphasis rounded-2 fw-normal"><i class="${platIcon} me-1"></i>${g.platform}</span></td><td>${price}</td><td><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="fas ${s.icon} me-1"></i>${s.label}</span></td><td class="text-end pe-4 fw-bold text-warning">${g.user_rating || '-'}</td><td class="text-end pe-4"><button class="btn btn-sm btn-light rounded-circle me-1" onclick='edit(${g.id})'><i class="fas fa-pen fa-xs text-primary"></i></button><a href="index.php?action=delete&id=${g.id}" class="btn btn-sm btn-light rounded-circle" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash fa-xs text-danger"></i></a></td></tr>`;
             });
             container.innerHTML = html + `</tbody></table></div></div></div>`;
         }
@@ -466,6 +509,8 @@
         document.getElementById('gameComment').value = g ? g.comment : '';
         document.getElementById('gameDesc').value = g ? g.description : '';
         document.getElementById('gameGenres').value = g ? g.genres : '';
+        document.getElementById('gameTags').value = g ? (g.personal_tags || '') : '';
+        
         if(g && g.id) loadTrophies(g.id);
         modal.show();
     }
