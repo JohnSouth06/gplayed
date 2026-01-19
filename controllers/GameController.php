@@ -5,8 +5,10 @@ require_once dirname(__DIR__) . '/models/User.php'; // Nécessaire pour vérifie
 class GameController {
     private $gameModel;
     private $userModel;
+    private $db;
 
     public function __construct($db) {
+        $this->db = $db;
         $this->gameModel = new Game($db);
         $this->userModel = new User($db);
     }
@@ -114,29 +116,30 @@ class GameController {
 
     // --- VUE PARTAGÉE (PROFIL PUBLIC) ---
     public function share() {
-        $username = $_GET['user'] ?? null;
-        if (!$username) {
-            header("Location: index.php");
-            exit();
+            $username = $_GET['user'] ?? null;
+            if (!$username) {
+                header("Location: index.php");
+                exit();
+            }
+
+            // Récupérer les infos de l'utilisateur cible
+            $targetUser = $this->userModel->getIdByUsername($username);
+            
+            if (!$targetUser) {
+                echo "Utilisateur introuvable.";
+                exit();
+            }
+
+            // Récupérer SES jeux
+            $games = $this->gameModel->getAll($targetUser['id']);
+            $owner = $targetUser;
+
+            // <--- 3. AJOUT CRUCIAL : On rend $db accessible pour la vue
+            $db = $this->db; 
+
+            // Charger la vue
+            $view = dirname(__DIR__) . '/views/public_collection.php';
+            require dirname(__DIR__) . '/views/layout.php';
         }
-
-        // Récupérer les infos de l'utilisateur cible
-        $targetUser = $this->userModel->getIdByUsername($username);
-        
-        if (!$targetUser) {
-            echo "Utilisateur introuvable.";
-            exit();
-        }
-
-        // Récupérer SES jeux
-        $games = $this->gameModel->getAll($targetUser['id']);
-        $owner = $targetUser; // Pour afficher "Collection de X"
-
-        // Charger la vue publique (lecture seule)
-        $view = dirname(__DIR__) . '/views/public_collection.php';
-        
-        // On utilise le layout standard (l'utilisateur peut être connecté ou non)
-        require dirname(__DIR__) . '/views/layout.php';
-    }
 }
 ?>
