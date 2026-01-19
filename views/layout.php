@@ -1,9 +1,8 @@
 <?php
-// Récupération de l'indicateur de chargement forcé (après login/inscription)
 $forceLoader = false;
 if (isset($_SESSION['force_loader'])) {
     $forceLoader = true;
-    unset($_SESSION['force_loader']); // On le consomme pour qu'il ne s'affiche qu'une fois
+    unset($_SESSION['force_loader']); 
 }
 ?>
 <!DOCTYPE html>
@@ -11,182 +10,16 @@ if (isset($_SESSION['force_loader'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- --- FAVICONS ADAPTATIFS --- -->
-    <!-- S'affiche si le navigateur/système est en mode CLAIR -->
-    <link rel="icon" href="favicon-light.png" type="image/png" media="(prefers-color-scheme: light)">
-    <!-- S'affiche si le navigateur/système est en mode SOMBRE -->
-    <link rel="icon" href="favicon-dark.png" type="image/png" media="(prefers-color-scheme: dark)">
-    <!-- Fallback pour les navigateurs qui ne supportent pas le media query (Défaut) -->
     <link rel="icon" href="favicon-light.png" type="image/png">
-
     <title>Ma Collection de Jeux</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <style>
-        :root {
-            --sidebar-width: 280px;
-            --header-height: 60px;
-            --primary-color: #0d6efd;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bs-body-bg);
-        }
-
-        /* --- SVG THEME COLORS --- */
-        [data-bs-theme="light"] .svg-adaptive-fill { fill: #333333; }
-        [data-bs-theme="light"] .svg-adaptive-stroke { stroke: #333333; }
-        [data-bs-theme="dark"] .svg-adaptive-fill { fill: #ffffff; }
-        [data-bs-theme="dark"] .svg-adaptive-stroke { stroke: #ffffff; }
-
-        /* --- LOADER --- */
-        #app-loader {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--bs-body-bg);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-        }
-
-        .loader-content { text-align: center; }
-        
-        .loader-logo-svg { 
-            width: 240px; 
-            height: 160px; 
-            margin-bottom: 40px; 
-            display: inline-block; 
-        }
-        
-        .loader-logo-svg svg { 
-            width: 100%; 
-            height: 100%; 
-            animation: logoPulse 2s infinite ease-in-out; 
-            transform-origin: center; 
-        }
-        
-        @keyframes logoPulse {
-            0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2)); }
-            50% { transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4)); }
-            100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2)); }
-        }
-        
-        .loader-bar-container { width: 200px; height: 4px; background-color: rgba(128, 128, 128, 0.2); border-radius: 4px; overflow: hidden; position: relative; margin: 0 auto; }
-        .loader-bar { width: 100%; height: 100%; background-color: var(--primary-color); position: absolute; left: -100%; animation: loading 1.5s infinite ease-in-out; }
-        @keyframes loading { 0% { left: -100%; } 50% { left: 0; } 100% { left: 100%; } }
-
-        /* --- SIDEBAR --- */
-        #sidebar {
-            width: var(--sidebar-width);
-            position: fixed; 
-            top: 0; 
-            bottom: 0; 
-            left: 0;
-            z-index: 1040; 
-            background-color: var(--bs-body-bg);
-            border-right: 1px solid var(--bs-border-color);
-            transition: transform 0.3s ease-in-out;
-            display: flex; flex-direction: column; overflow: hidden;
-        }
-        .sidebar-scrollable { flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .main-content { margin-left: var(--sidebar-width); transition: margin-left 0.3s ease-in-out; min-height: 100vh; padding: 2rem; }
-        .nav-link { border-radius: 8px; padding: 0.75rem 1rem; color: var(--bs-body-color); margin-bottom: 0.25rem; font-weight: 500; }
-        .nav-link:hover, .nav-link.active { background-color: var(--bs-primary-bg-subtle); color: var(--bs-primary); }
-        .nav-link i { width: 24px; text-align: center; margin-right: 10px; }
-        .user-avatar-sidebar { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
-        
-        .sidebar-logo-container { width: 100%; max-width: 200px; height: auto; display: block; }
-        .sidebar-logo-container svg { width: 100%; height: auto; display: block; }
-
-        /* --- STYLES DROPDOWN UNIFIES --- */
-        .dropdown-toggle::after { display: none !important; }
-        
-        .sidebar-dropdown-menu {
-            min-width: 240px;
-            padding: 0.5rem;
-            background-color: var(--bs-body-bg);
-            border: 1px solid var(--bs-border-color);
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar-dropdown-item {
-            padding: 10px 15px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-            color: var(--bs-body-color);
-            text-decoration: none;
-            transition: background-color 0.2s, color 0.2s;
-            background: transparent;
-            border: none;
-            width: 100%;
-            text-align: left;
-        }
-        
-        .sidebar-dropdown-item:hover {
-            background-color: var(--bs-primary-bg-subtle);
-            color: var(--bs-primary);
-        }
-        
-        .sidebar-dropdown-item i {
-            width: 20px;
-            text-align: center;
-            color: var(--bs-secondary);
-            transition: color 0.2s;
-        }
-        
-        .sidebar-dropdown-item:hover i {
-            color: var(--bs-primary);
-        }
-        
-        .sidebar-dropdown-item.text-danger:hover {
-            background-color: var(--bs-danger-bg-subtle) !important;
-            color: var(--bs-danger) !important;
-        }
-        
-        .sidebar-dropdown-item.text-danger:hover i {
-            color: var(--bs-danger) !important;
-        }
-
-        .custom-chevron { 
-            transition: transform 0.2s ease; 
-            font-size: 0.8rem; 
-            color: var(--bs-secondary); 
-        }
-        .dropdown.dropup .show .custom-chevron { 
-            transform: rotate(180deg); 
-        }
-
-        /* --- INPUTS ADAPTATIFS --- */
-        [data-bs-theme="light"] .form-control, [data-bs-theme="light"] .form-select, [data-bs-theme="light"] .input-group-text { background-color: #f8f9fa; border-color: #dee2e6; color: #212529; }
-        [data-bs-theme="light"] .form-control:focus, [data-bs-theme="light"] .form-select:focus { background-color: #ffffff; border-color: #86b7fe; }
-        [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select, [data-bs-theme="dark"] .input-group-text { background-color: #2b3035; border-color: #495057; color: #e9ecef; }
-        [data-bs-theme="dark"] .form-control:focus, [data-bs-theme="dark"] .form-select:focus { background-color: #343a40; border-color: #0d6efd; }
-
-        @media (max-width: 991.98px) {
-            #sidebar { transform: translateX(-100%); width: 85%; max-width: 320px; height: 100%; height: 100dvh; }
-            #sidebar.show { transform: translateX(0); box-shadow: 0 0 50px rgba(0,0,0,0.5); }
-            .main-content { margin-left: 0; padding-top: calc(var(--header-height) + 1rem); }
-            .mobile-header {
-                height: var(--header-height); position: fixed; top: 0; left: 0; right: 0;
-                background-color: var(--bs-body-bg); z-index: 1030; border-bottom: 1px solid var(--bs-border-color);
-                display: flex; align-items: center; padding: 0 1rem;
-            }
-        }
-        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; backdrop-filter: blur(2px); }
-        .sidebar-overlay.show { display: block; }
-    </style>
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-body-tertiary <?= $forceLoader ? 'loading' : '' ?>">
 
@@ -272,32 +105,14 @@ if (isset($_SESSION['force_loader'])) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-    (function() {
-        const loader = document.getElementById('app-loader');
-        const forceAnimation = <?= $forceLoader ? 'true' : 'false' ?>;
-        const hasVisited = sessionStorage.getItem('app_visited');
-
-        if (!forceAnimation && hasVisited) {
-            loader.style.display = 'none';
-            document.body.style.overflow = 'auto'; 
-        } else {
-            sessionStorage.setItem('app_visited', 'true');
-            window.addEventListener('load', function() {
-                setTimeout(function() {
-                    loader.style.opacity = '0';
-                    loader.style.visibility = 'hidden';
-                    document.body.style.overflow = 'auto';
-                }, 800);
-            });
-        }
-    })();
-
-    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('show'); document.getElementById('sidebarOverlay').classList.toggle('show'); }
-    const toastData = <?= isset($_SESSION['toast']) ? json_encode($_SESSION['toast']) : 'null' ?>; <?php unset($_SESSION['toast']); ?>
-    document.addEventListener('DOMContentLoaded', () => { initTheme(); if(toastData) { document.getElementById('toastMessage').innerText = toastData.msg; const toastEl = document.getElementById('liveToast'); if(toastData.type === 'danger') document.querySelector('.toast-header').classList.add('text-danger'); new bootstrap.Toast(toastEl).show(); } });
-    function initTheme() { const t = document.getElementById('themeToggle'); if(!t) return; const savedTheme = localStorage.getItem('theme'); if(savedTheme) { document.documentElement.setAttribute('data-bs-theme', savedTheme); updateThemeIcon(savedTheme === 'dark'); } t.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark'; const newTheme = isDark ? 'light' : 'dark'; document.documentElement.setAttribute('data-bs-theme', newTheme); localStorage.setItem('theme', newTheme); updateThemeIcon(!isDark); }; }
-    function updateThemeIcon(isDark) { const t = document.getElementById('themeToggle'); if(t) t.innerHTML = isDark ? '<i class="fas fa-sun"></i>Thème' : '<i class="fas fa-moon"></i>Thème'; }
+    window.forceLoader = <?= $forceLoader ? 'true' : 'false' ?>;
+    window.toastData = <?= isset($_SESSION['toast']) ? json_encode($_SESSION['toast']) : 'null' ?>; 
+    <?php unset($_SESSION['toast']); ?>
 </script>
+
+<script src="assets/js/main.js"></script>
+
 </body>
 </html>

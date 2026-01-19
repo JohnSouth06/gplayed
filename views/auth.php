@@ -25,6 +25,7 @@
                 <div class="tab-content">
                     <div class="tab-pane fade show active" id="login-tab">
                         <form action="index.php?action=login" method="POST">
+                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <div class="form-floating mb-3">
                                 <input type="text" name="username" class="form-control rounded-3" placeholder="Pseudo" required>
                                 <label>Utilisateur</label>
@@ -39,6 +40,7 @@
                     </div>
                     <div class="tab-pane fade" id="register-tab">
                         <form action="index.php?action=register" method="POST">
+                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <div class="form-floating mb-3">
                                 <input type="text" name="username" class="form-control rounded-3" placeholder="Pseudo" required>
                                 <label>Choisir un pseudo</label>
