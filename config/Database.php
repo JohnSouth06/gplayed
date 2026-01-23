@@ -6,9 +6,9 @@ class Database {
     public function getConnection() {
         $this->conn = null;
 
-        $host = getenv('DB_HOST') ?: 'localhost';
-        $db_name = getenv('DB_NAME') ?: 'go_website';
-        $username = getenv('DB_USER') ?: 'root';
+        $host = getenv('DB_HOST') ?: '';
+        $db_name = getenv('DB_NAME') ?: '';
+        $username = getenv('DB_USER') ?: '';
         $password = getenv('DB_PASS') ?: '';
 
         try {
