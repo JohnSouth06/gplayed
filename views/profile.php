@@ -1,9 +1,8 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <h2 class="mb-4 fw-bold"><i class="fas fa-user-cog me-2"></i>Mon Profil</h2>
+        <h2 class="mb-4 fw-light">Mon Profil</h2>
         
         <div class="row g-4">
-            <!-- INFO USER -->
             <div class="col-md-4">
                 <div class="card shadow-sm border-0 text-center h-100 bg-body rounded-4">
                     <div class="card-body">
@@ -23,16 +22,14 @@
                 </div>
             </div>
 
-            <!-- ACTIONS -->
             <div class="col-md-8">
-                <!-- FORMULAIRE MODIFICATION -->
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-header bg-transparent border-bottom pt-3">
                         <h6 class="mb-0 fw-bold">Modifier mes informations</h6>
                     </div>
                     <div class="card-body">
                         <form action="index.php?action=update_profile" method="POST" enctype="multipart/form-data">
-                            
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-secondary">Adresse Email</label>
                                 <input type="email" name="email" class="form-control rounded-3" value="<?= htmlspecialchars($user['email']) ?>" required>
@@ -48,23 +45,22 @@
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-secondary">Nouveau mot de passe</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-body-tertiary border-end-0"><i class="fas fa-lock"></i></span>
+                                    <span class="input-group-text bg-body-tertiary border-end-0"><i class="material-icons icon-sm">&#xe897;</i></span>
                                     <input type="password" name="new_password" class="form-control border-start-0" placeholder="Laisser vide pour ne pas changer">
                                 </div>
                                 <div class="form-text small mt-1">Min 10 cars, Maj, Min, Chiffre, Spécial.</div>
                             </div>
                             
                             <div class="text-end">
-                                <button type="submit" class="btn btn-primary rounded-pill px-4"><i class="fas fa-save me-2"></i>Enregistrer</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4"><i class="material-icons icon-sm me-2">&#xe161;</i>Enregistrer</button>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- ZONE DONNEES (NOUVEAU) -->
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-header bg-transparent border-bottom pt-3">
-                        <h6 class="mb-0 fw-bold"><i class="fas fa-database me-2"></i>Gestion des données</h6>
+                        <h6 class="mb-0 fw-bold"><i class="material-icons icon-md me-2">&#xe1db;</i>Gestion des données</h6>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -72,7 +68,7 @@
                                 <label class="form-label small fw-bold text-secondary">Exporter ma collection</label>
                                 <p class="small text-muted mb-2">Téléchargez un fichier JSON contenant tous vos jeux.</p>
                                 <a href="index.php?action=export_json" class="btn btn-outline-primary btn-sm w-100 rounded-3">
-                                    <i class="fas fa-download me-2"></i>Exporter JSON
+                                    <i class="material-icons icon-sm me-2">&#xf090;</i>Exporter JSON
                                 </a>
                             </div>
                             <div class="col-md-6">
@@ -83,7 +79,7 @@
                                         <input type="file" name="json_file" class="form-control rounded-start-3" accept=".json" required>
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-sm w-100 rounded-3">
-                                        <i class="fas fa-file-import me-2"></i>Importer
+                                        <i class="material-icons icon-sm me-2">&#xe2c6;</i>Importer
                                     </button>
                                 </form>
                             </div>
@@ -91,10 +87,9 @@
                     </div>
                 </div>
 
-                <!-- ZONE DANGER -->
                 <div class="card shadow-sm border-0 border-start border-danger border-4 rounded-4 bg-body">
                     <div class="card-body">
-                        <h6 class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Zone de danger</h6>
+                        <h6 class="text-danger fw-bold"><i class="material-icons icon-md me-2">&#xe002;</i>Zone de danger</h6>
                         <p class="small text-secondary mb-3">La suppression du compte est irréversible.</p>
                         <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="if(confirm('Êtes-vous ABSOLUMENT sûr ?')) document.getElementById('deleteForm').submit();">
                             Supprimer mon compte

@@ -1,0 +1,759 @@
+:root {
+    /* ========================================================================
+       🎨 VOTRE PALETTE DE COULEURS
+       ======================================================================== */
+
+    /* 1. PRIMAIRE (Bleu - Action principale) */
+    --main-color: #4CE5AE;
+    --main-color-rgb: 76, 229, 174;
+    --hover-color: #34c18d;
+    /* Survol */
+
+    /* 2. SECONDAIRE (Gris - Actions neutres) */
+    --sec-color: #6c7d76;
+    --sec-color-rgb: 108, 125, 118;
+    --sec-hover-color: #596c64;
+
+       /* 2. TERTIAIRE (Gris - Actions neutres) */
+    --ter-color: #eaeaea;
+    --ter-color-rgb: 234, 234, 234;
+    --ter-hover-color: #d9d9d9;
+
+    /* 4. TEXTES */
+    --text-body: #212925;
+    --text-heading: #111111;
+
+    /* 5. LAYOUT */
+    --sidebar-width: 300px;
+    --header-height: 60px;
+
+
+    /*. 6. LOGO */
+    path#green {
+        fill: #4CE5AE;
+    }
+
+    /* ========================================================================
+       ⚙️ MOTEUR DE LIAISON BOOTSTRAP
+       ======================================================================== */
+    /* Primaire */
+    --bs-primary: var(--main-color);
+    --bs-primary-rgb: var(--main-color-rgb);
+    --bs-link-color: var(--main-color);
+    --bs-link-hover-color: var(--hover-color);
+    --bs-body-tertiary: var(--ter-color);
+
+    /* Secondaire */
+    --bs-secondary: var(--sec-color);
+    --bs-secondary-rgb: var(--sec-color-rgb);
+
+    --bs-body-color: var(--text-body);
+    --bs-heading-color: var(--text-heading);
+
+    /* --- GLASSMORPHISM --- */
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --glass-blur: blur(20px);
+    --glass-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+}
+
+/* ========================================================================
+   🌑 DARK MODE CONFIGURATION
+   ======================================================================== */
+[data-bs-theme="dark"] {
+    --text-body: #e0e0e0;
+    --text-heading: #ffffff;
+
+    /* Ajustement des couleurs pour le mode sombre (optionnel) */
+    /* --main-color: #3d8bfd; */
+
+    --glass-bg: rgba(22, 22, 22, 0.9);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
+
+    /* Fonds Bootstrap (bg-body-secondary / tertiary) adaptés au thème noir */
+    --bs-body-bg: #161616;
+    --bs-body-bg-rgb: 22, 22, 22;
+    --bs-secondary-bg: #151515;
+    /* Un peu plus clair que le fond */
+    --bs-tertiary-bg: #202020;
+    /* Encore un peu plus clair (ex: cartes) */
+}
+
+/* --- VIEW TRANSITIONS --- */
+@view-transition {
+    navigation: auto;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: #1b1b1b;
+    background-image: radial-gradient(circle at 50% 0%, #2f2f2f 0%, #1a1a1a 60%);
+    background-attachment: fixed;
+}
+
+/* --- TITRES --- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+    color: var(--text-heading);
+    letter-spacing: -0.02em;
+    font-weight: 700;
+}
+
+/* ========================================================================
+   🎛️ BOUTONS CONNECTÉS (Primaire, Secondaire & Tertiaire)
+   ======================================================================== */
+
+/* 1. PRIMAIRE */
+.btn-primary {
+--bs-btn-color: #000;
+    --bs-btn-bg: #4CE5AE;
+    --bs-btn-border-color: #4CE5AE;
+    --bs-btn-hover-color: #111111;
+    --bs-btn-hover-bg: #34c18d;
+    --bs-btn-hover-border-color: #2cb482;
+    --bs-btn-focus-shadow-rgb: 49,132,253;
+    --bs-btn-active-color: #000;
+    --bs-btn-active-bg: #2cb482;
+    --bs-btn-active-border-color: #2cb482;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #111111;
+    --bs-btn-disabled-bg: #4CE5AE;
+    --bs-btn-disabled-border-color: #4CE5AE;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--main-color);
+    --bs-btn-border-color: var(--main-color);
+    --bs-btn-hover-bg: var(--main-color);
+    --bs-btn-active-bg: rgba(var(--main-color-rgb), 0.25);
+    --bs-btn-hover-border-color: var(--main-color);
+    color: var(--main-color) !important;
+    border-color: var(--main-color) !important;
+}
+
+.btn-outline-primary:hover {
+    color: #fff !important;
+    background-color: var(--main-color) !important;
+}
+
+.btn-icon-action {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* Effet rebond */
+    background-color: rgba(var(--ter-color-rgb), 0.10);
+    color: var(--bs-body-color);
+    border: none;
+}
+
+.btn-icon-action:hover {
+    background-color: rgba(var(--ter-color-rgb), 0.20);
+    color: white;
+    transform: scale(1.15) rotate(5deg);
+}
+
+
+/* 2. SECONDAIRE (Correction ajoutée ici) */
+.btn-secondary {
+    --bs-btn-bg: var(--sec-color);
+    --bs-btn-border-color: var(--sec-color);
+    --bs-btn-hover-bg: var(--sec-hover-color);
+    --bs-btn-hover-border-color: var(--sec-hover-color);
+    --bs-btn-active-bg: var(--sec-hover-color);
+    --bs-btn-active-border-color: var(--sec-hover-color);
+    --bs-btn-focus-shadow-rgb: var(--sec-color-rgb);
+    background-color: var(--sec-color) !important;
+    border-color: var(--sec-color) !important;
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--sec-color);
+    --bs-btn-border-color: var(--sec-color);
+    --bs-btn-hover-bg: var(--sec-color);
+    --bs-btn-hover-border-color: var(--sec-color);
+    color: var(--sec-color) !important;
+    border-color: var(--sec-color) !important;
+}
+
+.btn-outline-secondary:hover {
+    color: #fff !important;
+    background-color: var(--sec-color) !important;
+}
+
+
+/* 3. TERTIAIRE (Création Custom) */
+.btn-tertiary {
+    background-color: var(--ter-color) !important;
+    border-color: var(--ter-color) !important;
+    color: #fff !important;
+    transition: all 0.2s;
+}
+
+.btn-tertiary:hover,
+.btn-tertiary:active {
+    background-color: var(--ter-hover-color) !important;
+    border-color: var(--ter-hover-color) !important;
+    box-shadow: 0 4px 12px rgba(var(--ter-color-rgb), 0.3);
+}
+
+.btn-outline-tertiary {
+    background-color: transparent !important;
+    border: 1px solid var(--ter-color) !important;
+    color: var(--ter-color) !important;
+    transition: all 0.2s;
+}
+
+.btn-outline-tertiary:hover {
+    background-color: var(--ter-color) !important;
+    color: #fff !important;
+}
+
+/* Ajustements icones édition cartes de jeux */
+.card-actions-wrapper .btn-icon-action, .btn-action.btn-icon-action {
+    text-decoration: none;
+}
+
+/* ========================================================================
+   🛠️ UTILITAIRES CONNECTÉS (Badges, Textes, Fonds subtils)
+   ======================================================================== */
+
+/* --- PRIMAIRE --- */
+.text-primary {
+    color: var(--main-color) !important;
+}
+
+.bg-primary-subtle {
+    background-color: rgba(var(--main-color-rgb), 0.12) !important;
+    color: var(--hover-color) !important;
+}
+
+.border-primary-subtle {
+    border-color: rgba(var(--main-color-rgb), 0.25) !important;
+}
+
+/* --- SECONDAIRE --- */
+.text-secondary {
+    color: var(--sec-color) !important;
+}
+
+.bg-secondary-subtle {
+    background-color: rgba(var(--sec-color-rgb), 0.12) !important;
+    color: var(--sec-hover-color) !important;
+}
+
+.border-secondary-subtle {
+    border-color: rgba(var(--sec-color-rgb), 0.25) !important;
+}
+
+/* --- TERTIAIRE (Nouveau) --- */
+.text-tertiary {
+    color: var(--ter-color) !important;
+}
+
+.bg-tertiary-subtle {
+    background-color: rgba(var(--ter-color-rgb), 0.12) !important;
+    color: var(--ter-hover-color) !important;
+}
+
+.border-tertiary-subtle {
+    border-color: rgba(var(--ter-color-rgb), 0.25) !important;
+}
+
+/* Ajustements Mode Sombre pour lisibilité */
+[data-bs-theme="dark"] .bg-primary-subtle {
+    background-color: rgba(var(--main-color-rgb), 0.40) !important;
+    color: #fff !important;
+}
+
+[data-bs-theme="dark"] .bg-secondary-subtle {
+    background-color: rgba(var(--sec-color-rgb), 0.40) !important;
+    color: #e0e0e0 !important;
+}
+
+[data-bs-theme="dark"] .bg-tertiary-subtle {
+    background-color: rgba(var(--ter-color-rgb), 0.40) !important;
+    color: #fff !important;
+}
+
+[data-bs-theme="dark"] .text-secondary {
+    color: #a0a0a0 !important;
+}
+
+/* Gris plus clair en dark mode */
+
+
+/* --- LOADER --- */
+#app-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bs-body-bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+}
+
+[data-bs-theme="dark"] #app-loader {
+    background-color: #050505;
+}
+
+.loader-content {
+    text-align: center;
+}
+
+.loader-logo-svg {
+    width: 240px;
+    height: 160px;
+    margin-bottom: 40px;
+    display: inline-block;
+}
+
+.loader-logo-svg svg {
+    width: 100%;
+    height: 100%;
+    animation: logoPulse 2s infinite ease-in-out;
+    transform-origin: center;
+}
+
+@keyframes logoPulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+    }
+
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4));
+    }
+
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+    }
+}
+
+.loader-bar-container {
+    width: 200px;
+    height: 4px;
+    background-color: rgba(128, 128, 128, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+}
+
+.loader-bar {
+    width: 100%;
+    height: 100%;
+    background-color: var(--main-color);
+    position: absolute;
+    left: -100%;
+    animation: loading 1.5s infinite ease-in-out;
+}
+
+@keyframes loading {
+    0% {
+        left: -100%;
+    }
+
+    50% {
+        left: 0;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+/* --- SIDEBAR --- */
+#sidebar {
+    width: var(--sidebar-width);
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1040;
+    background-color: var(--glass-bg) !important;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-scrollable {
+    flex-grow: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    transition: margin-left 0.3s ease-in-out;
+    min-height: 100vh;
+    padding: 3rem;
+}
+
+/* LIENS SIDEBAR */
+.nav-link {
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--bs-body-color);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+[data-bs-theme="dark"] .nav-link {
+    color: #a0a0a0;
+}
+
+[data-bs-theme="dark"] .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .nav-link.active {
+    background-color: rgba(var(--main-color-rgb), 0.10);
+    color: #fff;
+    /* border-left: 3px solid var(--main-color); */
+}
+
+/* LOGIN ACTIVE TAB IN DARK MODE */
+[data-bs-theme="dark"] .nav-link.nav-login.active {
+    background-color: rgba(var(--main-color-rgb), 1);
+}
+
+[data-bs-theme="dark"] .nav-link.active i {
+    color: var(--main-color);
+}
+
+[data-bs-theme="light"] .nav-link:hover {
+    background-color: rgba(var(--main-color-rgb), 0.08);
+    color: var(--main-color);
+}
+
+[data-bs-theme="light"] .nav-link.active {
+    background-color: rgba(var(--main-color-rgb), 0.15);
+    color: var(--main-color);
+}
+
+.nav-link i {
+    width: 24px;
+    text-align: center;
+    margin-right: 12px;
+}
+
+.user-avatar-sidebar {
+    width: 42px;
+    height: 42px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid var(--glass-border);
+}
+
+.sidebar-logo-container {
+    width: 100%;
+    /* max-width: 180px; */
+    max-width: 220px;
+    height: auto;
+    display: block;
+    margin-left: 10px;
+}
+
+.sidebar-logo-container svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* --- DROPDOWN --- */
+.dropdown-toggle::after {
+    display: none !important;
+}
+
+.sidebar-dropdown-menu {
+    min-width: 240px;
+    padding: 0.5rem;
+    background-color: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 12px;
+}
+
+.sidebar-dropdown-item {
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+}
+
+[data-bs-theme="dark"] .sidebar-dropdown-item {
+    color: #ccc;
+}
+
+[data-bs-theme="dark"] .sidebar-dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+[data-bs-theme="light"] .sidebar-dropdown-item:hover {
+    background-color: rgba(var(--main-color-rgb), 0.1);
+    color: var(--main-color);
+}
+
+.sidebar-dropdown-item i {
+    width: 20px;
+    text-align: center;
+    color: var(--sec-color);
+    transition: color 0.2s;
+}
+
+.sidebar-dropdown-item:hover i {
+    color: var(--main-color);
+}
+
+[data-bs-theme="dark"] .sidebar-dropdown-item:hover i {
+    color: #fff;
+}
+
+.sidebar-dropdown-item.text-danger:hover {
+    background-color: var(--bs-danger-bg-subtle) !important;
+    color: var(--bs-danger) !important;
+}
+
+.sidebar-dropdown-item.text-danger:hover i {
+    color: var(--bs-danger) !important;
+}
+
+.custom-chevron {
+    transition: transform 0.2s ease;
+    font-size: 0.8rem;
+    color: var(--sec-color);
+}
+
+.dropdown.dropup .show .custom-chevron {
+    transform: rotate(180deg);
+}
+
+/* --- SVG COLORS --- */
+[data-bs-theme="light"] .svg-adaptive-fill {
+    fill: var(--text-body);
+}
+
+[data-bs-theme="light"] .svg-adaptive-stroke {
+    stroke: var(--text-body);
+}
+
+[data-bs-theme="dark"] .svg-adaptive-fill {
+    fill: #ffffff;
+}
+
+[data-bs-theme="dark"] .svg-adaptive-stroke {
+    stroke: #ffffff;
+}
+
+/* --- INPUTS --- */
+.form-control,
+.form-select,
+.input-group-text {
+    border-radius: 12px;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--bs-border-color);
+    background-color: var(--bs-body-bg);
+    transition: all 0.2s;
+}
+
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 4px rgba(var(--main-color-rgb), 0.25);
+    border-color: var(--main-color);
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #121212;
+    border-color: #333;
+    color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #1a1a1a;
+    border-color: #555;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="light"] .form-control {
+    background-color: #fcfcfc;
+}
+
+/* --- MOBILE --- */
+@media (max-width: 991.98px) {
+    #sidebar {
+        transform: translateX(-100%);
+        width: 85%;
+        max-width: 320px;
+        height: 100dvh;
+    }
+
+    #sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 1.5rem;
+        padding-top: calc(var(--header-height) + 1.5rem);
+    }
+
+    .mobile-header {
+        height: var(--header-height);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border-bottom: 1px solid var(--glass-border);
+        z-index: 1030;
+        display: flex;
+        align-items: center;
+        padding: 0 1.5rem;
+    }
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1035;
+    backdrop-filter: blur(4px);
+}
+
+.sidebar-overlay.show {
+    display: block;
+}
+
+/* MATERIAL ICONS */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+
+/* Ajustement Material Icons */
+.material-icons-outlined {
+    font-size: 18px; /* Taille standard proche de FontAwesome */
+    line-height: 1;  /* Empêche l'icône d'agrandir la hauteur de ligne */
+    vertical-align: middle; /* Alignement par défaut */
+    user-select: none;
+}
+
+.icon-sm {
+    font-size: 16px; /* Pour les textes "small" et métadonnées */
+}
+
+.icon-xs {
+    font-size: 14px; /* Pour les très petits éléments */
+}
+
+.icon-md {
+    font-size: 20px; /* Pour les titres ou boutons principaux */
+}
+
+.icon-lg {
+    font-size: 24px; /* Taille native Google */
+}
+
+.icon-xl {
+    font-size: 48px; /* Pour les placeholders vides */
+}
+
+.badge:not(.d-none), 
+.btn:not(.d-none), 
+.btn-icon-action:not(.d-none),
+.meta-tag:not(.d-none),
+.status-badge-float:not(.d-none) {
+    display: inline-flex !important; /* Ne s'applique que si l'élément n'est pas caché */
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.filled-icon {
+    font-variation-settings: 'FILL' 1;
+}
+
+.plat-icon-list {
+    vertical-align: middle;
+    margin-right: 4px;
+}
