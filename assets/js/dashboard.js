@@ -19,12 +19,61 @@ const batchSize = 12;
 let observer;                 
 let modal;
 
+// Variable pour le délai de recherche (Debounce)
+let searchTimeout;
+
 document.addEventListener('DOMContentLoaded', () => {
     modal = new bootstrap.Modal(document.getElementById('gameModal'));
     initViewButtons();
     setupIntersectionObserver();
+    
+    // --- MISE EN PLACE DE LA RECHERCHE SERVEUR ---
+    const searchInput = document.getElementById('internalSearchInput');
+    if (searchInput) {
+        // On désactive l'événement inline (celui dans le HTML) pour éviter les conflits
+        searchInput.onkeyup = null;
+        
+        // On écoute l'événement 'input' pour une meilleure réactivité
+        searchInput.addEventListener('input', (e) => {
+            handleServerSearch(e.target.value);
+        });
+    }
+
     updateView(); 
 });
+
+// --- GESTION RECHERCHE SERVEUR (AJAX) ---
+function handleServerSearch(query) {
+    // Annule l'appel précédent si l'utilisateur tape encore
+    clearTimeout(searchTimeout);
+
+    // Attend 300ms avant d'envoyer la requête au serveur
+    searchTimeout = setTimeout(() => {
+        fetchGamesFromServer(query);
+    }, 300);
+}
+
+async function fetchGamesFromServer(query) {
+    toggleLoader(true);
+    try {
+        // Appel à l'API PHP
+        const response = await fetch(`index.php?action=api_search&q=${encodeURIComponent(query)}`);
+        
+        if (!response.ok) throw new Error('Erreur réseau');
+        
+        const games = await response.json();
+        
+        // On remplace les données locales par celles reçues du serveur
+        localGames = games; 
+        
+        // On met à jour l'affichage
+        updateView(); 
+    } catch (error) {
+        console.error('Erreur lors de la recherche:', error);
+    } finally {
+        toggleLoader(false);
+    }
+}
 
 // --- SETUP OBSERVER ---
 function setupIntersectionObserver() {
@@ -40,18 +89,17 @@ function setupIntersectionObserver() {
     if (sentinel) observer.observe(sentinel);
 }
 
-// --- MOTEUR DE TRI ET FILTRE CENTRALISÉ ---
+// --- MOTEUR DE TRI ET FILTRE (Modifié pour la recherche serveur) ---
 function getProcessedGames() {
     const platformFilter = document.getElementById('filterPlatform').value;
     const statusFilter = document.getElementById('filterStatus').value;
     const sortType = document.getElementById('sortSelect').value;
     
-    const searchInput = document.getElementById('internalSearchInput');
-    const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    // NOTE : On ne filtre plus le texte ici car le serveur l'a déjà fait (dans localGames).
+    // On garde uniquement les filtres "secondaires" (dropdowns) qui s'appliquent sur les résultats.
 
-    // 1. Filtrage
+    // 1. Filtrage (Dropdowns uniquement)
     let filtered = localGames.filter(g => {
-        if (searchQuery && !g.title.toLowerCase().includes(searchQuery)) return false;
         if (platformFilter !== 'all') {
             if (g.platform === 'Multiplateforme') return true; 
             if (!g.platform.includes(platformFilter)) return false;
@@ -85,19 +133,19 @@ function updateView() {
     displayedCount = 0;
 
     if (localGames.length === 0) {
-        // CLASSE AJOUTÉE : icon-xl
-        container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="material-icons-outlined icon-xl opacity-25 mb-3">&#xe811;</i><p>Votre collection est vide.</p></div>';
+        // Cas où le serveur ne renvoie rien (Recherche vide)
+        container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="material-icons-outlined icon-xl opacity-25 mb-3">&#xe811;</i><p>Aucun jeu trouvé.</p></div>';
         toggleLoader(false);
         return;
     }
 
     if (processedGamesCache.length === 0) {
-        // CLASSE AJOUTÉE : icon-xl
+        // Cas où il y a des résultats de recherche, mais les filtres dropdown masquent tout
         container.innerHTML = `
             <div class="col-12 text-center py-5">
                 <div class="mb-3 text-secondary opacity-25"><i class="material-icons-outlined icon-xl">&#xea76;</i></div>
                 <h5 class="text-secondary fw-bold">Aucun résultat</h5>
-                <p class="text-muted small">Essayez de modifier vos filtres.</p>
+                <p class="text-muted small">Essayez de modifier vos filtres (Plateforme/Statut).</p>
             </div>`;
         toggleLoader(false);
         return;
@@ -196,7 +244,6 @@ function generateGridCard(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
     const img = g.image_url ? g.image_url : '';
     
-    // CLASSE AJOUTÉE : icon-sm text-secondary
     const formatIcon = (g.format === 'physical') 
         ? '<i class="material-icons-outlined icon-sm text-secondary me-1" title="Physique">&#xe1a1;</i>' 
         : '<i class="material-icons-outlined icon-sm text-secondary me-1" title="Digital">&#xe3dd;</i>';
@@ -206,7 +253,6 @@ function generateGridCard(g) {
 
     let metaHtml = '';
     
-    // Logique Plateforme
     let platIconHtml = '';
     if (g.platform && g.platform.includes(',')) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
@@ -218,18 +264,15 @@ function generateGridCard(g) {
     
     metaHtml += `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
 
-    // Metacritic
     if (g.metacritic_score > 0) {
         let metaIcon = g.metacritic_score >= 75 ? 'text-success' : (g.metacritic_score >= 50 ? 'text-warning' : 'text-danger');
         metaHtml += `<span class="meta-tag" title="Metascore"><i class="svg-icon metacritic-icon ${metaIcon} me-1"></i>${g.metacritic_score}</span>`;
     }
     
-    // Prix - CLASSE AJOUTÉE : icon-sm
     if (g.estimated_price > 0) {
         metaHtml += `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle"><i class="material-icons-outlined icon-sm me-1">&#xe54e;</i>${g.estimated_price}€</span>`;
     }
 
-    // Placeholder image - CLASSE AJOUTÉE : icon-xl
     const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
 
     return `
@@ -275,7 +318,6 @@ function generateListRow(g) {
     
     const price = g.estimated_price > 0 ? `<span class="badge bg-body-secondary text-body border">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
     
-    // Logique Plateforme Liste
     let platIconHtml = '';
     if (g.platform && g.platform.includes(',')) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';

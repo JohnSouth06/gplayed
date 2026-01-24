@@ -117,6 +117,25 @@ class Game {
         return $stmt->execute();
     }
 
+    public function searchGames($userId, $term) {
+        // Recherche large avec LIKE (Titre, Genre, ou Plateforme)
+        $query = "SELECT * FROM " . $this->table . " 
+                WHERE user_id = :user_id 
+                AND (title LIKE :term OR genres LIKE :term OR platform LIKE :term)
+                ORDER BY created_at DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        // On ajoute les jokers % pour que "Zelda" trouve "The Legend of Zelda"
+        $searchTerm = "%" . $term . "%";
+        
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':term', $searchTerm);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
     // --- IMPORT JSON ---
     public function importEntry($game, $userId) {
         $query = "INSERT INTO " . $this->table . " 

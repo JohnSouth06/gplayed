@@ -282,7 +282,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
 </div>
 
 <script>
-    // Injection des données PHP vers JS
-    const localGames = <?= json_encode($games) ?>;
+    let localGames = <?= json_encode($games) ?>;
 </script>
 <script src="assets/js/dashboard.js"></script>

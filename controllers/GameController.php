@@ -31,6 +31,32 @@ class GameController {
         require dirname(__DIR__) . '/views/layout.php';
     }
 
+
+    public function apiSearch() {
+    // 1. Sécurité : Vérifier que l'utilisateur est connecté
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Non autorisé']);
+            exit();
+    }
+
+    // 2. Récupération du terme de recherche
+    $term = isset($_GET['q']) ? trim($_GET['q']) : '';
+
+    // 3. Appel au modèle
+    if ($term === '') {
+        // Si la recherche est vide, on renvoie tout (ou une liste vide selon votre préférence)
+        $games = $this->gameModel->getAll($_SESSION['user_id']);
+    } else {
+        $games = $this->gameModel->searchGames($_SESSION['user_id'], $term);
+    }
+
+    // 4. Renvoi de la réponse en JSON
+    header('Content-Type: application/json');
+    echo json_encode($games);
+    exit();
+}
+
     // --- Stats ---
     public function stats() {
         if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }

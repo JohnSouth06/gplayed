@@ -57,6 +57,9 @@ switch ($action) {
     case 'save': $gameController->save(); break;
     case 'delete': $gameController->delete(); break;
     case 'stats': $gameController->stats(); break;
+
+    // Recherche API
+    case 'api_search': $gameController->apiSearch(); break;
     
     // Import/Export
     case 'export_json': $gameController->export(); break;
@@ -74,10 +77,10 @@ switch ($action) {
     // Profil Public
     case 'share': $gameController->share(); break;
     
-    // --- Actus
+    // Actus
     case 'feed': $socialController->feed(); break;
     case 'add_comment': $socialController->addComment(); break;
-    
+
     // Comments
     case 'add_comment': 
     if(isset($socialController)) {
