@@ -2,9 +2,6 @@
 
 **Gplayed** est une application web PHP moderne conçue pour les passionnés de jeux vidéo. Elle permet de gérer votre collection, de suivre votre temps de jeu avec précision et de partager votre expérience avec une communauté.
 
-![Gplayed Dashboard](assets/screenshots/dashboard-preview.png)
-*(Pensez à ajouter une capture d'écran de votre dashboard ici)*
-
 ## 🚀 Fonctionnalités
 
 ### 🎮 Gestion de Ludothèque
