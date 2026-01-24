@@ -273,8 +273,8 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">Sauvegarder</button>
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">Sauvegarder</button>
+                    <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
                 </div>
             </form>
         </div>

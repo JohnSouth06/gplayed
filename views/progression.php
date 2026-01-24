@@ -121,6 +121,8 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <form action="index.php?action=add_progress" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
                 <div class="modal-header border-bottom-0 pb-0">
                     <h5 class="modal-title fw-bold">Enregistrer la session</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -162,8 +164,8 @@
                     </div>
                 </div>
                 <div class="modal-footer border-top-0 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">Sauvegarder</button>
+                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">Sauvegarder</button>
+                    <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
                 </div>
             </form>
         </div>
