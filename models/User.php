@@ -50,6 +50,45 @@ class User {
         return false;
     }
 
+    public function emailExists($email) {
+        $stmt = $this->conn->prepare("SELECT id FROM " . $this->table . " WHERE email = :email");
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function setResetToken($email, $token) {
+        // Expire dans 1 heure
+        $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+        $query = "UPDATE " . $this->table . " SET reset_token = :token, reset_expires = :expires WHERE email = :email";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        $stmt->bindParam(':expires', $expires);
+        $stmt->bindParam(':email', $email);
+        return $stmt->execute();
+    }
+
+    public function resetPassword($token, $newPassword) {
+        // Vérifier si token valide et non expiré
+        $query = "SELECT id FROM " . $this->table . " WHERE reset_token = :token AND reset_expires > NOW()";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        $stmt->execute();
+        
+        if ($user = $stmt->fetch()) {
+            if (!$this->isPasswordStrong($newPassword)) return "weak_password";
+            
+            $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+            // On retire le token après usage
+            $update = "UPDATE " . $this->table . " SET password = :pass, reset_token = NULL, reset_expires = NULL WHERE id = :id";
+            $stmtUpdate = $this->conn->prepare($update);
+            $stmtUpdate->bindParam(':pass', $hash);
+            $stmtUpdate->bindParam(':id', $user['id']);
+            return $stmtUpdate->execute();
+        }
+        return false; // Token invalide
+    }
+
     public function getById($id) {
         $query = "SELECT id, username, email, avatar_url, created_at FROM " . $this->table . " WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
@@ -58,7 +97,13 @@ class User {
         return $stmt->fetch();
     }
 
-    
+    public function getIdByUsername($username) {
+        $query = "SELECT id, username, avatar_url FROM " . $this->table . " WHERE username = :username LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        return $stmt->fetch();
+    }
 
     public function update($id, $email, $newPassword, $files) {
         $fields = [];
@@ -156,5 +201,40 @@ class User {
         imagedestroy($dst);
         return $saved ? $webFilePath : null;
     }
+    
+    // --- FONCTIONS SOCIALES ---
+    public function getAllUsersExcept($currentUserId) {
+        $query = "SELECT id, username, avatar_url, created_at FROM " . $this->table . " WHERE id != :id ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $currentUserId);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function follow($followerId, $followedId) {
+        if ($followerId == $followedId) return false; // On ne peut pas se suivre soi-même
+        $query = "INSERT IGNORE INTO user_follows (follower_id, followed_id) VALUES (:follower, :followed)";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':follower', $followerId);
+        $stmt->bindParam(':followed', $followedId);
+        return $stmt->execute();
+    }
+
+    public function unfollow($followerId, $followedId) {
+        $query = "DELETE FROM user_follows WHERE follower_id = :follower AND followed_id = :followed";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':follower', $followerId);
+        $stmt->bindParam(':followed', $followedId);
+        return $stmt->execute();
+    }
+
+    public function getFollowedIds($userId) {
+        $query = "SELECT followed_id FROM user_follows WHERE follower_id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $userId);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_COLUMN); // Retourne un tableau simple [1, 5, 12...]
+    }
+    
 }
 ?>

@@ -1,6 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/models/Progress.php';
-require_once dirname(__DIR__) . '/models/Game.php'; // On a besoin de la liste des jeux pour le select
+require_once dirname(__DIR__) . '/models/Game.php';
 
 class ProgressController {
     private $progressModel;
@@ -11,19 +11,22 @@ class ProgressController {
         $this->gameModel = new Game($db);
     }
 
+    // --- Sécurité CSRF ---
+    private function checkCsrf() {
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            die("Erreur de sécurité : Token CSRF invalide.");
+        }
+    }
+
     public function index() {
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php");
             exit();
         }
 
-        // Récupérer l'historique complet
         $history = $this->progressModel->getAllByUser($_SESSION['user_id']);
-        
-        // Récupérer la liste des jeux pour le formulaire d'ajout (uniquement ceux en cours par exemple, ou tous)
         $games = $this->gameModel->getAll($_SESSION['user_id']);
 
-        // Calculs rapides pour les KPIs de la page
         $totalHours = 0;
         foreach($history as $h) $totalHours += $h['duration_minutes'];
         $totalHours = round($totalHours / 60, 1);
@@ -36,6 +39,8 @@ class ProgressController {
         if (!isset($_SESSION['user_id'])) return;
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->checkCsrf(); // <--- VERIFICATION
+
             if ($this->progressModel->add($_POST)) {
                 $_SESSION['toast'] = ['msg' => "Progression enregistrée !", 'type' => 'success'];
             } else {
@@ -49,6 +54,7 @@ class ProgressController {
     public function delete() {
         if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) return;
         
+        // La suppression par URL (GET) est moins critique ici mais idéalement à protéger aussi
         if ($this->progressModel->delete($_GET['id'])) {
             $_SESSION['toast'] = ['msg' => "Entrée supprimée.", 'type' => 'warning'];
         }
