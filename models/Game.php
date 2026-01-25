@@ -55,11 +55,12 @@ class Game {
                 $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
             }
         } 
-        // CAS 2 : URL Distante (RAWG)
+        // CAS 2 : URL Distante (RAWG) - C'est ici que la correction agit
         elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
             $downloaded = $this->downloadImage($imagePath);
             if ($downloaded) {
                 $imagePath = $downloaded;
+                // Maintenant que l'image est locale, on peut calculer la couleur
                 $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
             }
         }
@@ -116,7 +117,26 @@ class Game {
         return $stmt->execute();
     }
 
-    // --- IMPORT JSON (Si utilisé) ---
+    public function searchGames($userId, $term) {
+        // Recherche large avec LIKE (Titre, Genre, ou Plateforme)
+        $query = "SELECT * FROM " . $this->table . " 
+                WHERE user_id = :user_id 
+                AND (title LIKE :term OR genres LIKE :term OR platform LIKE :term)
+                ORDER BY created_at DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        // On ajoute les jokers % pour que "Zelda" trouve "The Legend of Zelda"
+        $searchTerm = "%" . $term . "%";
+        
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':term', $searchTerm);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    // --- IMPORT JSON ---
     public function importEntry($game, $userId) {
         $query = "INSERT INTO " . $this->table . " 
         (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price) 
@@ -148,6 +168,7 @@ class Game {
         return $stmt->execute();
     }
 
+    // --- CORRECTION MAJEURE ICI : Utilisation de cURL au lieu de file_get_contents ---
     private function downloadImage($url) {
         $uploadDir = dirname(__DIR__) . '/uploads/games/';
         if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
@@ -155,8 +176,26 @@ class Game {
         $fileName = uniqid() . "_rawg.jpg";
         $targetPath = $uploadDir . $fileName;
 
-        $content = @file_get_contents($url);
-        if ($content === false) return null;
+        // Initialisation de cURL
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        // Ajout d'un User-Agent (Chrome) pour éviter les blocages API/CDN
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        // Ignore les erreurs SSL (utile en environnement local type WAMP/XAMPP)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $content = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        // Si échec du téléchargement
+        if ($httpCode !== 200 || empty($content)) {
+            // Vous pouvez décommenter la ligne suivante pour débugger
+            // error_log("Erreur téléchargement image RAWG: $url - Code: $httpCode - Erreur: $error");
+            return null;
+        }
 
         $srcImage = @imagecreatefromstring($content);
         if (!$srcImage) return null;
@@ -167,7 +206,7 @@ class Game {
 
         if ($width > $maxWidth) {
             $newWidth = $maxWidth;
-            $newHeight = floor($height * ($maxWidth / $width));
+            $newHeight = (int) floor($height * ($maxWidth / $width));
         } else {
             $newWidth = $width;
             $newHeight = $height;
@@ -177,7 +216,8 @@ class Game {
         imagefill($dstImage, 0, 0, imagecolorallocate($dstImage, 255, 255, 255));
         imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
 
-        $saved = imagejpeg($dstImage, $targetPath, 80);
+        // Sauvegarde locale
+        $saved = imagejpeg($dstImage, $targetPath, 85);
 
         imagedestroy($srcImage);
         imagedestroy($dstImage);
@@ -196,7 +236,7 @@ class Game {
             case 'image/webp': 
                 if(function_exists('imagecreatefromwebp')) {
                     $img = imagecreatefromwebp($filepath); 
-                } else { return 'rgb(30, 30, 30)'; } // Sécurité WebP
+                } else { return 'rgb(30, 30, 30)'; }
                 break;
             default: return 'rgb(30, 30, 30)';
         }
@@ -227,7 +267,6 @@ class Game {
         
         $ext = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
 
-        // Validation extensions basiques
         if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) return null;
 
         switch ($ext) {
@@ -237,7 +276,7 @@ class Game {
             case 'webp': 
                 if(function_exists('imagecreatefromwebp')) {
                     $src = imagecreatefromwebp($file["tmp_name"]); 
-                } else { return null; } // Sécurité WebP
+                } else { return null; }
                 break;
             default: return null;
         }
@@ -248,19 +287,19 @@ class Game {
         $newHeight = ($width > $newWidth) ? ($height * ($newWidth / $width)) : $height;
         $newWidth = ($width > $newWidth) ? $newWidth : $width;
 
-        $dst = imagecreatetruecolor($newWidth, $newHeight);
+        $dst = imagecreatetruecolor($newWidth, (int)$newHeight);
         if ($ext == 'png' || $ext == 'webp') {
             imagealphablending($dst, false);
             imagesavealpha($dst, true);
         }
-        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newWidth, (int)$newHeight, $width, $height);
 
         $saved = false;
         if ($ext == 'png') $saved = imagepng($dst, $targetFilePath, 8);
         elseif ($ext == 'webp') {
             if(function_exists('imagewebp')) {
                 $saved = imagewebp($dst, $targetFilePath, 85);
-            } else { $saved = false; } // Sécurité sauvegarde WebP
+            } else { $saved = false; }
         }
         else $saved = imagejpeg($dst, $targetFilePath, 85);
 
