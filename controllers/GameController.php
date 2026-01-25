@@ -71,10 +71,19 @@ class GameController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->checkCsrf(); // <--- VERIFICATION
 
+            // On vérifie si c'est un nouvel ajout (game_id est vide)
+            $isNewGame = empty($_POST['game_id']);
+
             if ($this->gameModel->save($_POST, $_FILES, $_SESSION['user_id'])) {
                 $_SESSION['toast'] = ['msg' => "Enregistré !", 'type' => 'success'];
             } else {
                 $_SESSION['toast'] = ['msg' => "Erreur lors de l'enregistrement.", 'type' => 'danger'];
+            }
+
+            // Si c'est un nouvel ajout, on redirige avec le paramètre pour rouvrir l'accordéon
+            if ($isNewGame) {
+                header("Location: index.php?open_add=1");
+                exit();
             }
         }
         header("Location: index.php"); exit();

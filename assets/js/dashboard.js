@@ -2,6 +2,7 @@ const RAWG_API_KEY = 'ae5a8fa57c704860b5010b3787ab78ef';
 
 // --- CONFIGURATION ICONES (Material Icons Codepoints) ---
 const statusConfig = {
+    'not_started': { label: 'Non commencé', class: 'bg-secondary', icon: '&#xe837;' },
     'playing': { label: 'En cours', class: 'bg-info', icon: '&#xea5b;' },      // sports_esports
     'finished': { label: 'Terminé', class: 'bg-success', icon: '&#xe86c;' },  // check_circle
     'completed': { label: 'Platiné', class: 'bg-warning text-dark', icon: '&#xea23;' }, // emoji_events
@@ -133,6 +134,7 @@ function getProcessedGames() {
 
         switch(sortType) {
             case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
+            case 'alpha_asc': return a.title.localeCompare(b.title);
             case 'rating_desc': return valB('user_rating') - valA('user_rating');
             case 'status_asc': return a.status.localeCompare(b.status);
             case 'platform_asc': return a.platform.localeCompare(b.platform);
@@ -398,8 +400,8 @@ function openModal(g = null) {
     listContainer.innerHTML = '';
     if (g && g.platform) { if (standardPlatforms.includes(g.platform)) { platformSelect.value = g.platform; toggleCustomPlatform(); } else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); } } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
     checkPsnVisibility();
-    if (g && g.format === 'physical') document.getElementById('fmtPhysical').checked = true; else document.getElementById('fmtDigital').checked = true;
-    document.getElementById('gameStatus').value = g ? (g.status || 'playing') : 'playing';
+    if (g && g.format === 'digital') document.getElementById('fmtDigital').checked = true; else document.getElementById('fmtPhysical').checked = true;
+    document.getElementById('gameStatus').value = g ? (g.status || 'not_started') : 'not_started';
     document.getElementById('gameDate').value = g ? g.release_date : '';
     document.getElementById('gameMeta').value = g ? g.metacritic_score : '';
     document.getElementById('gameRating').value = g ? (g.user_rating || 5) : 5;

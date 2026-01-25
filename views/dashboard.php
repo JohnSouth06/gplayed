@@ -25,21 +25,21 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3 pt-2">
     <div>
-        <h2 class="h3 dashboard-welcome mb-1 fw-light">Bonjour <span class="text-primary fw-bold"><?= htmlspecialchars($username) ?></span> 👋</h2>
+        <h2 class="h2 dashboard-welcome mb-1 fw-light">Bonjour <span class="text-primary fw-bold"><?= htmlspecialchars($username) ?></span> 👋</h2>
     </div>
     <div class="d-flex gap-2 overflow-x-auto pb-2 pb-md-0" style="scrollbar-width:none;">
         <div class="stat-pill"><i class="material-icons text-primary align-top icon-lg pe-2">&#xea28;</i>Total <strong><?= $totalGames ?></strong></div>
-        <div class="stat-pill mx-4"><i class="material-icons text-info align-top icon-lg pe-2">&#xe037;</i>En cours <strong><?= $playingCount ?></strong></div>
+        <div class="stat-pill mx-3"><i class="material-icons text-info align-top icon-lg pe-2">&#xe037;</i>En cours <strong><?= $playingCount ?></strong></div>
         <div class="stat-pill"><i class="material-icons text-success align-top icon-lg pe-2">&#xe5ca;</i>Terminés <strong><?= $finishedCount ?></strong></div> 
     </div>
 </div>
 
 <div class="card bg-body-primaary border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
 
-    <div class="card-header accordion-trigger bg-transparent border-0 p-3 p-md-4 d-flex justify-content-between align-items-center"
+    <div class="card-header accordion-trigger bg-transparent border-0 p-3 p-md-4 d-flex justify-content-between align-items-center <?= isset($_GET['open_add']) ? '' : 'collapsed' ?>"
         data-bs-toggle="collapse"
         data-bs-target="#addGameSection"
-        aria-expanded="false"
+        aria-expanded="<?= isset($_GET['open_add']) ? 'true' : 'false' ?>"
         aria-controls="addGameSection">
 
         <h5 class="mb-0 fw-bold text-primary d-flex align-items-center gap-2">
@@ -49,7 +49,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
         <i class="material-icons-outlined text-secondary rotate-icon icon-md">&#xe5cf;</i>
     </div>
 
-    <div class="collapse" id="addGameSection">
+    <div class="collapse <?= isset($_GET['open_add']) ? 'show' : '' ?>" id="addGameSection">
         <div class="card-body px-4 pb-4 pt-0">
 
             <hr class="text-secondary opacity-10 my-2 mb-4">
@@ -96,7 +96,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
 
     <div class="d-flex flex-wrap justify-content-between justify-content-xxl-end gap-2 w-100 w-xxl-auto">
 
-        <select id="filterPlatform" class="form-select border-0 shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
+        <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
             <option value="all">Plateforme</option>
             <option value="PS5">PlayStation 5</option>
             <option value="PS4">PlayStation 4</option>
@@ -105,8 +105,9 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <option value="PC">PC / Steam</option>
         </select>
 
-        <select id="filterStatus" class="form-select border-0 shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
+        <select id="filterStatus" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
             <option value="all">Statut</option>
+            <option value="not_started">Non commencé</option>
             <option value="playing">En cours</option>
             <option value="finished">Terminé</option>
             <option value="completed">Platiné / 100%</option>
@@ -114,9 +115,10 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <option value="dropped">Abandonné</option>
         </select>
 
-        <select id="sortSelect" class="form-select border-0 shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
+        <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
             <option value="date_desc">Récents</option>
-            <option value="rating_desc">Top Notes</option>
+            <option value="alpha_asc">De A à Z</option>
+            <option value="rating_desc">Top notes</option>
             <option value="status_asc">Statut</option>
             <option value="platform_asc">Plateforme</option>
         </select>
@@ -189,7 +191,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                     </div>
                                     <div class="row g-2 mb-3">
                                         <div class="col-6">
-                                            <label class="form-label small fw-bold mb-1 text-secondary">Plateforme</label>
+                                            <label class="form-label small fw-bold mb-1 text-secondary">Toutes les plateformes</label>
                                             <select name="platform" id="gamePlatform" class="form-select rounded-3" required onchange="toggleCustomPlatform(); checkPsnVisibility();">
                                                 <option value="PS5">PlayStation 5</option>
                                                 <option value="PS4">PlayStation 4</option>
@@ -209,6 +211,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary">Statut</label>
                                             <select name="status" id="gameStatus" class="form-select rounded-3">
+                                                <option value="not_started">Non commencé</option>
                                                 <option value="playing">En cours</option>
                                                 <option value="finished">Terminé</option>
                                                 <option value="completed">100% / Platiné</option>
@@ -220,11 +223,12 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                     <div class="row g-2 mb-3">
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary">Format</label>
-                                            <div class="bg-body-transparent p-1 rounded-3 d-flex">
-                                                <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital" checked>
-                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtDigital"><i class="material-icons-outlined icon-sm me-1">&#xe1a1;</i> Cloud</label>
-                                                <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical">
+                                            <div class="bg-body-transparent p-1 rounded-3 d-flex gap-1">
+                                                <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" checked>
                                                 <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtPhysical"><i class="material-icons-outlined icon-sm me-1">&#xe3dd;</i> Physique</label>
+                                                <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital">
+                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtDigital"><i class="material-icons-outlined icon-sm me-1">&#xe1a1;</i> Digital</label>
+                                                
                                             </div>
                                         </div>
                                         <div class="col-3">

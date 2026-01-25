@@ -290,3 +290,11 @@
 .modal-header .nav-tabs {
     --bs-nav-tabs-border-width: 0 !important;
 }
+
+/* RESPONSIVE */
+/* Stats dashboard fixes */
+@media (min-width:991.98px) and (max-width:1150px) {
+    h2.dashboard-welcome {
+        font-size: 1.25rem !important;
+    }
+}​
