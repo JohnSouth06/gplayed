@@ -225,9 +225,9 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                             <label class="form-label small fw-bold mb-1 text-secondary">Format</label>
                                             <div class="bg-body-transparent p-1 rounded-3 d-flex gap-1">
                                                 <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" checked>
-                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtPhysical"><i class="material-icons-outlined icon-sm me-1">&#xe3dd;</i> Physique</label>
+                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtPhysical"><i class="material-icons-outlined icon-sm me-1">&#xe1a1;</i> Physique</label>
                                                 <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital">
-                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtDigital"><i class="material-icons-outlined icon-sm me-1">&#xe1a1;</i> Digital</label>
+                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtDigital"><i class="material-icons-outlined icon-sm me-1">&#xe3dd;</i> Digital</label>
                                                 
                                             </div>
                                         </div>
