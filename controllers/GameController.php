@@ -1,14 +1,23 @@
 <?php
 require_once dirname(__DIR__) . '/models/Game.php';
-require_once dirname(__DIR__) . '/models/User.php'; // Nécessaire pour vérifier le profil public
+require_once dirname(__DIR__) . '/models/User.php';
 
 class GameController {
     private $gameModel;
     private $userModel;
+    private $db;
 
     public function __construct($db) {
+        $this->db = $db;
         $this->gameModel = new Game($db);
         $this->userModel = new User($db);
+    }
+
+    // --- Sécurité CSRF ---
+    private function checkCsrf() {
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            die("Erreur de sécurité : Token CSRF invalide ou manquant.");
+        }
     }
 
     public function index() {
@@ -22,6 +31,32 @@ class GameController {
         require dirname(__DIR__) . '/views/layout.php';
     }
 
+
+    public function apiSearch() {
+    // 1. Sécurité : Vérifier que l'utilisateur est connecté
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Non autorisé']);
+            exit();
+    }
+
+    // 2. Récupération du terme de recherche
+    $term = isset($_GET['q']) ? trim($_GET['q']) : '';
+
+    // 3. Appel au modèle
+    if ($term === '') {
+        // Si la recherche est vide, on renvoie tout (ou une liste vide selon votre préférence)
+        $games = $this->gameModel->getAll($_SESSION['user_id']);
+    } else {
+        $games = $this->gameModel->searchGames($_SESSION['user_id'], $term);
+    }
+
+    // 4. Renvoi de la réponse en JSON
+    header('Content-Type: application/json');
+    echo json_encode($games);
+    exit();
+}
+
     // --- Stats ---
     public function stats() {
         if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
@@ -34,10 +69,21 @@ class GameController {
     public function save() {
         if (!isset($_SESSION['user_id'])) return;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->checkCsrf(); // <--- VERIFICATION
+
+            // On vérifie si c'est un nouvel ajout (game_id est vide)
+            $isNewGame = empty($_POST['game_id']);
+
             if ($this->gameModel->save($_POST, $_FILES, $_SESSION['user_id'])) {
                 $_SESSION['toast'] = ['msg' => "Enregistré !", 'type' => 'success'];
             } else {
                 $_SESSION['toast'] = ['msg' => "Erreur lors de l'enregistrement.", 'type' => 'danger'];
+            }
+
+            // Si c'est un nouvel ajout, on redirige avec le paramètre pour rouvrir l'accordéon
+            if ($isNewGame) {
+                header("Location: index.php?open_add=1");
+                exit();
             }
         }
         header("Location: index.php"); exit();
@@ -46,6 +92,7 @@ class GameController {
     // --- Delete ---
     public function delete() {
         if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) return;
+        // Note: Pour sécuriser la suppression (GET), il faudrait aussi passer le token dans l'URL
         if ($this->gameModel->delete($_GET['id'], $_SESSION['user_id'])) {
             $_SESSION['toast'] = ['msg' => "Supprimé.", 'type' => 'warning'];
         }
@@ -58,10 +105,9 @@ class GameController {
 
         $games = $this->gameModel->getAll($_SESSION['user_id']);
         
-        // Nettoyage des données pour l'export (retrait des IDs user spécifiques)
         $exportData = array_map(function($game) {
-            unset($game['user_id']); // On retire l'ID user pour l'anonymat
-            unset($game['id']); // On retire l'ID du jeu pour éviter les conflits à l'import
+            unset($game['user_id']);
+            unset($game['id']);
             return $game;
         }, $games);
 
@@ -79,9 +125,10 @@ class GameController {
         if (!isset($_SESSION['user_id'])) return;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['json_file'])) {
+            $this->checkCsrf(); // <--- VERIFICATION
+
             $file = $_FILES['json_file'];
             
-            // Vérification extension
             $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
             if ($ext !== 'json') {
                 $_SESSION['toast'] = ['msg' => "Le fichier doit être un .json", 'type' => 'danger'];
@@ -100,7 +147,6 @@ class GameController {
 
             $count = 0;
             foreach ($games as $gameData) {
-                // On utilise une méthode dédiée pour insérer sans passer par la validation $_POST classique
                 if ($this->gameModel->importEntry($gameData, $_SESSION['user_id'])) {
                     $count++;
                 }
@@ -114,29 +160,26 @@ class GameController {
 
     // --- VUE PARTAGÉE (PROFIL PUBLIC) ---
     public function share() {
-        $username = $_GET['user'] ?? null;
-        if (!$username) {
-            header("Location: index.php");
-            exit();
+            $username = $_GET['user'] ?? null;
+            if (!$username) {
+                header("Location: index.php");
+                exit();
+            }
+
+            $targetUser = $this->userModel->getIdByUsername($username);
+            
+            if (!$targetUser) {
+                echo "Utilisateur introuvable.";
+                exit();
+            }
+
+            $games = $this->gameModel->getAll($targetUser['id']);
+            $owner = $targetUser;
+
+            $db = $this->db; 
+
+            $view = dirname(__DIR__) . '/views/public_collection.php';
+            require dirname(__DIR__) . '/views/layout.php';
         }
-
-        // Récupérer les infos de l'utilisateur cible
-        $targetUser = $this->userModel->getIdByUsername($username);
-        
-        if (!$targetUser) {
-            echo "Utilisateur introuvable.";
-            exit();
-        }
-
-        // Récupérer SES jeux
-        $games = $this->gameModel->getAll($targetUser['id']);
-        $owner = $targetUser; // Pour afficher "Collection de X"
-
-        // Charger la vue publique (lecture seule)
-        $view = dirname(__DIR__) . '/views/public_collection.php';
-        
-        // On utilise le layout standard (l'utilisateur peut être connecté ou non)
-        require dirname(__DIR__) . '/views/layout.php';
-    }
 }
 ?>
