@@ -162,6 +162,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="tab-info">
                             <input type="hidden" name="game_id" id="gameId">
+                            <input type="hidden" name="rawg_id" id="gameRawgId">
                             <div class="row g-4">
                                 <div class="col-md-5">
                                     <div class="ratio ratio-1x1 bg-body-tertiary rounded-4 overflow-hidden position-relative group-hover-upload">

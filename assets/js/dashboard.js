@@ -14,10 +14,10 @@ const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'X
 
 // --- CONFIGURATION INFINITE SCROLL ---
 let currentView = localStorage.getItem('viewMode') || 'grid';
-let processedGamesCache = []; 
-let displayedCount = 0;       
-const batchSize = 12;         
-let observer;                 
+let processedGamesCache = [];
+let displayedCount = 0;
+const batchSize = 12;
+let observer;
 let modal;
 
 // Variable pour le délai de recherche (Debounce)
@@ -27,25 +27,25 @@ document.addEventListener('DOMContentLoaded', () => {
     modal = new bootstrap.Modal(document.getElementById('gameModal'));
     initViewButtons();
     setupIntersectionObserver();
-    
+
     // --- MISE EN PLACE DE LA RECHERCHE SERVEUR ---
     const searchInput = document.getElementById('internalSearchInput');
     if (searchInput) {
         // On désactive l'événement inline (celui dans le HTML) pour éviter les conflits
         searchInput.onkeyup = null;
-        
+
         // On écoute l'événement 'input' pour une meilleure réactivité
         searchInput.addEventListener('input', (e) => {
             handleServerSearch(e.target.value);
         });
     }
 
-    updateView(); 
+    updateView();
 });
 
 // TROPHY SELECT
 document.querySelectorAll('.dropdown-item').forEach(item => {
-    item.addEventListener('click', function(e) {
+    item.addEventListener('click', function (e) {
         e.preventDefault();
         const selectedValue = this.getAttribute('data-value');
         const selectedHtml = this.innerHTML;
@@ -77,16 +77,16 @@ async function fetchGamesFromServer(query) {
     try {
         // Appel à l'API PHP
         const response = await fetch(`index.php?action=api_search&q=${encodeURIComponent(query)}`);
-        
+
         if (!response.ok) throw new Error('Erreur réseau');
-        
+
         const games = await response.json();
-        
+
         // On remplace les données locales par celles reçues du serveur
-        localGames = games; 
-        
+        localGames = games;
+
         // On met à jour l'affichage
-        updateView(); 
+        updateView();
     } catch (error) {
         console.error('Erreur lors de la recherche:', error);
     } finally {
@@ -113,14 +113,14 @@ function getProcessedGames() {
     const platformFilter = document.getElementById('filterPlatform').value;
     const statusFilter = document.getElementById('filterStatus').value;
     const sortType = document.getElementById('sortSelect').value;
-    
+
     // NOTE : On ne filtre plus le texte ici car le serveur l'a déjà fait (dans localGames).
     // On garde uniquement les filtres "secondaires" (dropdowns) qui s'appliquent sur les résultats.
 
     // 1. Filtrage (Dropdowns uniquement)
     let filtered = localGames.filter(g => {
         if (platformFilter !== 'all') {
-            if (g.platform === 'Multiplateforme') return true; 
+            if (g.platform === 'Multiplateforme') return true;
             if (!g.platform.includes(platformFilter)) return false;
         }
         if (statusFilter !== 'all' && g.status !== statusFilter) return false;
@@ -132,7 +132,7 @@ function getProcessedGames() {
         const valA = (key) => a[key] || 0;
         const valB = (key) => b[key] || 0;
 
-        switch(sortType) {
+        switch (sortType) {
             case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
             case 'alpha_asc': return a.title.localeCompare(b.title);
             case 'rating_desc': return valB('user_rating') - valA('user_rating');
@@ -171,7 +171,7 @@ function updateView() {
         return;
     }
 
-    loadMoreGames(); 
+    loadMoreGames();
 }
 
 // --- RENDU : CHARGEMENT PROGRESSIF ---
@@ -231,14 +231,14 @@ function getNeonColor(rgbString, opacity = 1) {
     if (!rgbString || rgbString === 'null') return `rgba(255, 255, 255, ${opacity})`;
     const match = rgbString.match(/\d+/g);
     if (!match || match.length < 3) return `rgba(255, 255, 255, ${opacity})`;
-    
+
     let [r, g, b] = match.map(Number);
     r /= 255; g /= 255; b /= 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     let h, s, l = (max + min) / 2;
 
     if (max === min) {
-        h = s = 0; 
+        h = s = 0;
     } else {
         const d = max - min;
         s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -250,7 +250,7 @@ function getNeonColor(rgbString, opacity = 1) {
         h /= 6;
     }
 
-    if (s > 0.1) s = Math.max(s, 0.85); 
+    if (s > 0.1) s = Math.max(s, 0.85);
     l = Math.max(0.50, Math.min(0.75, l));
 
     h = Math.round(h * 360);
@@ -263,16 +263,16 @@ function getNeonColor(rgbString, opacity = 1) {
 function generateGridCard(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
     const img = g.image_url ? g.image_url : '';
-    
-    const formatIcon = (g.format === 'physical') 
-        ? '<i class="material-icons-outlined icon-sm text-secondary me-1" title="Physique">&#xe1a1;</i>' 
+
+    const formatIcon = (g.format === 'physical')
+        ? '<i class="material-icons-outlined icon-sm text-secondary me-1" title="Physique">&#xe1a1;</i>'
         : '<i class="material-icons-outlined icon-sm text-secondary me-1" title="Digital">&#xe3dd;</i>';
-    
+
     const shadowColor = getNeonColor(g.dominant_color, 0.4);
     const borderColor = getNeonColor(g.dominant_color, 0.5);
 
     let metaHtml = '';
-    
+
     let platIconHtml = '';
     if (g.platform && g.platform.includes(',')) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
@@ -281,14 +281,14 @@ function generateGridCard(g) {
     } else {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
     }
-    
+
     metaHtml += `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
 
     if (g.metacritic_score > 0) {
         let metaIcon = g.metacritic_score >= 75 ? 'text-success' : (g.metacritic_score >= 50 ? 'text-warning' : 'text-danger');
         metaHtml += `<span class="meta-tag" title="Metascore"><i class="svg-icon metacritic-icon ${metaIcon} me-1"></i>${g.metacritic_score}</span>`;
     }
-    
+
     if (g.estimated_price > 0) {
         metaHtml += `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle"><i class="material-icons-outlined icon-sm me-1">&#xe54e;</i>${g.estimated_price}€</span>`;
     }
@@ -332,12 +332,12 @@ function generateGridCard(g) {
 
 function generateListRow(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
-    const img = g.image_url ? 
-        `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` : 
+    const img = g.image_url ?
+        `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
         `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
-    
+
     const price = g.estimated_price > 0 ? `<span class="badge bg-body-secondary text-body border">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
-    
+
     let platIconHtml = '';
     if (g.platform && g.platform.includes(',')) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
@@ -388,6 +388,7 @@ function edit(id) { openModal(localGames.find(g => g.id == id)); }
 function openModal(g = null) {
     if (!modal) modal = new bootstrap.Modal(document.getElementById('gameModal'));
     document.getElementById('gameId').value = g ? g.id : '';
+    document.getElementById('gameRawgId').value = '';
     document.getElementById('gameTitle').value = g ? g.title : '';
     const prev = document.getElementById('previewImg');
     const holder = document.getElementById('uploadPlaceholder');
@@ -422,4 +423,48 @@ async function deleteTrophy(id) { if (!confirm('Supprimer ?')) return; await fet
 
 // --- RAWG ---
 async function searchRawg() { const q = document.getElementById('rawgSearchInput').value; if (!q) return; document.getElementById('rawgContainer').classList.remove('d-none'); document.getElementById('rawgLoading').classList.remove('d-none'); try { const res = await fetch(`https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(q)}&page_size=5`); const data = await res.json(); let html = ''; data.results.forEach(g => { html += `<div class="card border-0 shadow-sm flex-shrink-0 bg-body-tertiary" style="width: 160px; cursor: pointer; overflow: hidden; border-radius: 12px;" onclick="fetchGameDetails(${g.id})"><img src="${g.background_image || ''}" style="height:100px; width: 100%; object-fit:cover"><div class="p-2 text-center"><small class="fw-bold d-block text-truncate text-body">${g.name}</small><small class="text-muted" style="font-size: 0.7rem;">${g.released ? g.released.substring(0, 4) : ''}</small></div></div>`; }); document.getElementById('rawgResults').innerHTML = html; } catch (e) { } finally { document.getElementById('rawgLoading').classList.add('d-none'); } }
-async function fetchGameDetails(id) { document.getElementById('rawgLoading').classList.remove('d-none'); try { const res = await fetch(`https://api.rawg.io/api/games/${id}?key=${RAWG_API_KEY}`); const g = await res.json(); openModal(); document.getElementById('gameTitle').value = g.name; document.getElementById('gameDate').value = g.released; document.getElementById('gameMeta').value = g.metacritic; document.getElementById('gameImageHidden').value = g.background_image; if (g.background_image) { document.getElementById('previewImg').src = g.background_image; document.getElementById('previewImg').classList.remove('d-none'); document.getElementById('uploadPlaceholder').classList.add('d-none'); } document.getElementById('gameDesc').value = g.description_raw; document.getElementById('gameGenres').value = g.genres ? g.genres.map(x => x.name).join(', ') : ''; } catch (e) { alert("Erreur import."); } finally { document.getElementById('rawgLoading').classList.add('d-none'); } }
+async function fetchGameDetails(id) {
+    document.getElementById('rawgLoading').classList.remove('d-none');
+    try {
+        const res = await fetch(`https://api.rawg.io/api/games/${id}?key=${RAWG_API_KEY}`);
+        const g = await res.json();
+
+        // --- DEBUT MODIFICATION : Vérification Doublon ---
+        // On vérifie si localGames est défini et contient des jeux
+        if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
+            // On nettoie les titres pour comparer (minuscule + sans espaces superflus)
+            const cleanRawgTitle = g.name.trim().toLowerCase();
+
+            const existingGame = localGames.find(game =>
+                game.title.trim().toLowerCase() === cleanRawgTitle
+            );
+
+            if (existingGame) {
+                // Alerte si le jeu est trouvé
+                alert(`⚠️ Attention : Vous possédez déjà "${g.name}" dans votre collection !\n(Plateforme enregistrée : ${existingGame.platform})`);
+            }
+        }
+        // --- FIN MODIFICATION ---
+
+        openModal();
+        document.getElementById('gameTitle').value = g.name;
+        document.getElementById('gameDate').value = g.released;
+        document.getElementById('gameMeta').value = g.metacritic;
+        document.getElementById('gameImageHidden').value = g.background_image;
+
+        if (g.background_image) {
+            document.getElementById('previewImg').src = g.background_image;
+            document.getElementById('previewImg').classList.remove('d-none');
+            document.getElementById('uploadPlaceholder').classList.add('d-none');
+        }
+
+        document.getElementById('gameDesc').value = g.description_raw;
+        document.getElementById('gameGenres').value = g.genres ? g.genres.map(x => x.name).join(', ') : '';
+
+    } catch (e) {
+        console.error(e); // Ajout d'un log console pour aider au debug
+        alert("Erreur lors de l'import des données du jeu.");
+    } finally {
+        document.getElementById('rawgLoading').classList.add('d-none');
+    }
+}

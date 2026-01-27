@@ -84,14 +84,14 @@ class Game
         $price = (isset($data['estimated_price']) && $data['estimated_price'] !== '') ? $data['estimated_price'] : null;
 
         if (!empty($data['game_id'])) {
-            // UPDATE
+
             $query = "UPDATE " . $this->table . " SET 
-                title=:title, platform=:platform, format=:format, status=:status, release_date=:date, 
-                metacritic_score=:meta, user_rating=:rating, comment=:comment, 
-                description=:desc, genres=:genres, dominant_color=:color, estimated_price=:price";
+            title=:title, platform=:platform, format=:format, status=:status, release_date=:date, 
+            metacritic_score=:meta, user_rating=:rating, comment=:comment, 
+            description=:desc, genres=:genres, dominant_color=:color, estimated_price=:price,
+            rawg_id=:rawg_id"; // <-- AJOUT
 
             if ($imagePath) $query .= ", image_url=:img";
-
             $query .= " WHERE id=:id AND user_id=:uid";
 
             $stmt = $this->conn->prepare($query);
@@ -100,13 +100,14 @@ class Game
         } else {
             // INSERT
             $query = "INSERT INTO " . $this->table . " 
-                (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price) 
-                VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price)";
+            (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price, rawg_id) 
+            VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price, :rawg_id)"; // <-- AJOUT
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':img', $imagePath);
         }
 
         $stmt->bindParam(':uid', $userId);
+        $stmt->bindParam(':rawg_id', $rawgId);
         $stmt->bindParam(':title', $data['title']);
         $stmt->bindParam(':platform', $finalPlatform);
         $stmt->bindParam(':format', $format);
@@ -141,6 +142,30 @@ class Game
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Recherche de doublons
+    public function checkDuplicate($userId, $rawgId, $title, $platform)
+    {
+        // Cas 1 : Si on a un ID RAWG, c'est la vérification la plus fiable
+        if (!empty($rawgId)) {
+            $query = "SELECT id FROM " . $this->table . " WHERE user_id = :uid AND rawg_id = :rawg_id LIMIT 1";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':uid', $userId);
+            $stmt->bindParam(':rawg_id', $rawgId);
+            $stmt->execute();
+            if ($stmt->fetch()) return true;
+        }
+
+        // Cas 2 : Vérification classique (Titre + Plateforme)
+        $query = "SELECT id FROM " . $this->table . " WHERE user_id = :uid AND title = :title AND platform = :platform LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':uid', $userId);
+        $stmt->bindParam(':title', $title);
+        $stmt->bindParam(':platform', $platform);
+        $stmt->execute();
+
+        return $stmt->fetch() !== false;
     }
 
     // --- IMPORT JSON ---
