@@ -20,7 +20,7 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                     </div>
                     <p class="fw-light text-secondary">Your Gaming Story</p>
                 </div>
-                
+
                 <!--<div class="mb-4">
                     <a href="#" class="btn btn-outline-light w-100 rounded-pill py-2 d-flex align-items-center justify-content-center gap-2 border-secondary text-body" onclick="alert('Configuration serveur OAuth requise.')">
                         <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20">
@@ -55,12 +55,12 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                             </div>
                             <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">Se connecter</button>
                         </form>
-                        
+
                         <div class="text-end mt-2">
                             <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal" class="text-decoration-none small text-secondary">Mot de passe oublié ?</a>
                         </div>
 
-                        <?php if(isset($_GET['error']) && $_GET['error'] == 'invalid') echo '<div class="alert alert-danger mt-3 rounded-3 small"><i class="material-icons align-middle fs-5 me-2">&#xe001;</i>Identifiants incorrects</div>'; ?>
+                        <?php if (isset($_GET['error']) && $_GET['error'] == 'invalid') echo '<div class="alert alert-danger mt-3 rounded-3 small"><i class="material-icons align-middle fs-5 me-2">&#xe001;</i>Identifiants incorrects</div>'; ?>
                     </div>
 
                     <div class="tab-pane fade <?= $activeTab === 'register' ? 'show active' : '' ?>" id="register-tab">
@@ -69,6 +69,13 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                             <div class="form-floating mb-3">
                                 <input type="text" name="username" class="form-control rounded-3" placeholder="Pseudo" required>
                                 <label>Choisir un pseudo</label>
+                            </div>
+                            <div class="form-floating mb-3">
+                                <select name="language" class="form-select rounded-3">
+                                    <option value="en" <?= (isset($_GET['lang']) && $_GET['lang'] == 'en') ? 'selected' : '' ?>><?= __('option_en') ?></option>
+                                    <option value="fr" <?= (isset($_GET['lang']) && $_GET['lang'] == 'fr') ? 'selected' : '' ?>><?= __('option_fr') ?></option>
+                                </select>
+                                <label><?= __('label_language') ?></label>
                             </div>
                             <div class="form-floating mb-3">
                                 <input type="email" name="email" class="form-control rounded-3" placeholder="Email" required>
@@ -81,11 +88,11 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                             </div>
                             <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">Créer compte</button>
                         </form>
-                        <?php 
-                            if(isset($_GET['error'])) {
-                                if($_GET['error'] == 'weak_password') echo '<div class="alert alert-warning mt-3 rounded-3 small">Mot de passe trop faible.</div>';
-                                if($_GET['error'] == 'exists') echo '<div class="alert alert-danger mt-3 rounded-3 small">Compte déjà existant.</div>';
-                            }
+                        <?php
+                        if (isset($_GET['error'])) {
+                            if ($_GET['error'] == 'weak_password') echo '<div class="alert alert-warning mt-3 rounded-3 small">Mot de passe trop faible.</div>';
+                            if ($_GET['error'] == 'exists') echo '<div class="alert alert-danger mt-3 rounded-3 small">Compte déjà existant.</div>';
+                        }
                         ?>
                     </div>
                 </div>

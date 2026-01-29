@@ -28,6 +28,7 @@ require_once ROOT_PATH . '/controllers/ProgressController.php';
 require_once ROOT_PATH . '/controllers/CommunityController.php';
 require_once ROOT_PATH . '/controllers/SocialController.php';
 require_once ROOT_PATH . '/controllers/TrophyController.php';
+require_once ROOT_PATH . '/config/lang.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -43,76 +44,140 @@ $action = $_GET['action'] ?? 'home';
 
 switch ($action) {
     // Auth & Profile
-    case 'login': $authController->login(); break;
-    case 'register': $authController->register(); break;
-    case 'logout': $authController->logout(); break;
-    case 'profile': $authController->profile(); break;
-    case 'update_profile': $authController->updateProfile(); break;
-    case 'delete_account': $authController->deleteAccount(); break;
+    case 'login':
+        $authController->login();
+        break;
+    case 'register':
+        $authController->register();
+        break;
+    case 'logout':
+        $authController->logout();
+        break;
+    case 'profile':
+        $authController->profile();
+        break;
+    case 'update_profile':
+        $authController->updateProfile();
+        break;
+    case 'delete_account':
+        $authController->deleteAccount();
+        break;
 
     //Password/Reset
-    case 'forgot_password': $authController->forgotPassword(); break;
-    case 'reset_password': $authController->showResetForm(); break;
-    case 'do_reset': $authController->doReset(); break;
+    case 'forgot_password':
+        $authController->forgotPassword();
+        break;
+    case 'reset_password':
+        $authController->showResetForm();
+        break;
+    case 'do_reset':
+        $authController->doReset();
+        break;
 
     // Games
-    case 'save': $gameController->save(); break;
-    case 'delete': $gameController->delete(); break;
-    case 'stats': $gameController->stats(); break;
+    case 'save':
+        $gameController->save();
+        break;
+    case 'delete':
+        $gameController->delete();
+        break;
+    case 'stats':
+        $gameController->stats();
+        break;
 
     // Recherche API
-    case 'api_search': $gameController->apiSearch(); break;
-    
+    case 'api_search':
+        $gameController->apiSearch();
+        break;
+
     // Import/Export
-    case 'export_json': $gameController->export(); break;
-    case 'import_json': $gameController->import(); break;
-    
+    case 'export_json':
+        $gameController->export();
+        break;
+    case 'import_json':
+        $gameController->import();
+        break;
+
     // Progression
-    case 'progression': $progressController->index(); break;
-    case 'add_progress': $progressController->add(); break;
-    case 'delete_progress': $progressController->delete(); break;
+    case 'progression':
+        $progressController->index();
+        break;
+    case 'add_progress':
+        $progressController->add();
+        break;
+    case 'delete_progress':
+        $progressController->delete();
+        break;
 
     // --- Social
-    case 'community': $communityController->index(); break;
-    case 'toggle_follow': $communityController->toggleFollow(); break;
+    case 'community':
+        $communityController->index();
+        break;
+    case 'toggle_follow':
+        $communityController->toggleFollow();
+        break;
 
     // Profil Public
-    case 'share': $gameController->share(); break;
-    
+    case 'share':
+        $gameController->share();
+        break;
+
     // Actus
-    case 'feed': $socialController->feed(); break;
-    case 'add_comment': $socialController->addComment(); break;
+    case 'feed':
+        $socialController->feed();
+        break;
+    case 'add_comment':
+        $socialController->addComment();
+        break;
 
     // Comments
-    case 'add_comment': 
-    if(isset($socialController)) {
-        $socialController->addComment(); 
-    }
-    break;
+    case 'add_comment':
+        if (isset($socialController)) {
+            $socialController->addComment();
+        }
+        break;
 
     // Trophy
     case 'api_add_trophy':
-    require_once 'controllers/TrophyController.php';
-    $controller = new TrophyController($db);
-    $controller->apiAdd();
-    break;
+        require_once 'controllers/TrophyController.php';
+        $controller = new TrophyController($db);
+        $controller->apiAdd();
+        break;
 
-    case 'api_get_trophies': 
-    $trophyController->apiGet(); 
-    break;
-    case 'api_add_trophy': 
-    $trophyController->apiAdd(); 
-    break;
-    case 'api_toggle_trophy': 
-    $trophyController->apiToggle(); 
-    break;
-    case 'api_delete_trophy': 
-    $trophyController->apiDelete(); 
-    break;
+    case 'api_get_trophies':
+        $trophyController->apiGet();
+        break;
+    case 'api_add_trophy':
+        $trophyController->apiAdd();
+        break;
+    case 'api_toggle_trophy':
+        $trophyController->apiToggle();
+        break;
+    case 'api_delete_trophy':
+        $trophyController->apiDelete();
+        break;
 
-    // Default
+    // Générateur de fichier de langue JS
+    case 'js_lang':
+        header('Content-Type: application/javascript');
+        // On filtre uniquement les clés commençant par 'js_' pour la sécurité et la performance
+        $jsTranslations = [];
+        if (isset($GLOBALS['translations'])) {
+            foreach ($GLOBALS['translations'] as $key => $value) {
+                if (strpos($key, 'js_') === 0) {
+                    // On enlève le préfixe 'js_' pour avoir des clés propres en JS (ex: 'js_btn_edit' devient 'btn_edit')
+                    $cleanKey = substr($key, 3);
+                    $jsTranslations[$cleanKey] = $value;
+                }
+            }
+        }
+        // On affiche le code JS
+        echo 'const LANG = ' . json_encode($jsTranslations) . ';';
+        exit;
+
+        // Default
     case 'home':
-    default: $gameController->index(); break;
-
+    default:
+        $gameController->index();
+        break;
 }
-?>
