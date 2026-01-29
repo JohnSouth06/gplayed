@@ -250,40 +250,47 @@
     width: 20px;
     height: 20px;
     object-fit: contain;
-    flex-shrink: 0; /* Empêche l'image de s'écraser */
+    flex-shrink: 0;
+    /* Empêche l'image de s'écraser */
 }
 
 /* Retouche spécifique pour le bouton déguisé */
 #trophyDropdownBtn {
-    background-image: none !important; 
-    padding-right: 12px; /* Ajustement car on a plus besoin de la place pour l'image de fond */
+    background-image: none !important;
+    padding-right: 12px;
+    /* Ajustement car on a plus besoin de la place pour l'image de fond */
 }
 
 /* 2. On crée une flèche "physique" en CSS (un chevron) */
 #trophyDropdownBtn::after {
-    display: inline-block !important; /* On la force à s'afficher */
+    display: inline-block !important;
+    /* On la force à s'afficher */
     content: "";
-    
+
     /* Dessin du chevron */
-    border-right: 2px solid #6c757d; /* Gris standard Bootstrap */
+    border-right: 2px solid #6c757d;
+    /* Gris standard Bootstrap */
     border-bottom: 2px solid #6c757d;
     width: 8px;
     height: 8px;
-    
+
     /* Positionnement initial (pointe vers le bas) */
-    transform: rotate(45deg); 
-    
+    transform: rotate(45deg);
+
     /* C'est ici que la magie de l'animation opère */
     transition: transform 0.2s ease-in-out;
-    
+
     /* Pour bien la caler */
-    margin-left: auto; /* La pousse tout à droite */
-    margin-bottom: 2px; /* Petit ajustement vertical */
+    margin-left: auto;
+    /* La pousse tout à droite */
+    margin-bottom: 2px;
+    /* Petit ajustement vertical */
 }
 
 /* 3. L'état "Ouvert" : Bootstrap ajoute la classe .show au bouton */
 #trophyDropdownBtn.show::after {
-    transform: rotate(225deg); /* 45 + 180 degrés pour la retourner */
+    transform: rotate(225deg);
+    /* 45 + 180 degrés pour la retourner */
 }
 
 /* Header Modals */
@@ -297,4 +304,12 @@
     h2.dashboard-welcome {
         font-size: 1.25rem !important;
     }
-}​
+}
+
+@media (max-width: 575.98px) {
+    .btn:not(.d-none),
+    .btn-icon-action:not(.d-none),
+    .status-badge-float:not(.d-none) {
+        padding: 15px;
+    }
+}
