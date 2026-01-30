@@ -1,10 +1,12 @@
 <?php
 require_once dirname(__DIR__) . '/models/User.php';
 
-class AuthController {
+class AuthController
+{
     private $userModel;
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->userModel = new User($db);
     }
 
@@ -12,15 +14,17 @@ class AuthController {
      * Vérifie la validité du token CSRF.
      * À appeler au début de chaque traitement de formulaire POST.
      */
-    private function checkCsrf() {
+    private function checkCsrf()
+    {
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
             // Arrêt immédiat si le token est absent ou incorrect
             die("Erreur de sécurité : Token CSRF invalide ou manquant.");
         }
     }
-    
+
     // --- CONNEXION ---
-    public function login() {
+    public function login()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->checkCsrf(); // Sécurité CSRF
 
@@ -29,6 +33,11 @@ class AuthController {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['avatar'] = $user['avatar_url'];
+
+                if (!empty($user['language'])) {
+                    $_SESSION['lang'] = $user['language'];
+                }
+
                 $_SESSION['toast'] = ['msg' => "Ravi de vous revoir, " . $user['username'], 'type' => 'success'];
                 $_SESSION['force_loader'] = true;
                 header("Location: index.php");
@@ -41,22 +50,25 @@ class AuthController {
     }
 
     // --- INSCRIPTION ---
-    public function register() {
+    public function register()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->checkCsrf(); // Sécurité CSRF
 
-            $result = $this->userModel->register($_POST['username'], $_POST['email'], $_POST['password']);
-            
+            $lang = $_POST['language'] ?? 'en';
+            $result = $this->userModel->register($_POST['username'], $_POST['email'], $_POST['password'], $lang);
+
             if ($result === "weak_password") {
                 header("Location: index.php?error=weak_password");
             } elseif ($result === "exists") {
                 header("Location: index.php?error=exists");
             } elseif ($result) {
                 // Connexion automatique après inscription réussie
-                $user = $this->userModel->login($_POST['username'], $_POST['password']); 
+                $user = $this->userModel->login($_POST['username'], $_POST['password']);
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['avatar'] = null;
+                $_SESSION['lang'] = $lang;
                 $_SESSION['toast'] = ['msg' => "Compte créé avec succès !", 'type' => 'success'];
                 $_SESSION['force_loader'] = true;
                 header("Location: index.php");
@@ -68,26 +80,34 @@ class AuthController {
     }
 
     // --- PROFIL ---
-    public function profile() {
-        if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
+    public function profile()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: index.php");
+            exit();
+        }
         $user = $this->userModel->getById($_SESSION['user_id']);
         $view = dirname(__DIR__) . '/views/profile.php';
         require dirname(__DIR__) . '/views/layout.php';
     }
 
-    public function updateProfile() {
+    public function updateProfile()
+    {
         if (!isset($_SESSION['user_id'])) return;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->checkCsrf(); // Sécurité CSRF
 
             $newPass = $_POST['new_password'] ?? '';
             $email = $_POST['email'] ?? '';
-            $result = $this->userModel->update($_SESSION['user_id'], $email, $newPass, $_FILES);
+            $lang = $_POST['language'] ?? 'en';
+
+            $result = $this->userModel->update($_SESSION['user_id'], $email, $newPass, $_FILES, $lang);
             if ($result === "weak_password") {
                 $_SESSION['toast'] = ['msg' => "Mot de passe trop faible.", 'type' => 'danger'];
             } elseif ($result) {
                 $updatedUser = $this->userModel->getById($_SESSION['user_id']);
                 $_SESSION['avatar'] = $updatedUser['avatar_url'];
+                $_SESSION['lang'] = $lang;
                 $_SESSION['toast'] = ['msg' => "Profil mis à jour.", 'type' => 'success'];
             } else {
                 $_SESSION['toast'] = ['msg' => "Erreur lors de la mise à jour.", 'type' => 'danger'];
@@ -97,7 +117,8 @@ class AuthController {
         exit();
     }
 
-    public function deleteAccount() {
+    public function deleteAccount()
+    {
         if (!isset($_SESSION['user_id'])) return;
         if (isset($_POST['confirm_delete']) && $_POST['confirm_delete'] === 'yes') {
             $this->checkCsrf(); // Sécurité CSRF
@@ -112,30 +133,32 @@ class AuthController {
         header("Location: index.php?action=profile");
     }
 
-    public function logout() {
+    public function logout()
+    {
         session_destroy();
         header("Location: index.php");
         exit();
     }
 
     // --- MOT DE PASSE OUBLIÉ (NOUVEAU) ---
-    
+
     // 1. Traitement du formulaire "Mot de passe oublié"
-    public function forgotPassword() {
+    public function forgotPassword()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->checkCsrf(); // Sécurité CSRF
 
             $email = $_POST['email'];
-            
+
             // On vérifie si l'email existe
             if ($this->userModel->emailExists($email)) {
                 $token = bin2hex(random_bytes(32)); // Génère un token unique
                 // Enregistre le token en BDD
                 $this->userModel->setResetToken($email, $token);
-                
+
                 // Lien de réinitialisation
                 $link = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']) . "/index.php?action=reset_password&token=" . $token;
-                
+
                 $subject = "Reinitialisation de mot de passe - GameCol";
                 $message = "Bonjour,\n\nCliquez ici pour changer votre mot de passe :\n" . $link;
                 $headers = "From: no-reply@gamecol.com";
@@ -158,9 +181,10 @@ class AuthController {
     }
 
     // 2. Affichage du formulaire de nouveau mot de passe (via le lien email)
-    public function showResetForm() {
+    public function showResetForm()
+    {
         $token = $_GET['token'] ?? '';
-        
+
         // J'ai ajouté l'input caché csrf_token ici aussi pour que doReset fonctionne
         echo '<!DOCTYPE html>
         <html lang="fr" data-bs-theme="dark">
@@ -178,8 +202,8 @@ class AuthController {
                     <p class="text-secondary small">Choisissez un mot de passe sécurisé.</p>
                 </div>
                 <form action="index.php?action=do_reset" method="POST">
-                    <input type="hidden" name="csrf_token" value="'.$_SESSION['csrf_token'].'">
-                    <input type="hidden" name="token" value="'.htmlspecialchars($token).'">
+                    <input type="hidden" name="csrf_token" value="' . $_SESSION['csrf_token'] . '">
+                    <input type="hidden" name="token" value="' . htmlspecialchars($token) . '">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-secondary">Mot de passe</label>
                         <input type="password" name="new_password" class="form-control rounded-3" placeholder="********" required>
@@ -197,16 +221,17 @@ class AuthController {
     }
 
     // 3. Traitement du changement de mot de passe
-    public function doReset() {
+    public function doReset()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->checkCsrf(); // Sécurité CSRF
 
             $token = $_POST['token'];
             $pass = $_POST['new_password'];
-            
+
             // Appel au modèle pour vérifier le token et changer le MDP
             $res = $this->userModel->resetPassword($token, $pass);
-            
+
             if ($res === "weak_password") {
                 die("Erreur : Le mot de passe est trop faible. <a href='javascript:history.back()'>Retour</a>");
             } elseif ($res) {
@@ -220,4 +245,3 @@ class AuthController {
         }
     }
 }
-?>
