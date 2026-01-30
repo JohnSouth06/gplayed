@@ -1,13 +1,14 @@
 const RAWG_API_KEY = 'ae5a8fa57c704860b5010b3787ab78ef';
 
 // --- CONFIGURATION ICONES (Material Icons Codepoints) ---
+// Utilisation de LANG pour les labels
 const statusConfig = {
-    'not_started': { label: 'Non commencé', class: 'bg-secondary', icon: '&#xe837;' },
-    'playing': { label: 'En cours', class: 'bg-info', icon: '&#xea5b;' },      // sports_esports
-    'finished': { label: 'Terminé', class: 'bg-success', icon: '&#xe86c;' },  // check_circle
-    'completed': { label: 'Platiné', class: 'bg-warning text-dark', icon: '&#xea23;' }, // emoji_events
-    'dropped': { label: 'Abandon', class: 'bg-danger', icon: '&#xe14b;' },    // block
-    'wishlist': { label: 'Souhait', class: 'bg-primary text-white', icon: '&#xe8b1;' } // redeem
+    'not_started': { label: LANG.status_not_started, class: 'bg-secondary', icon: '&#xe837;' },
+    'playing': { label: LANG.status_playing, class: 'bg-info', icon: '&#xea5b;' },      
+    'finished': { label: LANG.status_finished, class: 'bg-success', icon: '&#xe86c;' },  
+    'completed': { label: LANG.status_completed, class: 'bg-warning text-dark', icon: '&#xea23;' }, 
+    'dropped': { label: LANG.status_dropped, class: 'bg-danger', icon: '&#xe14b;' },    
+    'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-white', icon: '&#xe8b1;' } 
 };
 
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
@@ -31,10 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MISE EN PLACE DE LA RECHERCHE SERVEUR ---
     const searchInput = document.getElementById('internalSearchInput');
     if (searchInput) {
-        // On désactive l'événement inline (celui dans le HTML) pour éviter les conflits
         searchInput.onkeyup = null;
-
-        // On écoute l'événement 'input' pour une meilleure réactivité
         searchInput.addEventListener('input', (e) => {
             handleServerSearch(e.target.value);
         });
@@ -51,9 +49,6 @@ document.querySelectorAll('.dropdown-item').forEach(item => {
         const selectedHtml = this.innerHTML;
 
         const btn = document.getElementById('trophyDropdownBtn');
-        // On cible le span pour ne pas écraser la flèche dropdown si elle est générée par CSS, 
-        // mais ici Bootstrap la gère via ::after, donc on peut modifier le contenu du bouton ou de son span.
-        // Pour être sûr de garder la structure propre :
         btn.querySelector('span').innerHTML = selectedHtml;
 
         document.getElementById('newTrophyType').value = selectedValue;
@@ -63,10 +58,7 @@ document.querySelectorAll('.dropdown-item').forEach(item => {
 
 // --- GESTION RECHERCHE SERVEUR (AJAX) ---
 function handleServerSearch(query) {
-    // Annule l'appel précédent si l'utilisateur tape encore
     clearTimeout(searchTimeout);
-
-    // Attend 300ms avant d'envoyer la requête au serveur
     searchTimeout = setTimeout(() => {
         fetchGamesFromServer(query);
     }, 300);
@@ -75,17 +67,11 @@ function handleServerSearch(query) {
 async function fetchGamesFromServer(query) {
     toggleLoader(true);
     try {
-        // Appel à l'API PHP
         const response = await fetch(`index.php?action=api_search&q=${encodeURIComponent(query)}`);
-
-        if (!response.ok) throw new Error('Erreur réseau');
+        if (!response.ok) throw new Error(LANG.error_network);
 
         const games = await response.json();
-
-        // On remplace les données locales par celles reçues du serveur
         localGames = games;
-
-        // On met à jour l'affichage
         updateView();
     } catch (error) {
         console.error('Erreur lors de la recherche:', error);
@@ -108,16 +94,12 @@ function setupIntersectionObserver() {
     if (sentinel) observer.observe(sentinel);
 }
 
-// --- MOTEUR DE TRI ET FILTRE (Modifié pour la recherche serveur) ---
+// --- MOTEUR DE TRI ET FILTRE ---
 function getProcessedGames() {
     const platformFilter = document.getElementById('filterPlatform').value;
     const statusFilter = document.getElementById('filterStatus').value;
     const sortType = document.getElementById('sortSelect').value;
 
-    // NOTE : On ne filtre plus le texte ici car le serveur l'a déjà fait (dans localGames).
-    // On garde uniquement les filtres "secondaires" (dropdowns) qui s'appliquent sur les résultats.
-
-    // 1. Filtrage (Dropdowns uniquement)
     let filtered = localGames.filter(g => {
         if (platformFilter !== 'all') {
             if (g.platform === 'Multiplateforme') return true;
@@ -127,7 +109,6 @@ function getProcessedGames() {
         return true;
     });
 
-    // 2. Tri
     filtered.sort((a, b) => {
         const valA = (key) => a[key] || 0;
         const valB = (key) => b[key] || 0;
@@ -153,19 +134,17 @@ function updateView() {
     displayedCount = 0;
 
     if (localGames.length === 0) {
-        // Cas où le serveur ne renvoie rien (Recherche vide)
-        container.innerHTML = '<div class="col-12 text-center text-muted py-5"><i class="material-icons-outlined icon-xl opacity-25 mb-3">&#xe811;</i><p>Aucun jeu trouvé.</p></div>';
+        container.innerHTML = `<div class="col-12 text-center text-muted py-5"><i class="material-icons-outlined icon-xl opacity-25 mb-3">&#xe811;</i><p>${LANG.no_game_found}</p></div>`;
         toggleLoader(false);
         return;
     }
 
     if (processedGamesCache.length === 0) {
-        // Cas où il y a des résultats de recherche, mais les filtres dropdown masquent tout
         container.innerHTML = `
             <div class="col-12 text-center py-5">
                 <div class="mb-3 text-secondary opacity-25"><i class="material-icons-outlined icon-xl">&#xea76;</i></div>
-                <h5 class="text-secondary fw-bold">Aucun résultat</h5>
-                <p class="text-muted small">Essayez de modifier vos filtres (Plateforme/Statut).</p>
+                <h5 class="text-secondary fw-bold">${LANG.no_result_title}</h5>
+                <p class="text-muted small">${LANG.no_result_desc}</p>
             </div>`;
         toggleLoader(false);
         return;
@@ -200,12 +179,12 @@ function loadMoreGames() {
                                 <table class="table table-hover align-middle mb-0">
                                     <thead class="bg-body-tertiary text-secondary small text-uppercase fw-bold">
                                         <tr>
-                                            <th class="ps-4 py-3">Jeu</th>
-                                            <th class="d-none d-sm-table-cell">Plateforme</th>
-                                            <th class="d-none d-lg-table-cell">Prix</th>
-                                            <th class="d-none d-lg-table-cell">Statut</th>
-                                            <th class="d-none d-lg-table-cell">Note</th>
-                                            <th class="text-end pe-4">Actions</th>
+                                            <th class="ps-4 py-3">${LANG.table_game}</th>
+                                            <th class="d-none d-sm-table-cell">${LANG.table_platform}</th>
+                                            <th class="d-none d-lg-table-cell">${LANG.table_price}</th>
+                                            <th class="d-none d-lg-table-cell">${LANG.table_status}</th>
+                                            <th class="d-none d-lg-table-cell">${LANG.table_rating}</th>
+                                            <th class="text-end pe-4">${LANG.table_actions}</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -265,8 +244,8 @@ function generateGridCard(g) {
     const img = g.image_url ? g.image_url : '';
 
     const formatIcon = (g.format === 'physical')
-        ? '<i class="material-icons-outlined icon-sm text-secondary me-1" title="Physique">&#xe1a1;</i>'
-        : '<i class="material-icons-outlined icon-sm text-secondary me-1" title="Digital">&#xe3dd;</i>';
+        ? `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.fmt_physical}">&#xe1a1;</i>`
+        : `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.fmt_digital}">&#xe3dd;</i>`;
 
     const shadowColor = getNeonColor(g.dominant_color, 0.4);
     const borderColor = getNeonColor(g.dominant_color, 0.5);
@@ -318,11 +297,11 @@ function generateGridCard(g) {
 
                 <div class="card-actions-wrapper">
                     <div class="small text-muted text-truncate me-2 fw-medium" style="max-width: 120px; font-size: 0.8rem;">
-                        ${formatIcon} ${g.genres || '<span class="opacity-50">Inconnu</span>'}
+                        ${formatIcon} ${g.genres || `<span class="opacity-50">${LANG.unknown}</span>`}
                     </div>
                     <div class="d-flex gap-2">
-                        <button class="btn-icon-action" onclick='edit(${g.id})' title="Modifier"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
-                        <a href="index.php?action=delete&id=${g.id}" class="btn-icon-action text-danger" onclick="return confirm('Supprimer ?')" title="Supprimer"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
+                        <button class="btn-icon-action" onclick='edit(${g.id})' title="${LANG.btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
+                        <a href="index.php?action=delete&id=${g.id}" class="btn-icon-action text-danger" onclick="return confirm('${LANG.confirm_delete}')" title="${LANG.btn_delete}"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
                     </div>
                 </div>
             </div>
@@ -363,15 +342,15 @@ function generateListRow(g) {
         <td class="d-none d-lg-table-cell"><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span></td>
         <td class="d-none d-lg-table-cell fw-bold text-warning"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating || '<span class="text-muted opacity-25">-</span>'}</td>
         <td class="text-end pe-4">
-            <button class="btn-icon-action" onclick='edit(${g.id})' title="Modifier"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
-            <a href="index.php?action=delete&id=${g.id}" class="btn-action btn-icon-action btn-light text-danger" onclick="return confirm('Supprimer ?')" title="Supprimer"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
+            <button class="btn-icon-action" onclick='edit(${g.id})' title="${LANG.btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
+            <a href="index.php?action=delete&id=${g.id}" class="btn-action btn-icon-action btn-light text-danger" onclick="return confirm('${LANG.confirm_delete}')" title="${LANG.btn_delete}"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
         </td>
     </tr>`;
 }
 
 // --- FONCTIONS UTILITAIRES ---
 function toggleLoader(show) { const l = document.getElementById('scrollLoader'); if (show && l) l.classList.remove('d-none'); else if (l) l.classList.add('d-none'); }
-function searchPrice() { const title = document.getElementById('gameTitle').value; const platform = document.getElementById('gamePlatform').value; if (title) { const query = encodeURIComponent(`${title} ${platform}`); const w = 1000; const h = 600; const left = (screen.width / 2) - (w / 2); const top = (screen.height / 2) - (h / 2); window.open(`https://www.ebay.fr/sch/i.html?_nkw=${query}&_sacat=139973`, 'PriceCheck', `width=${w},height=${h},top=${top},left=${left}`); } else { alert("Veuillez d'abord saisir un titre de jeu."); } }
+function searchPrice() { const title = document.getElementById('gameTitle').value; const platform = document.getElementById('gamePlatform').value; if (title) { const query = encodeURIComponent(`${title} ${platform}`); const w = 1000; const h = 600; const left = (screen.width / 2) - (w / 2); const top = (screen.height / 2) - (h / 2); window.open(`https://www.ebay.fr/sch/i.html?_nkw=${query}&_sacat=139973`, 'PriceCheck', `width=${w},height=${h},top=${top},left=${left}`); } else { alert(LANG.alert_enter_title); } }
 function handleEnter(e) { if (e.key === 'Enter') searchRawg(); }
 function closeSearch() { document.getElementById('rawgContainer').classList.add('d-none'); document.getElementById('rawgSearchInput').value = ''; }
 function setView(v) { currentView = v; localStorage.setItem('viewMode', v); initViewButtons(); updateView(); }
@@ -380,7 +359,7 @@ function previewFile(input) { if (input.files && input.files[0]) { var reader = 
 
 // --- MULTIPLATEFORME ---
 function toggleCustomPlatform() { const select = document.getElementById('gamePlatform'); const container = document.getElementById('multiPlatformContainer'); const hiddenInput = document.getElementById('gamePlatformCustom'); if (select.value === 'Multiplateforme') { container.classList.remove('d-none'); if (document.getElementById('platformInputsList').children.length === 0) addPlatformInput(); } else { container.classList.add('d-none'); hiddenInput.value = ''; } }
-function addPlatformInput(value = '') { const list = document.getElementById('platformInputsList'); const div = document.createElement('div'); div.className = 'input-group input-group-sm mb-1'; div.innerHTML = `<input type="text" class="form-control rounded-start-2 border-end-0 bg-white" value="${value}" placeholder="Nom..." oninput="updateHiddenPlatformInput()"><button type="button" class="btn btn-outline-danger border-start-0 rounded-end-2 bg-white text-danger" onclick="this.parentElement.remove(); updateHiddenPlatformInput()"><i class="material-icons-outlined icon-sm">&#xe5cd;</i></button>`; list.appendChild(div); updateHiddenPlatformInput(); }
+function addPlatformInput(value = '') { const list = document.getElementById('platformInputsList'); const div = document.createElement('div'); div.className = 'input-group input-group-sm mb-1'; div.innerHTML = `<input type="text" class="form-control rounded-start-2 border-end-0 bg-white" value="${value}" placeholder="${LANG.placeholder_name}" oninput="updateHiddenPlatformInput()"><button type="button" class="btn btn-outline-danger border-start-0 rounded-end-2 bg-white text-danger" onclick="this.parentElement.remove(); updateHiddenPlatformInput()"><i class="material-icons-outlined icon-sm">&#xe5cd;</i></button>`; list.appendChild(div); updateHiddenPlatformInput(); }
 function updateHiddenPlatformInput() { const inputs = document.querySelectorAll('#platformInputsList input'); const values = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== ''); document.getElementById('gamePlatformCustom').value = values.join(', '); }
 
 // --- MODALES & TROPHÉES ---
@@ -415,11 +394,11 @@ function openModal(g = null) {
 
 function checkPsnVisibility() { const plat = document.getElementById('gamePlatform').value; const tabs = document.getElementById('modalTabs'); if (plat.includes('PS') || plat.includes('PlayStation')) { tabs.style.display = 'flex'; } else { tabs.style.display = 'none'; const firstTabEl = document.querySelector('#modalTabs li:first-child button') || document.querySelector('#modalTabs li:first-child a'); if (firstTabEl) { const firstTab = new bootstrap.Tab(firstTabEl); firstTab.show(); } } }
 
-// Trophies - CLASSES AJOUTEES: icon-sm
-async function loadTrophies(gameId) { const list = document.getElementById('trophiesList'); list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>'; try { const res = await fetch(`index.php?action=api_get_trophies&game_id=${gameId}`); const data = await res.json(); const pct = data.progress.percent; document.getElementById('trophyProgressBar').style.width = pct + '%'; document.getElementById('trophyProgressText').innerText = pct + '%'; list.innerHTML = ''; if (data.trophies.length === 0) { list.innerHTML = '<div class="text-center text-muted small py-3">Aucun trophée ajouté.</div>'; return; } data.trophies.forEach(t => { const colorClass = `trophy-${t.type}`; const icon = t.type === 'platinum' ? '<img src="../assets/images/platinum.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'gold' ? '<img src="../assets/images/gold.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'silver' ? '<img src="../assets/images/silver.png" class="trophy-icon d-table-cell me-2">' : '<img src="../assets/images/bronze.png" class="trophy-icon d-table-cell me-2">')); const isObtained = t.is_obtained == 1; const gameTitle = document.getElementById('gameTitle').value; const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title + ' guide')}`; list.innerHTML += `<div class="d-flex align-items-center p-2 mb-2 bg-body-tertiary rounded trophy-item ${colorClass}"><div class="trophy-icon fs-5">${icon}</div><div class="flex-grow-1 ms-2" style="cursor:pointer" onclick="toggleTrophy(${t.id})"><div class="fw-bold small ${isObtained ? 'text-decoration-line-through text-muted' : ''}">${t.title}</div></div><div class="d-flex gap-2"><a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="Chercher solution"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a><button class="btn btn-sm btn-link text-danger p-0" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button></div></div>`; }); } catch (e) { list.innerHTML = 'Erreur chargement.'; } }
-async function addTrophy() { const gameId = document.getElementById('gameId').value; if (!gameId) { alert("Veuillez d'abord sauvegarder le jeu."); return; } const title = document.getElementById('newTrophyTitle').value; const type = document.getElementById('newTrophyType').value; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('index.php?action=api_add_trophy', { method: 'POST', body: formData }); document.getElementById('newTrophyTitle').value = ''; loadTrophies(gameId); }
+// Trophies
+async function loadTrophies(gameId) { const list = document.getElementById('trophiesList'); list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>'; try { const res = await fetch(`index.php?action=api_get_trophies&game_id=${gameId}`); const data = await res.json(); const pct = data.progress.percent; document.getElementById('trophyProgressBar').style.width = pct + '%'; document.getElementById('trophyProgressText').innerText = pct + '%'; list.innerHTML = ''; if (data.trophies.length === 0) { list.innerHTML = `<div class="text-center text-muted small py-3">${LANG.no_trophies}</div>`; return; } data.trophies.forEach(t => { const colorClass = `trophy-${t.type}`; const icon = t.type === 'platinum' ? '<img src="../assets/images/platinum.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'gold' ? '<img src="../assets/images/gold.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'silver' ? '<img src="../assets/images/silver.png" class="trophy-icon d-table-cell me-2">' : '<img src="../assets/images/bronze.png" class="trophy-icon d-table-cell me-2">')); const isObtained = t.is_obtained == 1; const gameTitle = document.getElementById('gameTitle').value; const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title + LANG.google_guide)}`; list.innerHTML += `<div class="d-flex align-items-center p-2 mb-2 bg-body-tertiary rounded trophy-item ${colorClass}"><div class="trophy-icon fs-5">${icon}</div><div class="flex-grow-1 ms-2" style="cursor:pointer" onclick="toggleTrophy(${t.id})"><div class="fw-bold small ${isObtained ? 'text-decoration-line-through text-muted' : ''}">${t.title}</div></div><div class="d-flex gap-2"><a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="${LANG.search_solution}"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a><button class="btn btn-sm btn-link text-danger p-0" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button></div></div>`; }); } catch (e) { list.innerHTML = LANG.error_loading; } }
+async function addTrophy() { const gameId = document.getElementById('gameId').value; if (!gameId) { alert(LANG.alert_save_first); return; } const title = document.getElementById('newTrophyTitle').value; const type = document.getElementById('newTrophyType').value; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('index.php?action=api_add_trophy', { method: 'POST', body: formData }); document.getElementById('newTrophyTitle').value = ''; loadTrophies(gameId); }
 async function toggleTrophy(id) { await fetch(`index.php?action=api_toggle_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
-async function deleteTrophy(id) { if (!confirm('Supprimer ?')) return; await fetch(`index.php?action=api_delete_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
+async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`index.php?action=api_delete_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
 
 // --- RAWG ---
 async function searchRawg() { const q = document.getElementById('rawgSearchInput').value; if (!q) return; document.getElementById('rawgContainer').classList.remove('d-none'); document.getElementById('rawgLoading').classList.remove('d-none'); try { const res = await fetch(`https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(q)}&page_size=5`); const data = await res.json(); let html = ''; data.results.forEach(g => { html += `<div class="card border-0 shadow-sm flex-shrink-0 bg-body-tertiary" style="width: 160px; cursor: pointer; overflow: hidden; border-radius: 12px;" onclick="fetchGameDetails(${g.id})"><img src="${g.background_image || ''}" style="height:100px; width: 100%; object-fit:cover"><div class="p-2 text-center"><small class="fw-bold d-block text-truncate text-body">${g.name}</small><small class="text-muted" style="font-size: 0.7rem;">${g.released ? g.released.substring(0, 4) : ''}</small></div></div>`; }); document.getElementById('rawgResults').innerHTML = html; } catch (e) { } finally { document.getElementById('rawgLoading').classList.add('d-none'); } }
@@ -429,22 +408,21 @@ async function fetchGameDetails(id) {
         const res = await fetch(`https://api.rawg.io/api/games/${id}?key=${RAWG_API_KEY}`);
         const g = await res.json();
 
-        // --- DEBUT MODIFICATION : Vérification Doublon ---
-        // On vérifie si localGames est défini et contient des jeux
+        // Vérification doublon avec message traduit
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
-            // On nettoie les titres pour comparer (minuscule + sans espaces superflus)
             const cleanRawgTitle = g.name.trim().toLowerCase();
-
             const existingGame = localGames.find(game =>
                 game.title.trim().toLowerCase() === cleanRawgTitle
             );
 
             if (existingGame) {
-                // Alerte si le jeu est trouvé
-                alert(`⚠️ Attention : Vous possédez déjà "${g.name}" dans votre collection !\n(Plateforme enregistrée : ${existingGame.platform})`);
+                // Remplacement dynamique des variables dans la chaîne de langue
+                const msg = LANG.alert_duplicate
+                    .replace('{name}', g.name)
+                    .replace('{platform}', existingGame.platform);
+                alert(msg);
             }
         }
-        // --- FIN MODIFICATION ---
 
         openModal();
         document.getElementById('gameTitle').value = g.name;
@@ -462,8 +440,8 @@ async function fetchGameDetails(id) {
         document.getElementById('gameGenres').value = g.genres ? g.genres.map(x => x.name).join(', ') : '';
 
     } catch (e) {
-        console.error(e); // Ajout d'un log console pour aider au debug
-        alert("Erreur lors de l'import des données du jeu.");
+        console.error(e);
+        alert(LANG.error_import);
     } finally {
         document.getElementById('rawgLoading').classList.add('d-none');
     }

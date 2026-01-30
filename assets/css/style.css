@@ -303,8 +303,11 @@ h6,
     color: #a0a0a0 !important;
 }
 
-/* Gris plus clair en dark mode */
 
+/* --- LOGO LOGIN --- */
+#logo-login {
+    max-width:400px;
+} 
 
 /* --- LOADER --- */
 #app-loader {
