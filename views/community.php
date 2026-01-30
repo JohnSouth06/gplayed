@@ -1,6 +1,6 @@
 <div class="row mb-4 align-items-center">
     <div class="col">
-        <h2 class="fw-light text-tertiary mb-1">Communauté</h2>
+        <h2 class="fw-light text-tertiary mb-1"><?= __('community_title') ?></h2>
     </div>
 </div>
 
@@ -8,7 +8,7 @@
     <?php if (empty($users)): ?>
         <div class="col-12 text-center py-5 text-muted">
             <i class="material-icons-outlined opacity-25 mb-3" style="font-size: 4em;">&#xe510;</i>
-            <p>Il n'y a pas encore d'autres membres inscrits.</p>
+            <p><?= __('community_empty') ?></p>
         </div>
     <?php else: ?>
         <?php foreach ($users as $u): ?>
@@ -32,20 +32,20 @@
                         </div>
                         
                         <h5 class="fw-bold mb-1 text-truncate w-100"><?= htmlspecialchars($u['username']) ?></h5>
-                        <p class="small text-secondary mb-3">Membre depuis <?= date('Y', strtotime($u['created_at'])) ?></p>
+                        <p class="small text-secondary mb-3"><?= __('community_member_since') ?> <?= date('Y', strtotime($u['created_at'])) ?></p>
                         
                         <div class="mt-auto w-100 d-flex gap-2 justify-content-center">
-                            <a href="index.php?action=share&user=<?= urlencode($u['username']) ?>" class="btn btn-light rounded-pill btn-sm px-3">
-                                <i class="material-icons icon-sm me-1">&#xe8f4;</i> Voir
+                            <a href="/share&user=<?= urlencode($u['username']) ?>" class="btn btn-light rounded-pill btn-sm px-3">
+                                <i class="material-icons icon-sm me-1">&#xe8f4;</i> <?= __('community_btn_view') ?>
                             </a>
                             
                             <?php if ($isFollowing): ?>
-                                <a href="index.php?action=toggle_follow&id=<?= $u['id'] ?>&do=unfollow&csrf_token=<?= $_SESSION['csrf_token'] ?>" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
-                                    <i class="material-icons icon-sm me-1">&#xef66;</i> Suivi
+                                <a href="/toggle_follow&id=<?= $u['id'] ?>&do=unfollow&csrf_token=<?= $_SESSION['csrf_token'] ?>" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
+                                    <i class="material-icons icon-sm me-1">&#xef66;</i> <?= __('community_btn_following') ?>
                                 </a>
                             <?php else: ?>
-                                <a href="index.php?action=toggle_follow&id=<?= $u['id'] ?>&do=follow&csrf_token=<?= $_SESSION['csrf_token'] ?>" class="btn btn-primary rounded-pill btn-sm px-3">
-                                    <i class="material-icons icon-sm me-1">&#xe7fe;</i> Suivre
+                                <a href="/toggle_follow&id=<?= $u['id'] ?>&do=follow&csrf_token=<?= $_SESSION['csrf_token'] ?>" class="btn btn-primary rounded-pill btn-sm px-3">
+                                    <i class="material-icons icon-sm me-1">&#xe7fe;</i> <?= __('community_btn_follow') ?>
                                 </a>
                             <?php endif; ?>
                         </div>

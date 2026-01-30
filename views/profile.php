@@ -1,13 +1,13 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <h2 class="mb-4 fw-light">Mon Profil</h2>
-        
+
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="card shadow-sm border-0 text-center h-100 bg-body rounded-4">
                     <div class="card-body">
                         <div class="mb-3 mt-3">
-                            <?php if(!empty($user['avatar_url'])): ?>
+                            <?php if (!empty($user['avatar_url'])): ?>
                                 <img src="<?= $user['avatar_url'] ?>" class="rounded-circle shadow-sm object-fit-cover" style="width: 120px; height: 120px; border: 4px solid var(--bs-body-bg);">
                             <?php else: ?>
                                 <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 120px; height: 120px; font-size: 3rem;">
@@ -28,8 +28,8 @@
                         <h6 class="mb-0 fw-bold">Modifier mes informations</h6>
                     </div>
                     <div class="card-body">
-                        <form action="index.php?action=update_profile" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <form action="/update_profile" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-secondary">Adresse Email</label>
                                 <input type="email" name="email" class="form-control rounded-3" value="<?= htmlspecialchars($user['email']) ?>" required>
@@ -39,9 +39,17 @@
                                 <label class="form-label small fw-bold text-secondary">Changer d'avatar</label>
                                 <input type="file" name="avatar" class="form-control rounded-3" accept="image/*">
                             </div>
-                            
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary"><?= __('label_language') ?></label>
+                                <select name="language" class="form-select rounded-3">
+                                    <option value="en" <?= ($user['language'] ?? 'en') == 'en' ? 'selected' : '' ?>><?= __('option_en') ?></option>
+                                    <option value="fr" <?= ($user['language'] ?? 'en') == 'fr' ? 'selected' : '' ?>><?= __('option_fr') ?></option>
+                                </select>
+                            </div>
+
                             <hr class="my-4 opacity-10">
-                            
+
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-secondary">Nouveau mot de passe</label>
                                 <div class="input-group">
@@ -50,7 +58,7 @@
                                 </div>
                                 <div class="form-text small mt-1">Min 10 cars, Maj, Min, Chiffre, Spécial.</div>
                             </div>
-                            
+
                             <div class="text-end">
                                 <button type="submit" class="btn btn-primary rounded-pill px-4"><i class="material-icons icon-sm me-2">&#xe161;</i>Enregistrer</button>
                             </div>
@@ -67,14 +75,14 @@
                             <div class="col-md-6 border-end border-light-subtle">
                                 <label class="form-label small fw-bold text-secondary">Exporter ma collection</label>
                                 <p class="small text-muted mb-2">Téléchargez un fichier JSON contenant tous vos jeux.</p>
-                                <a href="index.php?action=export_json" class="btn btn-outline-primary btn-sm w-100 rounded-3">
+                                <a href="/export_json" class="btn btn-outline-primary btn-sm w-100 rounded-3">
                                     <i class="material-icons icon-sm me-2">&#xf090;</i>Exporter JSON
                                 </a>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-secondary">Importer une collection</label>
                                 <p class="small text-muted mb-2">Ajoutez des jeux depuis un fichier JSON.</p>
-                                <form action="index.php?action=import_json" method="POST" enctype="multipart/form-data">
+                                <form action="/import_json" method="POST" enctype="multipart/form-data">
                                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                     <div class="input-group input-group-sm mb-2">
                                         <input type="file" name="json_file" class="form-control rounded-start-3" accept=".json" required>
@@ -95,7 +103,7 @@
                         <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="if(confirm('Êtes-vous ABSOLUMENT sûr ?')) document.getElementById('deleteForm').submit();">
                             Supprimer mon compte
                         </button>
-                        <form id="deleteForm" action="index.php?action=delete_account" method="POST" class="d-none">
+                        <form id="deleteForm" action="/delete_account" method="POST" class="d-none">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="confirm_delete" value="yes">
                         </form>

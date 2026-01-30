@@ -9,7 +9,7 @@ class CommunityController {
     }
 
     public function index() {
-        if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
+        if (!isset($_SESSION['user_id'])) { header("Location: /"); exit(); }
 
         $users = $this->userModel->getAllUsersExcept($_SESSION['user_id']);
         $following = $this->userModel->getFollowedIds($_SESSION['user_id']);
@@ -19,7 +19,7 @@ class CommunityController {
     }
 
     public function toggleFollow() {
-        if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) { header("Location: index.php"); exit(); }
+        if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) { header("Location: /"); exit(); }
         
         // --- Sécurité CSRF pour lien GET ---
         // On vérifie que le token est présent dans l'URL
@@ -39,7 +39,7 @@ class CommunityController {
             $_SESSION['toast'] = ['msg' => "Désabonnement effectué.", 'type' => 'warning'];
         }
 
-        header("Location: index.php?action=community");
+        header("Location: /community");
         exit();
     }
 }
