@@ -32,9 +32,9 @@ return [
 
     // Dashboard
     'dashboard_hello' => 'Hello',
-    'dashboard_total' => 'Total',
-    'dashboard_playing' => 'Playing',
-    'dashboard_finished' => 'Finished',
+    'dashboard_total' => 'Total:',
+    'dashboard_playing' => 'Playing:',
+    'dashboard_finished' => 'Finished:',
     'dashboard_add_game' => 'Add a game to your collection',
     'dashboard_manual_add' => 'Manual Add',
     'dashboard_search_api' => 'Type game name...',
@@ -124,6 +124,23 @@ return [
     'js_error_loading' => 'Loading error.',
     'js_alert_duplicate' => '⚠️ Warning: You already have "{name}" in your collection!\n(Registered platform: {platform})',
     'js_error_import' => 'Error importing game data.',
+
+    // Wishlist
+    'wishlist_title' => 'My Wishlist 🎁',
+    'wishlist_count_label' => 'Wishes:',
+    'wishlist_add_panel' => 'Add a game to your wishlist',
+    'wishlist_search_placeholder' => 'Search for a future purchase...',
+    'wishlist_manual_add' => 'Manual Add',
+    'wishlist_empty' => 'Your wishlist is empty for now.',
+    'wishlist_release_date' => 'Expected release',
+    'wishlist_btn_acquire' => 'Acquire',
+    'wishlist_tooltip_edit' => 'Edit/Details',
+    'wishlist_modal_title' => 'Add a wish',
+    'wishlist_field_image' => 'Image',
+    'wishlist_field_price' => 'Estimated Price',
+    'wishlist_field_reason' => 'Note / Reason',
+    'wishlist_placeholder_reason' => 'Why this game?',
+    'wishlist_remove' => 'Remove from wishlist',
 
     // Langues
     'label_language' => 'Language',

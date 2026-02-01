@@ -92,6 +92,7 @@ if (isset($_SESSION['force_loader'])) {
                 <ul class="nav flex-column mb-4">
                     <?php $act = $_GET['action'] ?? 'home'; ?>
                     <li class="nav-item"><a href="/home" class="nav-link <?= ($act == 'home' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe431;</i><?= __('menu_library') ?></a></li>
+                    <li class="nav-item"><a href="/wishlist" class="nav-link <?= ($act == 'wishlist' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe8b1;</i><?= __('menu_wishlist') ?></a></li>
                     <li class="nav-item"><a href="/progression" class="nav-link <?= ($act == 'progression') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe6b1;</i><?= __('menu_journal') ?></a></li>
                     <li class="nav-item"><a href="/stats" class="nav-link <?= ($act == 'stats') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe26b;</i><?= __('menu_stats') ?></a></li>
                     <li class="nav-item"><a href="/community" class="nav-link <?= ($act == 'community' || $act == 'share') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xf233;</i><?= __('menu_community') ?></a></li>

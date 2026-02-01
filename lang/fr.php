@@ -32,14 +32,31 @@ return [
 
     // Dashboard
     'dashboard_hello' => 'Bonjour',
-    'dashboard_total' => 'Total',
-    'dashboard_playing' => 'En cours',
-    'dashboard_finished' => 'Terminés',
+    'dashboard_total' => 'Total :',
+    'dashboard_playing' => 'En cours :',
+    'dashboard_finished' => 'Terminés :',
     'dashboard_add_game' => 'Ajouter un jeu à votre collection',
     'dashboard_manual_add' => 'Ajout manuel',
     'dashboard_search_api' => 'Taper le nom du jeu...',
     'dashboard_internet_results' => 'Résultats Internet',
     'dashboard_search_collection' => 'Rechercher dans ma collection...',
+
+    // Wishlist
+    'wishlist_title' => 'Ma Wishlist 🎁',
+    'wishlist_count_label' => 'Jeux souhaités :',
+    'wishlist_add_panel' => 'Ajouter un jeu à votre wishlist',
+    'wishlist_search_placeholder' => 'Rechercher un futur achat...',
+    'wishlist_manual_add' => 'Ajout manuel',
+    'wishlist_empty' => 'Votre wishlist est vide pour le moment.',
+    'wishlist_release_date' => 'Sortie prévue',
+    'wishlist_btn_acquire' => 'Acquérir',
+    'wishlist_tooltip_edit' => 'Modifier/Détails',
+    'wishlist_modal_title' => 'Ajouter une envie',
+    'wishlist_field_image' => 'Image',
+    'wishlist_field_price' => 'Prix estimé',
+    'wishlist_field_reason' => 'Note / Raison',
+    'wishlist_placeholder_reason' => 'Pourquoi ce jeu ?',
+    'wishlist_remove' => 'Retirer de la wishlist',
 
     // Filters & Sort
     'filter_platform' => 'Plateforme',
