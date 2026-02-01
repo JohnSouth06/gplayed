@@ -73,84 +73,48 @@ function getShadowStyle($color) {
     </div>
 </div>
 
-<div class="row g-xxl-4 g-md-3 g-sm-2">
-    <?php if (empty($games)): ?>
-        <div class="col-12 text-center py-5">
-            <i class="material-icons text-secondary opacity-25" style="font-size: 4rem;">&#xe8cc;</i>
-            <p class="text-muted mt-3"><?= __('wishlist_empty') ?></p>
-        </div>
-    <?php else: ?>
-        <?php foreach ($games as $game): ?>
-            <?php 
-                // Préparation des variables d'affichage
-                $iconClass = getPlatformIconClass($game['platform']);
-                $isGenericIcon = strpos($iconClass, 'material-icons') !== false;
-                $iconHtml = $isGenericIcon ? '<i class="'.$iconClass.' me-1">&#xe338;</i>' : '<i class="'.$iconClass.' me-1"></i>';
-                
-                $imgSrc = htmlspecialchars($game['image_url'] ?? '');
-                
-                // Calcul du style inline pour le hover (similaire au JS)
-                $hoverStyleAttr = 'onmouseover="this.style.transform=\'translateY(-8px) scale(1.01)\'; this.style.zIndex=\'10\'; this.style.cssText=\''. getShadowStyle($game['dominant_color']) .'\'" onmouseout="this.style.transform=\'\'; this.style.zIndex=\'\'; this.style.boxShadow=\'\'; this.style.borderColor=\'rgba(0,0,0,0.05)\'"';
-            ?>
-            
-            <div class="col-sm-6 col-lg-4 col-xl-3 animate-in">
-                <div class="game-card-modern" <?= $hoverStyleAttr ?>>
-                    
-                    <div class="card-cover-container">
-                        <?php if($imgSrc): ?>
-                            <img src="<?= $imgSrc ?>" class="card-cover-img" loading="lazy" alt="<?= htmlspecialchars($game['title']) ?>">
-                        <?php else: ?>
-                            <div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary">
-                                <i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <span class="status-badge-float bg-danger text-white bg-opacity-75">
-                            <i class="material-icons-outlined icon-sm me-1">&#xe8b1;</i><?= __('status_wishlist') ?>
-                        </span>
-                    </div>
-                    
-                    <div class="card-content-area">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="game-title text-truncate" title="<?= htmlspecialchars($game['title']) ?>">
-                                <?= htmlspecialchars($game['title']) ?>
-                            </h6>
-                            </div>
-                        
-                        <div class="meta-badges">
-                            <span class="meta-tag">
-                                <?= $iconHtml ?><?= htmlspecialchars($game['platform']) ?>
-                            </span>
-                            <?php if(!empty($game['release_date'])): ?>
-                                <span class="meta-tag" title="<?= __('wishlist_release_date') ?>">
-                                    <i class="material-icons-outlined icon-sm me-1">&#xe916;</i>
-                                    <?= date('d/m/y', strtotime($game['release_date'])) ?>
-                                </span>
-                            <?php endif; ?>
-                            <?php if(isset($game['estimated_price']) && $game['estimated_price'] > 0): ?>
-                                <span class="meta-tag text-primary bg-primary-subtle border-primary-subtle">
-                                    <i class="material-icons-outlined icon-sm me-1">&#xe54e;</i>
-                                    <?= $game['estimated_price'] ?>€
-                                </span>
-                            <?php endif; ?>
-                        </div>
+<div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-2">
 
-                        <div class="card-actions-wrapper">
-                            <a href="/acquire?id=<?= $game['id'] ?>" class="btn btn-sm btn-primary rounded-pill fw-bold px-4 d-flex align-items-center text-nowrap" style="font-size: 0.8rem;">
-                                <i class="material-icons-outlined icon-sm me-1">&#xe8cc;</i> <?= __('wishlist_btn_acquire') ?>
-                            </a>
-                            
-                            <div class="d-flex gap-2">
-                                <button class="btn-icon-action" onclick='editGame(<?= json_encode($game) ?>)' title="<?= __('wishlist_tooltip_edit') ?>">
-                                    <i class="material-icons-outlined icon-md">&#xe3c9;</i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
+    <div class="input-group rounded-pill overflow-hidden border border-opacity-10 bg shadow-sm w-100 w-xxl-50">
+        <span class="input-group-text border-0 ps-3 bg-transparent"><i class="material-icons-outlined text-secondary icon-md">&#xe8b6;</i></span>
+        <input type="text" id="internalSearchInput" class="form-control border-0 shadow-none bg-transparent" placeholder="<?= __('wishlist_search_collection_placeholder') ?>" onkeyup="updateView()">
+        <span class="input-group-text border-0 pe-3 bg-transparent" style="cursor:pointer" onclick="document.getElementById('internalSearchInput').value=''; updateView();"><i class="material-icons-outlined opacity-50 icon-sm">&#xe5cd;</i></span>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between justify-content-xxl-end gap-2 w-100 w-xxl-auto">
+
+        <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
+            <option value="all"><?= __('filter_platform') ?></option>
+            <option value="PS5">PlayStation 5</option>
+            <option value="PS4">PlayStation 4</option>
+            <option value="Xbox Series">Xbox Series</option>
+            <option value="Switch">Switch 1 / 2</option>
+            <option value="PC">PC / Steam</option>
+        </select>
+
+        <input type="hidden" id="filterStatus" value="wishlist">
+
+        <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
+            <option value="date_desc"><?= __('sort_recent') ?></option>
+            <option value="alpha_asc"><?= __('sort_az') ?></option>
+            <option value="rating_desc"><?= __('sort_rating') ?></option>
+            <option value="platform_asc"><?= __('sort_platform') ?></option>
+        </select>
+
+        <div class="bg-body rounded-3 shadow-sm p-1 d-flex">
+            <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
+            <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+        </div>
+    </div>
+
+</div>
+
+<div id="gamesContainer" class="row g-xxl-4 g-md-3 g-sm-2"></div>
+
+<div id="scrollSentinel" class="text-center py-4 my-2">
+    <div class="spinner-border text-primary d-none" role="status" id="scrollLoader">
+        <span class="visually-hidden"><?= __('dashboard_loading') ?></span>
+    </div>
 </div>
 
 <div class="modal fade" id="gameModal" tabindex="-1">
