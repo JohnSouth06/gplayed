@@ -303,8 +303,11 @@ h6,
     color: #a0a0a0 !important;
 }
 
-/* Gris plus clair en dark mode */
 
+/* --- LOGO LOGIN --- */
+#logo-login {
+    max-width:400px;
+} 
 
 /* --- LOADER --- */
 #app-loader {
@@ -766,11 +769,23 @@ h6,
     margin-right: 4px;
 }
 
-/* SIDEBAR DESKTOP */
+/* RESPONSIVE ADJUSTS */
 @media (min-width: 991.98px) {
     #sidebar {
         margin: 1rem 0 1rem 1rem;
         border-right: 0;
         border-radius: 24px;
+    }
+}
+
+@media (min-width:767.98px) and (max-width:991.98px) {
+    .modal-dialog {
+        max-width: 700px !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    div#gamesContainer {
+        gap: 1rem;
     }
 }

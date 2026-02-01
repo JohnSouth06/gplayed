@@ -1,14 +1,14 @@
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="mb-4 text-center">
-            <h2 class="fw-light">Fil d'actualité</h2>
+            <h2 class="fw-light"><?= __('feed_title') ?></h2>
         </div>
 
         <?php if (empty($activities)): ?>
             <div class="text-center py-5 text-muted bg-body rounded-4 shadow-sm">
                 <i class="material-icons-outlined opacity-25 mb-3" style="font-size: 4em;">&#xe2c8;</i>
-                <p>C'est bien calme ici...</p>
-                <a href="index.php?action=community" class="btn btn-primary rounded-pill btn-sm">Suivre des membres</a>
+                <p><?= __('feed_empty_title') ?></p>
+                <a href="/community" class="btn btn-primary rounded-pill btn-sm"><?= __('feed_btn_follow') ?></a>
             </div>
         <?php else: ?>
             <?php foreach ($activities as $act): ?>
@@ -27,9 +27,9 @@
                             <div class="small text-secondary">
                                 <?= date('d/m H:i', strtotime($act['time_posted'])) ?> • 
                                 <?php if($act['type'] == 'new_game'): ?>
-                                    <span class="text-primary"><i class="material-icons icon-sm me-1">&#xe147;</i>A ajouté un jeu</span>
+                                    <span class="text-primary"><i class="material-icons icon-sm me-1">&#xe147;</i><?= __('feed_game_added') ?></span>
                                 <?php else: ?>
-                                    <span class="text-success"><i class="material-icons icon-sm me-1">&#xe8e5;</i>A progressé</span>
+                                    <span class="text-success"><i class="material-icons icon-sm me-1">&#xe8e5;</i><?= __('feed_game_progress') ?></span>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -57,10 +57,10 @@
                         <?php endif; ?>
 
                         <div class="mt-3 pt-3 border-top">
-                            <form action="index.php?action=add_comment" method="POST" class="d-flex gap-2">
+                            <form action="/add_comment" method="POST" class="d-flex gap-2">
                                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                 <input type="hidden" name="game_id" value="<?= $act['ref_id'] ?>">
-                                <input type="text" name="content" class="form-control rounded-pill bg-body-tertiary border-0 px-3" placeholder="Écrire un commentaire..." required>
+                                <input type="text" name="content" class="form-control rounded-pill bg-body-tertiary border-0 px-3" placeholder="<?= __('feed_comment_placeholder') ?>" required>
                                 <button type="submit" class="btn btn-primary rounded-circle shadow-sm" style="width: 38px; height: 38px;">
                                     <i class="material-icons icon-sm">&#xe163;</i>
                                 </button>

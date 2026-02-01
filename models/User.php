@@ -1,63 +1,71 @@
 <?php
-class User {
+class User
+{
     private $conn;
     private $table = 'users';
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->conn = $db;
     }
 
     // Validation Mot de passe fort
-    public function isPasswordStrong($password) {
+    public function isPasswordStrong($password)
+    {
         // Min 10 chars, 1 Maj, 1 Min, 1 Chiffre, 1 Spécial
         $regex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{10,}$/';
         return preg_match($regex, $password);
     }
 
-    public function register($username, $email, $password) {
+    public function register($username, $email, $password)
+    {
         if (!$this->isPasswordStrong($password)) {
             return "weak_password";
         }
 
-        $query = "INSERT INTO " . $this->table . " (username, email, password) VALUES (:username, :email, :password)";
+        $query = "INSERT INTO " . $this->table . " (username, email, password, language) VALUES (:username, :email, :password, :lang)";
         $stmt = $this->conn->prepare($query);
         $passHash = password_hash($password, PASSWORD_DEFAULT);
-        
+
         $stmt->bindParam(':username', $username);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':password', $passHash);
+        $stmt->bindParam(':lang', $language);
 
         try {
-            if($stmt->execute()) return $this->conn->lastInsertId();
-        } catch(PDOException $e) {
+            if ($stmt->execute()) return $this->conn->lastInsertId();
+        } catch (PDOException $e) {
             // Gestion erreur doublon (code 23000)
             if ($e->getCode() == 23000) return "exists";
         }
         return false;
     }
 
-    public function login($username, $password) {
+    public function login($username, $password)
+    {
         $query = "SELECT * FROM " . $this->table . " WHERE username = :username LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':username', $username);
         $stmt->execute();
 
-        if($row = $stmt->fetch()) {
-            if(password_verify($password, $row['password'])) {
+        if ($row = $stmt->fetch()) {
+            if (password_verify($password, $row['password'])) {
                 return $row;
             }
         }
         return false;
     }
 
-    public function emailExists($email) {
+    public function emailExists($email)
+    {
         $stmt = $this->conn->prepare("SELECT id FROM " . $this->table . " WHERE email = :email");
         $stmt->bindParam(':email', $email);
         $stmt->execute();
         return $stmt->fetchColumn();
     }
 
-    public function setResetToken($email, $token) {
+    public function setResetToken($email, $token)
+    {
         // Expire dans 1 heure
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
         $query = "UPDATE " . $this->table . " SET reset_token = :token, reset_expires = :expires WHERE email = :email";
@@ -68,16 +76,17 @@ class User {
         return $stmt->execute();
     }
 
-    public function resetPassword($token, $newPassword) {
+    public function resetPassword($token, $newPassword)
+    {
         // Vérifier si token valide et non expiré
         $query = "SELECT id FROM " . $this->table . " WHERE reset_token = :token AND reset_expires > NOW()";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':token', $token);
         $stmt->execute();
-        
+
         if ($user = $stmt->fetch()) {
             if (!$this->isPasswordStrong($newPassword)) return "weak_password";
-            
+
             $hash = password_hash($newPassword, PASSWORD_DEFAULT);
             // On retire le token après usage
             $update = "UPDATE " . $this->table . " SET password = :pass, reset_token = NULL, reset_expires = NULL WHERE id = :id";
@@ -89,15 +98,17 @@ class User {
         return false; // Token invalide
     }
 
-    public function getById($id) {
-        $query = "SELECT id, username, email, avatar_url, created_at FROM " . $this->table . " WHERE id = :id LIMIT 1";
+    public function getById($id)
+    {
+        $query = "SELECT id, username, email, avatar_url, created_at, language FROM " . $this->table . " WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         return $stmt->fetch();
     }
 
-    public function getIdByUsername($username) {
+    public function getIdByUsername($username)
+    {
         $query = "SELECT id, username, avatar_url FROM " . $this->table . " WHERE username = :username LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':username', $username);
@@ -105,7 +116,8 @@ class User {
         return $stmt->fetch();
     }
 
-    public function update($id, $email, $newPassword, $files) {
+    public function update($id, $email, $newPassword, $files, $language = null)
+    {
         $fields = [];
         $params = [':id' => $id];
 
@@ -113,6 +125,12 @@ class User {
         if (!empty($email)) {
             $fields[] = "email = :email";
             $params[':email'] = $email;
+        }
+
+        // Update Language
+        if (!empty($language)) {
+            $fields[] = "language = :language";
+            $params[':language'] = $language;
         }
 
         // Update Password avec validation
@@ -140,26 +158,27 @@ class User {
 
         $query = "UPDATE " . $this->table . " SET " . implode(', ', $fields) . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
-        
+
         try {
             return $stmt->execute($params);
-        } catch(PDOException $e) {
+        } catch (PDOException $e) {
             return false;
         }
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         $user = $this->getById($id);
         if (!empty($user['avatar_url'])) {
             $file = dirname(__DIR__) . '/' . $user['avatar_url'];
-            if(file_exists($file)) unlink($file);
+            if (file_exists($file)) unlink($file);
         }
         $stmt = $this->conn->prepare("SELECT image_url FROM games WHERE user_id = ?");
         $stmt->execute([$id]);
         while ($row = $stmt->fetch()) {
             if (!empty($row['image_url'])) {
                 $file = dirname(__DIR__) . '/' . $row['image_url'];
-                if(file_exists($file)) unlink($file);
+                if (file_exists($file)) unlink($file);
             }
         }
         $query = "DELETE FROM " . $this->table . " WHERE id = :id";
@@ -168,11 +187,12 @@ class User {
         return $stmt->execute();
     }
 
-    private function uploadImage($file) {
+    private function uploadImage($file)
+    {
         $uploadDir = dirname(__DIR__) . '/uploads/avatars/';
         $webDir = 'uploads/avatars/';
         if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
-        
+
         $fileName = uniqid() . "_avatar_" . basename($file["name"]);
         $targetFilePath = $uploadDir . $fileName;
         $webFilePath = $webDir . $fileName;
@@ -186,10 +206,18 @@ class User {
         $newSize = 200;
         $dst = imagecreatetruecolor($newSize, $newSize);
         switch ($ext) {
-            case 'jpg': case 'jpeg': $src = imagecreatefromjpeg($file["tmp_name"]); break;
-            case 'png': $src = imagecreatefrompng($file["tmp_name"]); break;
-            case 'webp': $src = imagecreatefromwebp($file["tmp_name"]); break;
-            default: return null;
+            case 'jpg':
+            case 'jpeg':
+                $src = imagecreatefromjpeg($file["tmp_name"]);
+                break;
+            case 'png':
+                $src = imagecreatefrompng($file["tmp_name"]);
+                break;
+            case 'webp':
+                $src = imagecreatefromwebp($file["tmp_name"]);
+                break;
+            default:
+                return null;
         }
         if ($ext == 'png' || $ext == 'webp') {
             imagealphablending($dst, false);
@@ -201,9 +229,10 @@ class User {
         imagedestroy($dst);
         return $saved ? $webFilePath : null;
     }
-    
+
     // --- FONCTIONS SOCIALES ---
-    public function getAllUsersExcept($currentUserId) {
+    public function getAllUsersExcept($currentUserId)
+    {
         $query = "SELECT id, username, avatar_url, created_at FROM " . $this->table . " WHERE id != :id ORDER BY created_at DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $currentUserId);
@@ -211,7 +240,8 @@ class User {
         return $stmt->fetchAll();
     }
 
-    public function follow($followerId, $followedId) {
+    public function follow($followerId, $followedId)
+    {
         if ($followerId == $followedId) return false; // On ne peut pas se suivre soi-même
         $query = "INSERT IGNORE INTO user_follows (follower_id, followed_id) VALUES (:follower, :followed)";
         $stmt = $this->conn->prepare($query);
@@ -220,7 +250,8 @@ class User {
         return $stmt->execute();
     }
 
-    public function unfollow($followerId, $followedId) {
+    public function unfollow($followerId, $followedId)
+    {
         $query = "DELETE FROM user_follows WHERE follower_id = :follower AND followed_id = :followed";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':follower', $followerId);
@@ -228,13 +259,12 @@ class User {
         return $stmt->execute();
     }
 
-    public function getFollowedIds($userId) {
+    public function getFollowedIds($userId)
+    {
         $query = "SELECT followed_id FROM user_follows WHERE follower_id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $userId);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN); // Retourne un tableau simple [1, 5, 12...]
     }
-    
 }
-?>
