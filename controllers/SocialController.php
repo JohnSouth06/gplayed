@@ -19,7 +19,7 @@ class SocialController {
     }
 
     public function feed() {
-        if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
+        if (!isset($_SESSION['user_id'])) { header("Location: /"); exit(); }
         
         $activities = $this->activityModel->getFeed($_SESSION['user_id']);
         
@@ -39,7 +39,7 @@ class SocialController {
             if(isset($_SERVER['HTTP_REFERER'])) {
                 header("Location: " . $_SERVER['HTTP_REFERER']);
             } else {
-                header("Location: index.php?action=feed");
+                header("Location: /feed");
             }
         }
         exit();

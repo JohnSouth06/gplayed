@@ -66,7 +66,7 @@ class GameController
     public function stats()
     {
         if (!isset($_SESSION['user_id'])) {
-            header("Location: index.php");
+            header("Location: /");
             exit();
         }
         $games = $this->gameModel->getAll($_SESSION['user_id']);
@@ -100,7 +100,7 @@ class GameController
                 // (Vérifie d'abord via rawg_id, sinon via Titre + Plateforme)
                 if ($this->gameModel->checkDuplicate($_SESSION['user_id'], $rawgId, $title, $platform)) {
                     $_SESSION['toast'] = ['msg' => "Ce jeu existe déjà dans votre collection !", 'type' => 'warning'];
-                    header("Location: index.php"); // On redirige sans sauvegarder
+                    header("Location: /"); // On redirige sans sauvegarder
                     exit();
                 }
             }
@@ -114,11 +114,11 @@ class GameController
 
             // Si c'est un nouvel ajout, on redirige avec le paramètre pour rouvrir l'accordéon
             if ($isNewGame) {
-                header("Location: index.php?open_add=1");
+                header("Location: /?open_add=1");
                 exit();
             }
         }
-        header("Location: index.php");
+        header("Location: /");
         exit();
     }
 
@@ -130,7 +130,7 @@ class GameController
         if ($this->gameModel->delete($_GET['id'], $_SESSION['user_id'])) {
             $_SESSION['toast'] = ['msg' => "Supprimé.", 'type' => 'warning'];
         }
-        header("Location: index.php");
+        header("Location: /");
         exit();
     }
 
@@ -169,7 +169,7 @@ class GameController
             $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
             if ($ext !== 'json') {
                 $_SESSION['toast'] = ['msg' => "Le fichier doit être un .json", 'type' => 'danger'];
-                header("Location: index.php?action=profile");
+                header("Location: /profile");
                 exit();
             }
 
@@ -178,7 +178,7 @@ class GameController
 
             if (json_last_error() !== JSON_ERROR_NONE || !is_array($games)) {
                 $_SESSION['toast'] = ['msg' => "Fichier JSON invalide.", 'type' => 'danger'];
-                header("Location: index.php?action=profile");
+                header("Location: /profile");
                 exit();
             }
 
@@ -191,7 +191,7 @@ class GameController
 
             $_SESSION['toast'] = ['msg' => "$count jeux importés avec succès !", 'type' => 'success'];
         }
-        header("Location: index.php?action=profile");
+        header("Location: /profile");
         exit();
     }
 
@@ -200,7 +200,7 @@ class GameController
     {
         $username = $_GET['user'] ?? null;
         if (!$username) {
-            header("Location: index.php");
+            header("Location: /");
             exit();
         }
 
