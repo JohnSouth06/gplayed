@@ -4,11 +4,11 @@ const RAWG_API_KEY = 'ae5a8fa57c704860b5010b3787ab78ef';
 // Utilisation de LANG pour les labels
 const statusConfig = {
     'not_started': { label: LANG.status_not_started, class: 'bg-secondary', icon: '&#xe837;' },
-    'playing': { label: LANG.status_playing, class: 'bg-info', icon: '&#xea5b;' },      
-    'finished': { label: LANG.status_finished, class: 'bg-success', icon: '&#xe86c;' },  
-    'completed': { label: LANG.status_completed, class: 'bg-warning text-dark', icon: '&#xea23;' }, 
-    'dropped': { label: LANG.status_dropped, class: 'bg-danger', icon: '&#xe14b;' },    
-    'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-white', icon: '&#xe8b1;' } 
+    'playing': { label: LANG.status_playing, class: 'bg-info', icon: '&#xea5b;' },
+    'finished': { label: LANG.status_finished, class: 'bg-success', icon: '&#xe86c;' },
+    'completed': { label: LANG.status_completed, class: 'bg-warning text-dark', icon: '&#xea23;' },
+    'dropped': { label: LANG.status_dropped, class: 'bg-danger', icon: '&#xe14b;' },
+    'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-white', icon: '&#xe8b1;' }
 };
 
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
@@ -381,7 +381,11 @@ function openModal(g = null) {
     if (g && g.platform) { if (standardPlatforms.includes(g.platform)) { platformSelect.value = g.platform; toggleCustomPlatform(); } else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); } } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
     checkPsnVisibility();
     if (g && g.format === 'digital') document.getElementById('fmtDigital').checked = true; else document.getElementById('fmtPhysical').checked = true;
-    document.getElementById('gameStatus').value = g ? (g.status || 'not_started') : 'not_started';
+    // On détecte si on est sur la page wishlist
+    const isWishlistPage = window.location.pathname.includes('wishlist');
+    document.getElementById('gameStatus').value = g
+        ? (g.status || 'not_started')
+        : (isWishlistPage ? 'wishlist' : 'not_started');
     document.getElementById('gameDate').value = g ? g.release_date : '';
     document.getElementById('gameMeta').value = g ? g.metacritic_score : '';
     document.getElementById('gameRating').value = g ? (g.user_rating || 5) : 5;

@@ -161,8 +161,8 @@ function getShadowStyle($color) {
                 
                 <input type="hidden" name="status" value="wishlist" id="gameStatus">
                 <input type="hidden" name="release_date" id="gameDate"> <div class="d-none">
-                    <input type="radio" id="fmtPhysical" name="format" value="physical">
-                    <input type="radio" id="fmtDigital" name="format" value="digital" checked>
+                    <input type="radio" id="fmtPhysical" name="format" value="physical" checked>
+                    <input type="radio" id="fmtDigital" name="format" value="digital">
                     <div id="modalTabs"></div>
                     <div id="multiPlatformContainer"><div id="platformInputsList"></div><input id="gamePlatformCustom"></div>
                     <input id="gameMeta"><input id="gameRating"><input id="gameDesc">

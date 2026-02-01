@@ -105,47 +105,46 @@ class GameController
         exit();
     }
 
-    // --- Save (Ajout/Modif) ---
-    public function save()
-    {
+        // --- Save (Ajout/Modif) ---
+        public function save()
+        {
         if (!isset($_SESSION['user_id'])) return;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->checkCsrf(); // <--- VERIFICATION
+            $this->checkCsrf(); 
 
             // 1. Définir si c'est un nouveau jeu
             $isNewGame = empty($_POST['game_id']);
 
             // 2. Si c'est un nouvel ajout, on vérifie les doublons
             if ($isNewGame) {
-                // Récupération des données pour la vérification
                 $rawgId = $_POST['rawg_id'] ?? null;
                 $title = $_POST['title'] ?? '';
 
-                // Gérer le cas particulier du champ "Autre" pour la plateforme
                 $platform = ($_POST['platform'] === 'Multiplateforme' && !empty($_POST['platform_custom']))
                     ? $_POST['platform_custom']
                     : $_POST['platform'];
 
-                // Appel au modèle pour vérifier si le jeu existe déjà
-                // (Vérifie d'abord via rawg_id, sinon via Titre + Plateforme)
                 if ($this->gameModel->checkDuplicate($_SESSION['user_id'], $rawgId, $title, $platform)) {
                     $_SESSION['toast'] = ['msg' => "Ce jeu existe déjà dans votre collection !", 'type' => 'warning'];
-                    header("Location: /"); // On redirige sans sauvegarder
+                    header("Location: /"); 
                     exit();
                 }
             }
 
-            // 3. Sauvegarde normale si tout est bon
+            // 3. Sauvegarde normale
             if ($this->gameModel->save($_POST, $_FILES, $_SESSION['user_id'])) {
                 $_SESSION['toast'] = ['msg' => "Enregistré !", 'type' => 'success'];
             } else {
                 $_SESSION['toast'] = ['msg' => "Erreur lors de l'enregistrement.", 'type' => 'danger'];
             }
 
-            // Si c'est un nouvel ajout, on redirige avec le paramètre pour rouvrir l'accordéon
+            // --- MODIFICATION ICI ---
+            // Si c'est un nouvel ajout, on redirige selon le statut
             if ($isNewGame) {
-                header("Location: /?open_add=1");
+                // Si le statut envoyé est 'wishlist', on redirige vers /wishlist, sinon vers l'accueil
+                $redirectTo = (isset($_POST['status']) && $_POST['status'] === 'wishlist') ? "/wishlist" : "/?open_add=1";
+                header("Location: " . $redirectTo);
                 exit();
             }
         }
