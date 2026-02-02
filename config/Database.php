@@ -1,20 +1,29 @@
 <?php
 class Database {
-    private $host = 'localhost';
-    private $dbname = 'go_website';
-    private $username = 'root';
-    private $password = ''; // Mets ton mot de passe ici (souvent vide sur XAMPP, 'root' sur MAMP)
+
     public $conn;
 
     public function getConnection() {
         $this->conn = null;
+
+        $host = getenv('DB_HOST') ?: '';
+        $db_name = getenv('DB_NAME') ?: '';
+        $username = getenv('DB_USER') ?: '';
+        $password = getenv('DB_PASS') ?: '';
+
         try {
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->dbname . ";charset=utf8mb4", $this->username, $this->password);
+
+            $this->conn = new PDO(
+                "mysql:host=" . $host . ";dbname=" . $db_name . ";charset=utf8mb4",
+                $username,
+                $password
+            );
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         } catch(PDOException $exception) {
             echo "Erreur de connexion : " . $exception->getMessage();
         }
+
         return $this->conn;
     }
 }

@@ -168,6 +168,25 @@ class Game
         return $stmt->fetch() !== false;
     }
 
+    // Wishlist
+    public function getWishlist($userId)
+    {
+        $query = "SELECT * FROM " . $this->table . " WHERE user_id = :user_id AND status = 'wishlist' ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function acquireGame($id, $userId)
+    {
+        // On passe le statut à "not_started" (Non commencé) par défaut
+        $query = "UPDATE " . $this->table . " SET status = 'not_started', created_at = NOW() WHERE id = :id AND user_id = :user_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':user_id', $userId);
+        return $stmt->execute();
+    }
     // --- IMPORT JSON ---
     public function importEntry($game, $userId)
     {

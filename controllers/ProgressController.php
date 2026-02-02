@@ -20,7 +20,7 @@ class ProgressController {
 
     public function index() {
         if (!isset($_SESSION['user_id'])) {
-            header("Location: index.php");
+            header("Location: /");
             exit();
         }
 
@@ -47,7 +47,7 @@ class ProgressController {
                 $_SESSION['toast'] = ['msg' => "Erreur lors de l'ajout.", 'type' => 'danger'];
             }
         }
-        header("Location: index.php?action=progression");
+        header("Location: /progression");
         exit();
     }
 
@@ -58,7 +58,7 @@ class ProgressController {
         if ($this->progressModel->delete($_GET['id'])) {
             $_SESSION['toast'] = ['msg' => "Entrée supprimée.", 'type' => 'warning'];
         }
-        header("Location: index.php?action=progression");
+        header("Location: /progression");
         exit();
     }
 }
