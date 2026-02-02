@@ -1,5 +1,3 @@
-const RAWG_API_KEY = 'ae5a8fa57c704860b5010b3787ab78ef';
-
 // --- CONFIGURATION ICONES (Material Icons Codepoints) ---
 // Utilisation de LANG pour les labels
 const statusConfig = {
@@ -205,7 +203,6 @@ function loadMoreGames() {
 }
 
 // --- GENERATEURS HTML ---
-
 function getNeonColor(rgbString, opacity = 1) {
     if (!rgbString || rgbString === 'null') return `rgba(255, 255, 255, ${opacity})`;
     const match = rgbString.match(/\d+/g);
@@ -404,75 +401,119 @@ async function addTrophy() { const gameId = document.getElementById('gameId').va
 async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
 async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
 
-// --- RAWG ---
-// --- RAWG ---
+// --- RAWG / IGDB (Recherche via Backend) ---
 async function searchRawg() {
+    // Note : Le nom de la fonction est conservé pour la compatibilité avec le HTML,
+    // mais elle appelle désormais le backend PHP qui relaie vers IGDB.
+    
     const input = document.getElementById('rawgSearchInput');
     const q = input.value;
 
     if (!q) return;
 
-    // MODIFICATION : On ferme le clavier mobile en retirant le focus
+    // On ferme le clavier mobile
     input.blur();
 
     document.getElementById('rawgContainer').classList.remove('d-none');
     document.getElementById('rawgLoading').classList.remove('d-none');
+    // On vide les résultats précédents
+    document.getElementById('rawgResults').innerHTML = '';
 
     try {
-        const res = await fetch(`https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(q)}&page_size=5`);
+        // Appel à votre route PHP locale
+        const res = await fetch(`/?action=search_igdb&q=${encodeURIComponent(q)}`);
         const data = await res.json();
+        
         let html = '';
-        data.results.forEach(g => {
-            html += `<div class="card border-0 shadow-sm flex-shrink-0 bg-body-tertiary" style="width: 160px; cursor: pointer; overflow: hidden; border-radius: 12px;" onclick="fetchGameDetails(${g.id})"><img src="${g.background_image || ''}" style="height:100px; width: 100%; object-fit:cover"><div class="p-2 text-center"><small class="fw-bold d-block text-truncate text-body">${g.name}</small><small class="text-muted" style="font-size: 0.7rem;">${g.released ? g.released.substring(0, 4) : ''}</small></div></div>`;
-        });
-        document.getElementById('rawgResults').innerHTML = html;
+        if (data.results && data.results.length > 0) {
+            data.results.forEach(g => {
+                // Gestion de l'image (placeholder si vide)
+                const imgUrl = g.background_image || 'assets/images/no-cover.png'; // Assurez-vous d'avoir une image par défaut ou laissez vide
+                // La date renvoyée par le PHP est déjà formatée (ex: "2023")
+                const year = g.released || '';
+
+                html += `
+                <div class="card border-0 shadow-sm flex-shrink-0 bg-body-tertiary" 
+                     style="width: 160px; cursor: pointer; overflow: hidden; border-radius: 12px;" 
+                     onclick="fetchGameDetails(${g.id})">
+                    <img src="${imgUrl}" style="height:220px; width: 100%; object-fit:cover">
+                    <div class="p-2 text-center">
+                        <small class="fw-bold d-block text-truncate text-body">${g.name}</small>
+                        <small class="text-muted" style="font-size: 0.7rem;">${year}</small>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('rawgResults').innerHTML = html;
+        } else {
+            document.getElementById('rawgResults').innerHTML = '<div class="text-muted w-100 text-center py-2">Aucun résultat trouvé via IGDB.</div>';
+        }
+
     } catch (e) {
-        // Gestion silencieuse ou log
         console.error(e);
+        // Affichage d'une erreur générique si le réseau échoue
+        document.getElementById('rawgResults').innerHTML = '<div class="text-danger w-100 text-center py-2">Erreur de connexion au serveur.</div>';
     } finally {
         document.getElementById('rawgLoading').classList.add('d-none');
     }
 }
+
 async function fetchGameDetails(id) {
     document.getElementById('rawgLoading').classList.remove('d-none');
     try {
-        const res = await fetch(`https://api.rawg.io/api/games/${id}?key=${RAWG_API_KEY}`);
+        // Appel Backend PHP pour les détails complets
+        const res = await fetch(`/?action=get_igdb_details&id=${id}`);
+        
+        if (!res.ok) throw new Error('Erreur API');
+        
         const g = await res.json();
 
-        // Vérification doublon avec message traduit
+        // Vérification doublon (logique conservée)
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
-            const cleanRawgTitle = g.name.trim().toLowerCase();
+            const cleanTitle = g.name.trim().toLowerCase();
             const existingGame = localGames.find(game =>
-                game.title.trim().toLowerCase() === cleanRawgTitle
+                game.title.trim().toLowerCase() === cleanTitle
             );
 
             if (existingGame) {
-                // Remplacement dynamique des variables dans la chaîne de langue
-                const msg = LANG.alert_duplicate
-                    .replace('{name}', g.name)
-                    .replace('{platform}', existingGame.platform);
+                const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate) 
+                    ? LANG.alert_duplicate.replace('{name}', g.name).replace('{platform}', existingGame.platform)
+                    : `Ce jeu existe déjà : ${g.name}`;
                 alert(msg);
             }
         }
 
+        // Ouverture de la modale d'édition
         openModal();
+        
+        // Remplissage des champs
         document.getElementById('gameTitle').value = g.name;
-        document.getElementById('gameDate').value = g.released;
+        document.getElementById('gameDate').value = g.released; // Format YYYY-MM-DD renvoyé par PHP
         document.getElementById('gameMeta').value = g.metacritic;
+        
+        // Gestion de l'image
         document.getElementById('gameImageHidden').value = g.background_image;
-
         if (g.background_image) {
             document.getElementById('previewImg').src = g.background_image;
             document.getElementById('previewImg').classList.remove('d-none');
             document.getElementById('uploadPlaceholder').classList.add('d-none');
+        } else {
+            document.getElementById('previewImg').classList.add('d-none');
+            document.getElementById('uploadPlaceholder').classList.remove('d-none');
         }
 
         document.getElementById('gameDesc').value = g.description_raw;
-        document.getElementById('gameGenres').value = g.genres ? g.genres.map(x => x.name).join(', ') : '';
+        
+        // Le PHP formate désormais les genres en une simple chaîne de caractères (ex: "RPG, Adventure")
+        // On n'a plus besoin de faire le map() complexe du côté JS.
+        document.getElementById('gameGenres').value = g.genres_list || '';
+
+        // IMPORTANT : On stocke l'ID IGDB dans le champ caché qui servait à RAWG
+        // Cela permet de sauvegarder l'ID unique pour les futures mises à jour
+        document.getElementById('gameRawgId').value = id;
 
     } catch (e) {
         console.error(e);
-        alert(LANG.error_import);
+        alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : "Erreur lors de l'importation.");
     } finally {
         document.getElementById('rawgLoading').classList.add('d-none');
     }

@@ -94,6 +94,14 @@ switch ($action) {
         $gameController->apiSearch();
         break;
 
+    // Recherche API Externe (IGDB)
+    case 'search_igdb':
+        $gameController->searchIgdb();
+        break;
+    case 'get_igdb_details':
+        $gameController->getIgdbDetails();
+        break;
+
     // Import/Export
     case 'export_json':
         $gameController->export();

@@ -171,13 +171,14 @@ class AuthController
                 $mail = new PHPMailer(true);
 
                 try {
-                    // --- CONFIGURATION IONOS ---
+                    // --- CONFIGURATION IONOS -->
+
                     $mail->isSMTP();
                     $mail->Host       = 'smtp.ionos.fr';
                     $mail->SMTPAuth   = true;
 
-                    $mail->Username   = 'info@g-played.com'; 
-                    $mail->Password   = '34*$vl$7wl5H#5F*D23@';           
+                    $mail->Username   = $_ENV['MAIL_USER_ID']; 
+                    $mail->Password   = $_ENV['MAIL_PASSWORD_ID'];            
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                     $mail->Port       = 587;
                     $mail->CharSet    = 'UTF-8';
@@ -187,7 +188,7 @@ class AuthController
                     $mail->addAddress($email);
 
                     // --- CONTENU ---
-                    $mail->isHTML(true);
+                    $mail->isHTML(true); 
                     $mail->Subject = __('mail_reset_subject');
                     
                     $mail->Body    = "
