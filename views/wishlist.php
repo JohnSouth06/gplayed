@@ -49,12 +49,29 @@ function getShadowStyle($color) {
             
             <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
                 <div class="flex-grow-1 w-100">
-                    <div class="search-wrapper mt-0 mb-2">
+                    <div class="search-wrapper">
                         <div class="search-box">
                             <i class="material-icons-outlined search-icon icon-md">&#xe8b6;</i>
                             <input type="text" id="rawgSearchInput" class="form-control border rounded-pill search-input" placeholder="<?= __('wishlist_search_placeholder') ?>" onkeypress="handleEnter(event)">
                         </div>
                     </div>
+                </div>
+                <div class="position-relative">
+                    <button class="btn btn-light border shadow-sm rounded-circle d-flex align-items-center justify-content-center" 
+                            style="width: 45px; height: 45px;" 
+                            id="micBtn"
+                            onclick="toggleVoiceSearch()" 
+                            title="Recherche vocale">
+                        <i class="material-icons-outlined icon-md" id="micIcon">&#xe029;</i>
+                    </button>
+                    
+                    <span id="langBadge" 
+                        onclick="toggleVoiceLang(event)"
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark border border-white shadow-sm" 
+                        style="cursor: pointer; font-size: 0.65rem; z-index: 10;"
+                        title="Changer de langue (EN/FR)">
+                        EN
+                    </span>
                 </div>
                 <button class="btn btn-outline-primary shadow-sm rounded-pill fw-bold px-4 py-2 w-auto text-nowrap" onclick="openModal()">
                     <i class="material-icons-outlined icon-sm fs-4 me-2">&#xe145;</i><?= __('wishlist_manual_add') ?>

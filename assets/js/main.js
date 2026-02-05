@@ -32,6 +32,32 @@ function toggleSidebar() {
     document.getElementById('sidebarOverlay').classList.toggle('show'); 
 }
 
+// Logique de gestion des Cookies
+document.addEventListener('DOMContentLoaded', function() {
+    const consent = localStorage.getItem('gplayed_cookie_consent');
+    const banner = document.getElementById('cookieConsentBanner');
+    
+    // Si aucun choix n'a été fait, on affiche la bannière
+    if (consent === null) {
+        banner.classList.remove('d-none');
+    }
+});
+
+function handleCookieConsent(accepted) {
+    const banner = document.getElementById('cookieConsentBanner');
+    
+    // On enregistre le choix (true ou false) dans le localStorage
+    // Cela persiste même si on ferme le navigateur
+    localStorage.setItem('gplayed_cookie_consent', accepted ? 'true' : 'false');
+    
+    // On masque la bannière avec une petite animation
+    banner.style.transition = 'opacity 0.5s';
+    banner.style.opacity = '0';
+    setTimeout(() => {
+        banner.classList.add('d-none');
+    }, 500);
+}
+
 // Initialisation au chargement
 document.addEventListener('DOMContentLoaded', () => { 
     initTheme(); 

@@ -1,21 +1,11 @@
 <?php
 require_once dirname(__DIR__) . '/models/Activity.php';
-require_once dirname(__DIR__) . '/models/Comment.php';
 
 class SocialController {
     private $activityModel;
-    private $commentModel;
 
     public function __construct($db) {
         $this->activityModel = new Activity($db);
-        $this->commentModel = new Comment($db);
-    }
-
-    // --- Sécurité CSRF ---
-    private function checkCsrf() {
-        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-            die("Erreur de sécurité : Token CSRF invalide.");
-        }
     }
 
     public function feed() {
@@ -23,24 +13,40 @@ class SocialController {
         
         $activities = $this->activityModel->getFeed($_SESSION['user_id']);
         
+        // Définition des réactions disponibles (Emoji + Label)
+        $reactionTypes = [
+            'like' => ['icon' => '👍', 'label' => 'J\'aime'],
+            'clap' => ['icon' => '👏', 'label' => 'Bravo'],
+            'fire' => ['icon' => '🔥', 'label' => 'Intéressant'],
+            'laugh' => ['icon' => '😂', 'label' => 'Drôle'],
+            'heart' => ['icon' => '❤️', 'label' => 'Adore']
+        ];
+
         $view = dirname(__DIR__) . '/views/feed.php';
         require dirname(__DIR__) . '/views/layout.php';
     }
 
-    public function addComment() {
-        if (!isset($_SESSION['user_id'])) return;
+    // Nouvelle méthode appelée via AJAX (JavaScript)
+    public function react() {
+        header('Content-Type: application/json');
         
-        if (isset($_POST['game_id']) && !empty($_POST['content'])) {
-            $this->checkCsrf(); // <--- VERIFICATION
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Non connecté']);
+            exit;
+        }
 
-            $this->commentModel->add($_SESSION['user_id'], $_POST['game_id'], $_POST['content']);
-            $_SESSION['toast'] = ['msg' => "Commentaire publié !", 'type' => 'success'];
-            
-            if(isset($_SERVER['HTTP_REFERER'])) {
-                header("Location: " . $_SERVER['HTTP_REFERER']);
-            } else {
-                header("Location: /feed");
-            }
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (isset($input['type'], $input['ref_id'], $input['reaction'])) {
+            $result = $this->activityModel->toggleReaction(
+                $_SESSION['user_id'], 
+                $input['type'], 
+                $input['ref_id'], 
+                $input['reaction']
+            );
+            echo json_encode(['status' => 'success', 'action' => $result]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Données incomplètes']);
         }
         exit();
     }

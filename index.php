@@ -138,8 +138,10 @@ switch ($action) {
     case 'feed':
         $socialController->feed();
         break;
-    case 'add_comment':
-        $socialController->addComment();
+
+    // Social React
+    case '/social/react':
+        $socialController->react();
         break;
 
     case 'legal':

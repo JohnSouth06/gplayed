@@ -306,8 +306,8 @@ h6,
 
 /* --- LOGO LOGIN --- */
 #logo-login {
-    max-width:400px;
-} 
+    max-width: 400px;
+}
 
 /* --- LOADER --- */
 #app-loader {
@@ -508,6 +508,11 @@ h6,
     display: block;
 }
 
+/* --- FEED --- */
+.backdrop-blur { backdrop-filter: blur(4px); }
+.game-card-hover:hover { transform: translateY(-3px); transition: transform 0.2s ease; }
+.btn-ghost:hover { background-color: #f8f9fa; transform: scale(1.2); }
+
 /* --- DROPDOWN --- */
 .dropdown-toggle::after {
     display: none !important;
@@ -603,6 +608,12 @@ h6,
 
 [data-bs-theme="dark"] .svg-adaptive-stroke {
     stroke: #ffffff;
+}
+
+/* COOKIES */
+#cookieConsentBanner {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 9999 !important;
 }
 
 /* --- INPUTS --- */
