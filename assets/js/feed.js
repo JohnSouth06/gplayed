@@ -1,14 +1,20 @@
 async function toggleReaction(type, refId, reaction, btn) {
-    // Feedback visuel immédiat (Optimistic UI)
-    const allBtns = btn.parentElement.querySelectorAll('.reaction-btn');
-    const wasActive = btn.classList.contains('active-reaction');
-    
-    // Reset buttons
-    allBtns.forEach(b => b.classList.remove('active-reaction'));
+    // Empêche le dropdown de se fermer (optionnel, selon préférence UX)
+    // event.stopPropagation(); 
 
-    // Toggle logic visual
+    // Sélectionne les boutons voisins via la classe correcte
+    const container = btn.parentElement;
+    const allBtns = container.querySelectorAll('.reaction-btn');
+    
+    // Vérifie si le bouton cliqué était déjà actif (classe Bootstrap)
+    const wasActive = btn.classList.contains('bg-primary-subtle');
+    
+    // Reset : On enlève la couleur de fond de tous les boutons
+    allBtns.forEach(b => b.classList.remove('bg-primary-subtle'));
+
+    // Toggle : Si ce n'était pas actif, on l'active
     if (!wasActive) {
-        btn.classList.add('active-reaction');
+        btn.classList.add('bg-primary-subtle');
     }
 
     try {
@@ -22,8 +28,8 @@ async function toggleReaction(type, refId, reaction, btn) {
         
         const data = await response.json();
         if(data.status === 'success') {
-            // Optionnel : Recharger juste le compteur de réactions ici si vous voulez être précis
-            // Ou recharger la page silencieusement
+            // Recharge la page pour mettre à jour les compteurs totaux
+            // Idéalement, on mettrait à jour le DOM dynamiquement sans recharger
             location.reload(); 
         }
     } catch (e) {

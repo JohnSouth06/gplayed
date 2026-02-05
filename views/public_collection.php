@@ -20,7 +20,7 @@ if (isset($_SESSION['user_id']) && isset($owner['id'])) {
         <?php endif; ?>
 
         <div>
-            <h2 class="fw-bold mb-0"><?= __('public_collection_title') ?> <?= htmlspecialchars($owner['username']) ?></h2>
+            <h2 class="fw-light text-tertiary mb-0"><?= __('public_collection_title') ?> <span class="text-primary fw-bold"><?= htmlspecialchars($owner['username']) ?></span></h2>
             <p class="text-secondary mb-2"><?= count($games) ?> <?= __('public_collection_count') ?></p>
 
             <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] != $owner['id']): ?>
