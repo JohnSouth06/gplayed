@@ -26,7 +26,6 @@ require_once ROOT_PATH . '/controllers/AuthController.php';
 require_once ROOT_PATH . '/controllers/GameController.php';
 require_once ROOT_PATH . '/controllers/ProgressController.php';
 require_once ROOT_PATH . '/controllers/CommunityController.php';
-require_once ROOT_PATH . '/controllers/SocialController.php';
 require_once ROOT_PATH . '/controllers/TrophyController.php';
 require_once ROOT_PATH . '/config/lang.php';
 
@@ -37,7 +36,6 @@ $authController = new AuthController($db);
 $gameController = new GameController($db);
 $progressController = new ProgressController($db);
 $communityController = new CommunityController($db);
-$socialController = new SocialController($db);
 $trophyController = new TrophyController($db);
 
 $action = $_GET['action'] ?? 'home';
@@ -134,24 +132,9 @@ switch ($action) {
         $gameController->share();
         break;
 
-    // Actus
-    case 'feed':
-        $socialController->feed();
-        break;
-    case 'add_comment':
-        $socialController->addComment();
-        break;
-
     case 'legal':
         $view = 'views/legal.php';
         require ROOT_PATH . '/views/layout.php';
-        break;
-
-    // Comments
-    case 'add_comment':
-        if (isset($socialController)) {
-            $socialController->addComment();
-        }
         break;
 
     // Trophy
@@ -188,7 +171,6 @@ switch ($action) {
                 }
             }
         }
-        // On affiche le code JS
         echo 'const LANG = ' . json_encode($jsTranslations) . ';';
         exit;
 

@@ -204,14 +204,6 @@ return [
     'public_collection_empty' => 'This player has not added any games yet.',
     'public_collection_search' => 'Search for a game in the player\'s collection...',
 
-    // Feed
-    'feed_title' => 'News Feed',
-    'feed_empty_title' => 'It\'s quiet here...',
-    'feed_btn_follow' => 'Follow members',
-    'feed_game_added' => 'added a game',
-    'feed_game_progress' => 'has made progress',
-    'feed_comment_placeholder' => 'Write a comment...',
-
     // Legal Notice - EN
     'menu_legal' => 'Legal Mentions',
     'legal_title' => 'Legal Mentions',
@@ -313,4 +305,14 @@ return [
     'profile_danger_text' => 'Account deletion is irreversible. All your data will be lost.',
     'profile_btn_delete_account' => 'Delete my account',
     'profile_delete_confirm' => 'Are you ABSOLUTELY sure you want to delete your account?',
+
+    // Cookies
+    'cookie_banner_text' => 'This site uses essential cookies to ensure proper operation (session, preferences). No advertising trackers are used.',
+    'cookie_btn_accept' => 'Accept',
+    'cookie_btn_decline' => 'Continue without accepting',
+
+    // Section Cookies (Legal)
+    'legal_cookies_title' => 'Cookie Management',
+    'legal_cookies_text' => 'This site uses only "technical" cookies strictly necessary for its operation (e.g., maintaining your logged-in session). In accordance with privacy regulations, these cookies are exempt from prior consent. However, we inform you that you can configure your browser to block these cookies, but the user experience may be degraded (inability to stay logged in). No data is sold to third parties.',
+
 ];
