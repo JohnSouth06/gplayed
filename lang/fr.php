@@ -314,4 +314,13 @@ return [
     'profile_danger_text' => 'La suppression du compte est irréversible. Toutes vos données seront perdues.',
     'profile_btn_delete_account' => 'Supprimer mon compte',
     'profile_delete_confirm' => 'Êtes-vous ABSOLUMENT sûr de vouloir supprimer votre compte ?',
+
+    // Cookies
+    'cookie_banner_text' => 'Ce site utilise des cookies essentiels pour assurer son bon fonctionnement (session, préférences). Aucun traceur publicitaire n\'est utilisé.',
+    'cookie_btn_accept' => 'Accepter',
+    'cookie_btn_decline' => 'Continuer sans accepter',
+    
+    // Section Cookies (Legal)
+    'legal_cookies_title' => 'Gestion des cookies',
+    'legal_cookies_text' => 'Ce site utilise uniquement des cookies "techniques" strictement nécessaires à son fonctionnement (ex: maintien de votre session connectée). Conformément aux recommandations de la CNIL, ces cookies sont dispensés du recueil de consentement préalable. Toutefois, nous vous informons que vous pouvez configurer votre navigateur pour bloquer ces cookies, mais l\'expérience utilisateur risque d\'être dégradée (impossibilité de rester connecté). Aucune donnée n\'est revendue à des tiers.',
 ];

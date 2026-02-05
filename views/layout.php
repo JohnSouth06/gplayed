@@ -146,16 +146,28 @@ if (isset($_SESSION['force_loader'])) {
             </div>
         </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div id="cookieConsentBanner" class="position-fixed bottom-0 start-0 w-100 bg-dark text-white p-3 shadow-lg z-3 d-none">
+        <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="material-icons text-primary">&#xeaac;</i>
+                <small><?= __('cookie_banner_text') ?> <a href="/legal" class="text-primary text-decoration-underline"><?= __('menu_legal') ?></a></small>
+            </div>
+            <div class="d-flex gap-2 text-nowrap">
+                <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="handleCookieConsent(false)"><?= __('cookie_btn_decline') ?></button>
+                <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="handleCookieConsent(true)"><?= __('cookie_btn_accept') ?></button>
+            </div>
+        </div>
+    </div>
 
-        <script>
-            window.forceLoader = <?= $forceLoader ? 'true' : 'false' ?>;
-            window.toastData = <?= isset($_SESSION['toast']) ? json_encode($_SESSION['toast']) : 'null' ?>;
-            <?php unset($_SESSION['toast']); ?>
-        </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-        <script src="assets/js/main.js"></script>
+    <script>
+        window.forceLoader = <?= $forceLoader ? 'true' : 'false' ?>;
+        window.toastData = <?= isset($_SESSION['toast']) ? json_encode($_SESSION['toast']) : 'null' ?>;
+        <?php unset($_SESSION['toast']); ?>
+    </script>
 
+    <script src="assets/js/main.js"></script>
 </body>
 
 </html>

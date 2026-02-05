@@ -124,6 +124,157 @@ function getProcessedGames() {
     return filtered;
 }
 
+// --- RECHERCHE VOCALE ---
+function toggleVoiceSearch() {
+    // Vérification de compatibilité
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        alert("Votre navigateur ne supporte pas la recherche vocale. Essayez sur Chrome ou Safari.");
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+
+    // Configuration
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // Éléments visuels
+    const micBtn = document.getElementById('micBtn');
+    const micIcon = document.getElementById('micIcon');
+    const searchInput = document.getElementById('rawgSearchInput');
+
+    // Démarrage
+    recognition.start();
+
+    // Événement : L'écoute commence
+    recognition.onstart = () => {
+        micBtn.classList.remove('btn-light', 'border');
+        micBtn.classList.add('btn-danger', 'pulse-animation');
+        micIcon.innerText = 'mic_off';
+        searchInput.placeholder = "Je vous écoute...";
+    };
+
+    // Événement : L'écoute s'arrête
+    recognition.onend = () => {
+        resetMicVisuals();
+    };
+
+    // Événement : Résultat trouvé
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('Voix détectée :', transcript);
+
+        // 1. On remplit la barre de recherche
+        searchInput.value = transcript;
+
+        // 2. On lance la recherche IGDB en mode AUTOMATIQUE
+        searchIgdb(true);
+    };
+
+    // Gestion des erreurs
+    recognition.onerror = (event) => {
+        console.error('Erreur vocale:', event.error);
+        resetMicVisuals();
+        if (event.error === 'not-allowed') {
+            alert("Veuillez autoriser l'accès au microphone.");
+        }
+    };
+
+    function resetMicVisuals() {
+        micBtn.classList.remove('btn-danger', 'pulse-animation');
+        micBtn.classList.add('btn-light', 'border');
+        micIcon.innerHTML = '&#xe029;';
+        searchInput.placeholder = "Rechercher un jeu...";
+    }
+}
+
+// --- CONFIGURATION RECHERCHE VOCALE ---
+let currentVoiceLang = 'en-US'; // Par défaut : Anglais (Meilleur pour les titres de jeux)
+
+// 1. Fonction pour changer de langue (Le "Switch Luxe")
+function toggleVoiceLang(e) {
+    // Empêche le clic de déclencher aussi la recherche vocale si mal placé
+    if (e) e.stopPropagation();
+
+    const badge = document.getElementById('langBadge');
+
+    if (currentVoiceLang === 'en-US') {
+        currentVoiceLang = 'fr-FR';
+        badge.innerText = 'FR';
+        badge.classList.remove('bg-dark');
+        badge.classList.add('bg-primary'); // Bleu pour Français
+    } else {
+        currentVoiceLang = 'en-US';
+        badge.innerText = 'EN';
+        badge.classList.remove('bg-primary');
+        badge.classList.add('bg-dark'); // Noir pour Anglais
+    }
+
+    // Petit effet visuel pour confirmer
+    badge.style.transform = "scale(1.2)";
+    setTimeout(() => badge.style.transform = "translate(-50%, -50%) scale(1)", 200);
+}
+
+// 2. Votre fonction principale (Mise à jour avec la variable dynamique)
+function toggleVoiceSearch() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Navigateur incompatible (essayez Chrome).");
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = currentVoiceLang; 
+    // ------------------------------------
+
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    const micBtn = document.getElementById('micBtn');
+    const micIcon = document.getElementById('micIcon');
+    const searchInput = document.getElementById('rawgSearchInput');
+
+    recognition.start();
+
+    recognition.onstart = () => {
+        micBtn.classList.remove('btn-light', 'border');
+        micBtn.classList.add('btn-danger', 'pulse-animation');
+        micIcon.innerText = 'mic_off';
+
+        // Feedback visuel du mode actuel
+        const langLabel = currentVoiceLang === 'en-US' ? "en Anglais" : "en Français";
+        searchInput.placeholder = `Je vous écoute (${langLabel})...`;
+    };
+
+    recognition.onend = () => {
+        resetMicVisuals();
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        console.log(`Voix détectée (${currentVoiceLang}):`, transcript);
+        searchInput.value = transcript;
+        searchIgdb(true);
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Erreur vocale:', event.error);
+        resetMicVisuals();
+        if (event.error === 'not-allowed') alert("Microphone refusé.");
+    };
+
+    function resetMicVisuals() {
+        micBtn.classList.remove('btn-danger', 'pulse-animation');
+        micBtn.classList.add('btn-light', 'border');
+        micIcon.innerHTML = '&#xe029;';
+        searchInput.placeholder = "Rechercher un jeu...";
+    }
+}
+
 // --- RENDU : INITIALISATION ---
 function updateView() {
     const container = document.getElementById('gamesContainer');
@@ -348,7 +499,7 @@ function generateListRow(g) {
 // --- FONCTIONS UTILITAIRES ---
 function toggleLoader(show) { const l = document.getElementById('scrollLoader'); if (show && l) l.classList.remove('d-none'); else if (l) l.classList.add('d-none'); }
 function searchPrice() { const title = document.getElementById('gameTitle').value; const platform = document.getElementById('gamePlatform').value; if (title) { const query = encodeURIComponent(`${title} ${platform}`); const w = 1000; const h = 600; const left = (screen.width / 2) - (w / 2); const top = (screen.height / 2) - (h / 2); window.open(`https://www.ebay.fr/sch/i.html?_nkw=${query}&_sacat=139973`, 'PriceCheck', `width=${w},height=${h},top=${top},left=${left}`); } else { alert(LANG.alert_enter_title); } }
-function handleEnter(e) { if (e.key === 'Enter') searchRawg(); }
+function handleEnter(e) { if (e.key === 'Enter') searchIgdb(); }
 function closeSearch() { document.getElementById('rawgContainer').classList.add('d-none'); document.getElementById('rawgSearchInput').value = ''; }
 function setView(v) { currentView = v; localStorage.setItem('viewMode', v); initViewButtons(); updateView(); }
 function initViewButtons() { document.getElementById('btnGrid').className = currentView === 'grid' ? 'btn btn-sm btn-light rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; document.getElementById('btnList').className = currentView === 'list' ? 'btn btn-sm btn-light rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; }
@@ -402,10 +553,7 @@ async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${i
 async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
 
 // --- RAWG / IGDB (Recherche via Backend) ---
-async function searchRawg() {
-    // Note : Le nom de la fonction est conservé pour la compatibilité avec le HTML,
-    // mais elle appelle désormais le backend PHP qui relaie vers IGDB.
-    
+async function searchIgdb(autoOpen = false) {
     const input = document.getElementById('rawgSearchInput');
     const q = input.value;
 
@@ -423,13 +571,21 @@ async function searchRawg() {
         // Appel à votre route PHP locale
         const res = await fetch(`/?action=search_igdb&q=${encodeURIComponent(q)}`);
         const data = await res.json();
-        
+
+        // --- MODE "J'AI DE LA CHANCE" (VOCAL) ---
+        if (autoOpen && data.results && data.results.length > 0) {
+            console.log("Ouverture auto de :", data.results[0].name);
+            // On ouvre directement les détails du premier jeu trouvé
+            // Note: On utilise fetchGameDetails qui est défini plus bas dans votre fichier
+            fetchGameDetails(data.results[0].id);
+            return; // On arrête l'affichage de la liste
+        }
+        // ----------------------------------------
+
         let html = '';
         if (data.results && data.results.length > 0) {
             data.results.forEach(g => {
-                // Gestion de l'image (placeholder si vide)
-                const imgUrl = g.background_image || 'assets/images/no-cover.png'; // Assurez-vous d'avoir une image par défaut ou laissez vide
-                // La date renvoyée par le PHP est déjà formatée (ex: "2023")
+                const imgUrl = g.background_image || 'assets/images/no-cover.png';
                 const year = g.released || '';
 
                 html += `
@@ -450,10 +606,13 @@ async function searchRawg() {
 
     } catch (e) {
         console.error(e);
-        // Affichage d'une erreur générique si le réseau échoue
         document.getElementById('rawgResults').innerHTML = '<div class="text-danger w-100 text-center py-2">Erreur de connexion au serveur.</div>';
     } finally {
-        document.getElementById('rawgLoading').classList.add('d-none');
+        // On cache le loader seulement si on n'est pas en mode ouverture auto
+        // (car fetchGameDetails a besoin du loader s'il est appelé)
+        if (!autoOpen) {
+            document.getElementById('rawgLoading').classList.add('d-none');
+        }
     }
 }
 
@@ -462,9 +621,9 @@ async function fetchGameDetails(id) {
     try {
         // Appel Backend PHP pour les détails complets
         const res = await fetch(`/?action=get_igdb_details&id=${id}`);
-        
+
         if (!res.ok) throw new Error('Erreur API');
-        
+
         const g = await res.json();
 
         // Vérification doublon (logique conservée)
@@ -475,7 +634,7 @@ async function fetchGameDetails(id) {
             );
 
             if (existingGame) {
-                const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate) 
+                const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate)
                     ? LANG.alert_duplicate.replace('{name}', g.name).replace('{platform}', existingGame.platform)
                     : `Ce jeu existe déjà : ${g.name}`;
                 alert(msg);
@@ -484,12 +643,12 @@ async function fetchGameDetails(id) {
 
         // Ouverture de la modale d'édition
         openModal();
-        
+
         // Remplissage des champs
         document.getElementById('gameTitle').value = g.name;
         document.getElementById('gameDate').value = g.released; // Format YYYY-MM-DD renvoyé par PHP
         document.getElementById('gameMeta').value = g.metacritic;
-        
+
         // Gestion de l'image
         document.getElementById('gameImageHidden').value = g.background_image;
         if (g.background_image) {
@@ -502,7 +661,7 @@ async function fetchGameDetails(id) {
         }
 
         document.getElementById('gameDesc').value = g.description_raw;
-        
+
         // Le PHP formate désormais les genres en une simple chaîne de caractères (ex: "RPG, Adventure")
         // On n'a plus besoin de faire le map() complexe du côté JS.
         document.getElementById('gameGenres').value = g.genres_list || '';
