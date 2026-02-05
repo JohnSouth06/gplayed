@@ -140,7 +140,7 @@ switch ($action) {
         break;
 
     // Social React
-    case '/social/react':
+    case 'social/react': 
         $socialController->react();
         break;
 
@@ -190,7 +190,6 @@ switch ($action) {
                 }
             }
         }
-        // On affiche le code JS
         echo 'const LANG = ' . json_encode($jsTranslations) . ';';
         exit;
 

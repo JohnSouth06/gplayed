@@ -27,9 +27,9 @@ async function toggleReaction(type, refId, reaction, btn) {
         });
         
         const data = await response.json();
+        
         if(data.status === 'success') {
             // Recharge la page pour mettre à jour les compteurs totaux
-            // Idéalement, on mettrait à jour le DOM dynamiquement sans recharger
             location.reload(); 
         }
     } catch (e) {

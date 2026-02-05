@@ -508,10 +508,14 @@ h6,
     display: block;
 }
 
-/* --- FEED --- */
-.backdrop-blur { backdrop-filter: blur(4px); }
-.game-card-hover:hover { transform: translateY(-3px); transition: transform 0.2s ease; }
-.btn-ghost:hover { background-color: #f8f9fa; transform: scale(1.2); }
+/* ========================================================================
+   REACTIONS SURVOL & COMPTEURS
+   ======================================================================== */
+
+/* 1. Cacher le conteneur de compteurs s'il est vide */
+.reactions-count:empty {
+    display: none !important;
+}
 
 /* --- DROPDOWN --- */
 .dropdown-toggle::after {
