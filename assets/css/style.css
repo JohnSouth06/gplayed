@@ -462,6 +462,10 @@ h6,
 
 [data-bs-theme="dark"] .nav-link.active {
     background-color: rgba(var(--main-color-rgb), 0.10);
+    color: var(--main-color);
+}
+
+[data-bs-theme="dark"] .nav-login.active {
     color: var(--bs-body-bg);
 }
 

@@ -108,11 +108,11 @@ if (isset($_SESSION['force_loader'])) {
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <div class="dropdown dropup">
                         <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-body" data-bs-toggle="dropdown" aria-expanded="false">
-                            <?php if (isset($_SESSION['avatar']) && $_SESSION['avatar']): ?>
-                                <img src="<?= $_SESSION['avatar'] ?>" class="user-avatar-sidebar me-2">
-                            <?php else: ?>
-                                <div class="user-avatar-sidebar bg-secondary d-flex align-items-center justify-content-center text-white me-2"><?= strtoupper(substr($_SESSION['username'], 0, 1)) ?></div>
-                            <?php endif; ?>
+                            <?php
+                            $sidebarAvatar = !empty($_SESSION['avatar']) ? $_SESSION['avatar'] : 'uploads/avatars/default.png';
+                            ?>
+                            <img src="<?= htmlspecialchars($sidebarAvatar) ?>" class="user-avatar-sidebar me-2 object-fit-cover" alt="Avatar">
+
                             <div class="overflow-hidden me-2"><strong class="d-block text-truncate"><?= htmlspecialchars($_SESSION['username']) ?></strong><small class="text-muted"><?= __('online') ?></small></div>
                             <i class="material-icons align-middle fs-5 custom-chevron ms-auto">&#xe316;</i>
                         </a>

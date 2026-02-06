@@ -1,14 +1,13 @@
 <?php
-// --- AJOUTS PHPMAILER (MANUEL) ---
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\SMTP;
 
-// Chargement manuel des classes depuis le dossier 'phpmailer' à la racine
-// On suppose que le dossier contient le dossier 'src' standard de Github
 require_once dirname(__DIR__) . '/phpmailer/src/Exception.php';
 require_once dirname(__DIR__) . '/phpmailer/src/PHPMailer.php';
 require_once dirname(__DIR__) . '/phpmailer/src/SMTP.php';
+require_once dirname(__DIR__) . '/google-api/vendor/autoload.php';
 // ------------------------
 
 require_once dirname(__DIR__) . '/models/User.php';
@@ -22,10 +21,6 @@ class AuthController
         $this->userModel = new User($db);
     }
 
-    /**
-     * Vérifie la validité du token CSRF.
-     * À appeler au début de chaque traitement de formulaire POST.
-     */
     private function checkCsrf()
     {
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
@@ -87,6 +82,70 @@ class AuthController
             }
             exit();
         }
+    }
+
+    // --- LOGIN GOOGLE ---
+    private function getGoogleClient() {
+        $client = new Google\Client();
+        $client->setClientId($_ENV['GOOGLE_CLIENT_ID']);
+        $client->setClientSecret($_ENV['GOOGLE_CLIENT_SECRET']);
+
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+        $redirectUrl = $protocol . $_SERVER['HTTP_HOST'] . '/?action=google_callback';
+        
+        $client->setRedirectUri($redirectUrl);
+        $client->addScope("email");
+        $client->addScope("profile");
+        
+        return $client;
+    }
+
+    public function loginGoogle() {
+        $client = $this->getGoogleClient();
+        header('Location: ' . $client->createAuthUrl());
+        exit();
+    }
+
+    public function googleCallback() {
+        if (!isset($_GET['code'])) {
+            header("Location: /");
+            exit();
+        }
+
+        try {
+            $client = $this->getGoogleClient();
+            $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+            
+            if (isset($token['error'])) {
+                throw new Exception("Erreur Token Google");
+            }
+
+            $client->setAccessToken($token['access_token']);
+            $google_oauth = new Google\Service\Oauth2($client);
+            $google_account_info = $google_oauth->userinfo->get();
+
+            $user = $this->userModel->loginOrRegisterGoogle($google_account_info);
+
+            if ($user) {
+
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['avatar'] = $user['avatar_url'];
+                $_SESSION['lang'] = $user['language'] ?? 'fr';
+
+                $_SESSION['toast'] = ['msg' => __('toast_welcome') . $user['username'], 'type' => 'success'];
+                $_SESSION['force_loader'] = true;
+                header("Location: /");
+            } else {
+                header("Location: /?error=google_auth_failed");
+            }
+
+        } catch (Exception $e) {
+
+            $_SESSION['toast'] = ['msg' => "Erreur de connexion Google", 'type' => 'danger'];
+            header("Location: /");
+        }
+        exit();
     }
 
     // --- PROFIL ---
@@ -375,9 +434,7 @@ class AuthController
             $pass = $_POST['new_password'];
             $confirm = $_POST['confirm_password'] ?? '';
 
-            // 1. Vérification correspondance
             if ($pass !== $confirm) {
-                // On affiche l'erreur directement pour l'instant (ou via Toast + Redirect si vous préférez)
                 die($t['reset_err_match'] . " <a href='javascript:history.back()'>" . $t['reset_btn_back'] . "</a>");
             }
 

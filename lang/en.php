@@ -12,6 +12,7 @@ return [
     'auth_choose_pseudo' => 'Choose a nickname',
     'auth_forgot_password' => 'Forgot password?',
     'auth_create_account' => 'Create an account',
+    'auth_google_signup' => 'Sign in with Google',
 
     // Sidebar / Menu
     'menu_library' => 'Library',

@@ -7,13 +7,10 @@
                 <div class="card shadow-sm border-0 text-center h-100 bg-body rounded-4">
                     <div class="card-body">
                         <div class="mb-3 mt-3">
-                            <?php if (!empty($user['avatar_url'])): ?>
-                                <img src="<?= $user['avatar_url'] ?>" class="rounded-circle shadow-sm object-fit-cover" style="width: 120px; height: 120px; border: 4px solid var(--bs-body-bg);">
-                            <?php else: ?>
-                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm flex-shrink-0" style="width: 120px; height: 120px; font-size: 3rem;">
-                                    <?= strtoupper(substr($user['username'], 0, 1)) ?>
-                                </div>
-                            <?php endif; ?>
+                            <?php
+                            $profileAvatar = !empty($user['avatar_url']) ? $user['avatar_url'] : 'uploads/avatars/default.png';
+                            ?>
+                            <img src="<?= htmlspecialchars($profileAvatar) ?>" class="rounded-circle shadow-sm object-fit-cover" style="width: 120px; height: 120px; border: 4px solid var(--bs-body-bg);" alt="Profil">
                         </div>
                         <h4 class="card-title fw-bold"><?= htmlspecialchars($user['username']) ?></h4>
                         <p class="text-secondary small mb-1"><?= htmlspecialchars($user['email']) ?></p>
@@ -26,7 +23,7 @@
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
                         <h5 class="card-title mb-4 fw-bold"><?= __('profile_settings_title') ?></h5>
-                        
+
                         <form action="/update_profile" method="POST" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
@@ -95,11 +92,11 @@
                             <i class="material-icons icon-md me-2 align-middle">warning</i><?= __('profile_danger_title') ?>
                         </h6>
                         <p class="small text-secondary mb-3"><?= __('profile_danger_text') ?></p>
-                        
+
                         <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="if(confirm('<?= __('profile_delete_confirm') ?>')) document.getElementById('deleteForm').submit();">
                             <?= __('profile_btn_delete_account') ?>
                         </button>
-                        
+
                         <form id="deleteForm" action="/delete_account" method="POST" class="d-none">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                             <input type="hidden" name="confirm_delete" value="yes">

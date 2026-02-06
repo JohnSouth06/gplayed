@@ -12,6 +12,7 @@ return [
     'auth_choose_pseudo' => 'Choisir un pseudo',
     'auth_forgot_password' => 'Mot de passe oublié ?',
     'auth_create_account' => 'Créer un compte',
+    'auth_google_signup' => 'Se connecter avec Google',
 
     // Sidebar / Menu
     'menu_library' => 'Bibliothèque',
