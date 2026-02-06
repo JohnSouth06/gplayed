@@ -25,7 +25,7 @@
                             <?php if($avatar): ?>
                                 <img src="<?= $avatar ?>" class="rounded-circle object-fit-cover shadow-sm" style="width: 80px; height: 80px;">
                             <?php else: ?>
-                                <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px; font-size: 2rem; font-weight:bold;">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow border border-2 border-white flex-shrink-0" style="width: 80px; height: 80px; font-size: 2rem; font-weight:bold;">
                                     <?= $initial ?>
                                 </div>
                             <?php endif; ?>
