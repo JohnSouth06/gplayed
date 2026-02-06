@@ -3,28 +3,6 @@
 <?php
 $username = $_SESSION['username'] ?? 'Gamer';
 $totalWishlist = is_array($games) ? count($games) : 0;
-
-/**
- * Génère l'icône de plateforme identique au CSS du dashboard
- */
-function getPlatformIconClass($platform) {
-    $p = strtolower($platform);
-    if (strpos($p, 'ps') !== false || strpos($p, 'playstation') !== false) return 'svg-icon ps-icon';
-    if (strpos($p, 'xbox') !== false) return 'svg-icon xbox-icon';
-    if (strpos($p, 'switch') !== false || strpos($p, 'nintendo') !== false) return 'svg-icon switch-icon';
-    if (strpos($p, 'pc') !== false || strpos($p, 'steam') !== false) return 'svg-icon pc-icon';
-    return 'material-icons-outlined icon-sm'; // Fallback
-}
-
-/**
- * Génère la couleur ombrée (approximation PHP de la fonction JS getNeonColor)
- */
-function getShadowStyle($color) {
-    if (empty($color) || $color === 'null') return '';
-    // On nettoie la chaîne pour avoir juste les chiffres rgb
-    // Format attendu en DB : "rgb(r, g, b)"
-    return "box-shadow: 0 25px 60px -12px " . str_replace('rgb', 'rgba', str_replace(')', ', 0.4)', $color)) . "; border-color: " . str_replace('rgb', 'rgba', str_replace(')', ', 0.5)', $color)) . ";";
-}
 ?>
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3 pt-2">
@@ -49,7 +27,7 @@ function getShadowStyle($color) {
             
             <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
                 <div class="flex-grow-1 w-100">
-                    <div class="search-wrapper mt-0 mb-2">
+                    <div class="search-wrapper">
                         <div class="search-box">
                             <i class="material-icons-outlined search-icon icon-md">&#xe8b6;</i>
                             <input type="text" id="rawgSearchInput" class="form-control border rounded-pill search-input" placeholder="<?= __('wishlist_search_placeholder') ?>" onkeypress="handleEnter(event)">

@@ -12,6 +12,7 @@ return [
     'auth_choose_pseudo' => 'Choisir un pseudo',
     'auth_forgot_password' => 'Mot de passe oublié ?',
     'auth_create_account' => 'Créer un compte',
+    'auth_google_signup' => 'Se connecter avec Google',
 
     // Sidebar / Menu
     'menu_library' => 'Bibliothèque',
@@ -204,14 +205,37 @@ return [
     'public_collection_empty' => 'Ce joueur n\'a pas encore ajouté de jeux.',
     'public_collection_search' => 'Rechercher un jeu dans la collection du joueur...',
 
-    // Feed
-    'feed_title' => 'Fil d\'actualité',
-    'feed_empty_title' => 'C\'est bien calme ici...',
-    'feed_btn_follow' => 'Suivre des membres',
-    'feed_game_added' => 'a ajouté un jeu',
-    'feed_game_progress' => 'a progressé',
-    'feed_comment_placeholder' => 'Écrire un commentaire...',
+    // Javascript & Search
+    'js_voice_browser_unsupported' => 'Votre navigateur ne supporte pas la recherche vocale. Essayez sur Chrome ou Safari.',
+    'js_voice_incompatible' => 'Navigateur incompatible (essayez Chrome).',
+    'js_voice_listening' => 'Je vous écoute...',
+    'js_voice_listening_with_lang' => 'Je vous écoute ({lang})...',
+    'js_voice_lang_en' => 'en Anglais',
+    'js_voice_lang_fr' => 'en Français',
+    'js_voice_allow_mic' => 'Veuillez autoriser l\'accès au microphone.',
+    'js_voice_mic_refused' => 'Microphone refusé.',
+    'js_search_placeholder' => 'Rechercher un jeu...',
+    'js_igdb_no_result' => 'Aucun résultat trouvé via IGDB.',
+    'js_server_error' => 'Erreur de connexion au serveur.',
+    'js_game_exists_simple' => 'Ce jeu existe déjà : {name}',
+    'js_import_error_generic' => 'Erreur lors de l\'importation.',
+    'js_theme_label' => 'Thème',
+    'js_meta_score' => 'Metascore',
 
+    // Stats & Wishlist
+    'js_chart_games_label' => 'Jeux',
+    'js_btn_acquire' => 'Acquérir',
+    'js_confirm_acquire' => 'Ajouter ce jeu à votre collection ?',
+
+    // Cookies
+    'cookie_banner_text' => 'Ce site utilise des cookies essentiels pour assurer son bon fonctionnement (session, préférences). Aucun traceur publicitaire n\'est utilisé.',
+    'cookie_btn_accept' => 'Accepter',
+    'cookie_btn_decline' => 'Continuer sans accepter',
+    
+    // Section Cookies (Legal)
+    'legal_cookies_title' => 'Gestion des cookies',
+    'legal_cookies_text' => 'Ce site utilise uniquement des cookies "techniques" strictement nécessaires à son fonctionnement (ex: maintien de votre session connectée). Conformément aux recommandations de la CNIL, ces cookies sont dispensés du recueil de consentement préalable. Toutefois, nous vous informons que vous pouvez configurer votre navigateur pour bloquer ces cookies, mais l\'expérience utilisateur risque d\'être dégradée (impossibilité de rester connecté). Aucune donnée n\'est revendue à des tiers.',
+    
     // Mentions Légales - FR
     'menu_legal' => 'Mentions Légales',
     'legal_title' => 'Mentions Légales',

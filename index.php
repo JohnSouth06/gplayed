@@ -26,7 +26,6 @@ require_once ROOT_PATH . '/controllers/AuthController.php';
 require_once ROOT_PATH . '/controllers/GameController.php';
 require_once ROOT_PATH . '/controllers/ProgressController.php';
 require_once ROOT_PATH . '/controllers/CommunityController.php';
-require_once ROOT_PATH . '/controllers/SocialController.php';
 require_once ROOT_PATH . '/controllers/TrophyController.php';
 require_once ROOT_PATH . '/config/lang.php';
 
@@ -37,7 +36,6 @@ $authController = new AuthController($db);
 $gameController = new GameController($db);
 $progressController = new ProgressController($db);
 $communityController = new CommunityController($db);
-$socialController = new SocialController($db);
 $trophyController = new TrophyController($db);
 
 $action = $_GET['action'] ?? 'home';
@@ -63,7 +61,7 @@ switch ($action) {
         $authController->deleteAccount();
         break;
 
-    //Password/Reset
+    // Password/Reset
     case 'forgot_password':
         $authController->forgotPassword();
         break;
@@ -72,6 +70,14 @@ switch ($action) {
         break;
     case 'do_reset':
         $authController->doReset();
+        break;
+
+    // Google Login
+    case 'login_google':
+        $authController->loginGoogle();
+        break;
+    case 'google_callback':
+        $authController->googleCallback();
         break;
 
     // Games
@@ -121,7 +127,7 @@ switch ($action) {
         $progressController->delete();
         break;
 
-    // --- Social
+    // --- Community
     case 'community':
         $communityController->index();
         break;
@@ -134,24 +140,10 @@ switch ($action) {
         $gameController->share();
         break;
 
-    // Actus
-    case 'feed':
-        $socialController->feed();
-        break;
-    case 'add_comment':
-        $socialController->addComment();
-        break;
-
+    // Legal
     case 'legal':
         $view = 'views/legal.php';
         require ROOT_PATH . '/views/layout.php';
-        break;
-
-    // Comments
-    case 'add_comment':
-        if (isset($socialController)) {
-            $socialController->addComment();
-        }
         break;
 
     // Trophy

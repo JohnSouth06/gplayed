@@ -1,5 +1,3 @@
-// window.localGames est injecté depuis stats.php
-
 document.addEventListener('DOMContentLoaded', () => {
     calculateKPIs();
     initStatusChart();
@@ -41,7 +39,7 @@ function initStatusChart() {
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['En cours', 'Terminé', 'Platiné', 'Abandonné', 'Souhait'],
+            labels: [LANG.js_status_playing, LANG.js_status_finished, LANG.js_status_completed, LANG.js_status_dropped, LANG.js_status_wishlist],
             datasets: [{
                 data: [counts.playing, counts.finished, counts.completed, counts.dropped, counts.wishlist],
                 backgroundColor: ['#0dcaf0', '#198754', '#ffc107', '#dc3545', '#4ce5ae'],
@@ -64,7 +62,7 @@ function initFormatChart() {
     new Chart(ctx, {
         type: 'pie',
         data: {
-            labels: ['Digital', 'Physique'],
+            labels: [LANG.js_fmt_digital, LANG.js_fmt_physical],
             datasets: [{
                 data: [counts.digital, counts.physical],
                 backgroundColor: ['#ff8e2c', '#2ce0ff'],
@@ -92,7 +90,7 @@ function initPlatformChart() {
         data: {
             labels: sorted.map(x => x[0]),
             datasets: [{
-                label: 'Jeux',
+                label: LANG.js_chart_games_label,
                 data: sorted.map(x => x[1]),
                 backgroundColor: '#6610f2',
                 borderRadius: 4
@@ -123,7 +121,7 @@ function initGenreChart() {
         data: {
             labels: sorted.map(x => x[0]),
             datasets: [{
-                label: 'Jeux',
+                label: LANG.js_chart_games_label,
                 data: sorted.map(x => x[1]),
                 backgroundColor: '#20c997',
                 borderRadius: 4

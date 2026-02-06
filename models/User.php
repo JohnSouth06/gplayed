@@ -9,10 +9,8 @@ class User
         $this->conn = $db;
     }
 
-    // Validation Mot de passe fort
     public function isPasswordStrong($password)
     {
-        // Min 10 chars, 1 Maj, 1 Min, 1 Chiffre, 1 Spécial
         $regex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{10,}$/';
         return preg_match($regex, $password);
     }
@@ -35,8 +33,50 @@ class User
         try {
             if ($stmt->execute()) return $this->conn->lastInsertId();
         } catch (PDOException $e) {
-            // Gestion erreur doublon (code 23000)
             if ($e->getCode() == 23000) return "exists";
+        }
+        return false;
+    }
+
+
+    public function loginOrRegisterGoogle($googleInfo)
+    {
+        $email = $googleInfo->email;
+        $googleId = $googleInfo->id;
+        $name = $googleInfo->name;
+
+        $stmt = $this->conn->prepare("SELECT * FROM " . $this->table . " WHERE google_id = :gid LIMIT 1");
+        $stmt->execute([':gid' => $googleId]);
+        $user = $stmt->fetch();
+
+        if ($user) return $user;
+
+        $stmt = $this->conn->prepare("SELECT * FROM " . $this->table . " WHERE email = :email LIMIT 1");
+        $stmt->execute([':email' => $email]);
+        $existingUser = $stmt->fetch();
+
+        if ($existingUser) {
+            $update = $this->conn->prepare("UPDATE " . $this->table . " SET google_id = :gid WHERE id = :id");
+            $update->execute([':gid' => $googleId, ':id' => $existingUser['id']]);
+            return $existingUser;
+        }
+
+        $randomPass = bin2hex(random_bytes(8)) . 'A1!';
+        $passHash = password_hash($randomPass, PASSWORD_DEFAULT);
+        
+        $defaultAvatar = 'uploads/avatars/default.png'; 
+
+        $query = "INSERT INTO " . $this->table . " (username, email, password, google_id, language, avatar_url) VALUES (:username, :email, :pass, :gid, 'fr', :avatar)";
+        $stmt = $this->conn->prepare($query);
+        
+        if ($stmt->execute([
+            ':username' => $name,
+            ':email' => $email,
+            ':pass' => $passHash,
+            ':gid' => $googleId,
+            ':avatar' => $defaultAvatar
+        ])) {
+            return $this->login($name, $randomPass);
         }
         return false;
     }
@@ -66,7 +106,6 @@ class User
 
     public function setResetToken($email, $token)
     {
-        // Expire dans 1 heure
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
         $query = "UPDATE " . $this->table . " SET reset_token = :token, reset_expires = :expires WHERE email = :email";
         $stmt = $this->conn->prepare($query);
@@ -78,7 +117,6 @@ class User
 
     public function resetPassword($token, $newPassword)
     {
-        // Vérifier si token valide et non expiré
         $query = "SELECT id FROM " . $this->table . " WHERE reset_token = :token AND reset_expires > NOW()";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':token', $token);
@@ -88,14 +126,13 @@ class User
             if (!$this->isPasswordStrong($newPassword)) return "weak_password";
 
             $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-            // On retire le token après usage
             $update = "UPDATE " . $this->table . " SET password = :pass, reset_token = NULL, reset_expires = NULL WHERE id = :id";
             $stmtUpdate = $this->conn->prepare($update);
             $stmtUpdate->bindParam(':pass', $hash);
             $stmtUpdate->bindParam(':id', $user['id']);
             return $stmtUpdate->execute();
         }
-        return false; // Token invalide
+        return false;
     }
 
     public function getById($id)
@@ -116,31 +153,38 @@ class User
         return $stmt->fetch();
     }
 
-    public function update($id, $email, $newPassword, $files, $language = null)
+    public function update($id, $username, $email, $newPassword, $files, $language = null)
     {
         $fields = [];
         $params = [':id' => $id];
 
-        // Update Email
+        if (!empty($username)) {
+            $stmt = $this->conn->prepare("SELECT id FROM " . $this->table . " WHERE username = :username AND id != :id");
+            $stmt->execute([':username' => $username, ':id' => $id]);
+            if ($stmt->fetch()) {
+                return "username_exists";
+            }
+            
+            $fields[] = "username = :username";
+            $params[':username'] = $username;
+        }
+
         if (!empty($email)) {
             $fields[] = "email = :email";
             $params[':email'] = $email;
         }
 
-        // Update Language
         if (!empty($language)) {
             $fields[] = "language = :language";
             $params[':language'] = $language;
         }
 
-        // Update Password avec validation
         if (!empty($newPassword)) {
             if (!$this->isPasswordStrong($newPassword)) return "weak_password";
             $fields[] = "password = :password";
             $params[':password'] = password_hash($newPassword, PASSWORD_DEFAULT);
         }
 
-        // Update Avatar
         if (!empty($files['avatar']['name'])) {
             $avatarPath = $this->uploadImage($files['avatar']);
             if ($avatarPath) {
@@ -242,7 +286,7 @@ class User
 
     public function follow($followerId, $followedId)
     {
-        if ($followerId == $followedId) return false; // On ne peut pas se suivre soi-même
+        if ($followerId == $followedId) return false; 
         $query = "INSERT IGNORE INTO user_follows (follower_id, followed_id) VALUES (:follower, :followed)";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':follower', $followerId);
@@ -265,6 +309,6 @@ class User
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $userId);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_COLUMN); // Retourne un tableau simple [1, 5, 12...]
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }
