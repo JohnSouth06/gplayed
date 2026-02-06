@@ -1,5 +1,5 @@
 <?php
-$activeTab = 'login'; 
+$activeTab = 'login';
 if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists', 'register_failed'])) {
     $activeTab = 'register';
 }
@@ -36,14 +36,20 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                                 <input type="text" name="username" class="form-control rounded-3" placeholder="Pseudo" required>
                                 <label><?= __('auth_user') ?></label>
                             </div>
-                            <div class="form-floating mb-3">
-                                <input type="password" name="password" class="form-control rounded-3" placeholder="Mdp" required>
-                                <label><?= __('auth_password') ?></label>
+                            <div class="form-floating mb-3 position-relative">
+                                <input type="password" name="password" id="loginPassword" class="form-control rounded-3 pe-5" placeholder="Mdp" required>
+                                <label for="loginPassword"><?= __('auth_password') ?></label>
+
+                                <button type="button" class="btn border-0 bg-transparent position-absolute top-50 end-0 translate-middle-y me-2 z-1" onclick="togglePassword('loginPassword', this)" tabindex="-1">
+                                    <i class="material-icons text-secondary align-middle">visibility</i>
+                                </button>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold"><?= __('auth_signin') ?></button>
+                            <div class="d-grid gap-2 col-12 mx-auto">
+                                <button type="submit" class="btn btn-primary w-50 rounded-pill mt-4 py-2 fw-bold mx-auto"><?= __('auth_signin') ?></button>
+                            </div>
                         </form>
 
-                        <div class="text-end mt-2">
+                        <div class="text-center mt-2">
                             <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal" class="text-decoration-none small text-secondary"><?= __('auth_forgot_password') ?></a>
                         </div>
 
@@ -68,22 +74,28 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                                 <input type="email" name="email" class="form-control rounded-3" placeholder="Email" required>
                                 <label><?= __('auth_mail') ?></label>
                             </div>
-                            <div class="form-floating mb-3">
-                                <input type="password" name="password" class="form-control rounded-3" placeholder="Mdp" required>
-                                <label><?= __('auth_password') ?></label>
-                                <div class="form-text small mt-2"><?= __('reset_help_text') ?></div>
+                            <div class="form-floating mb-3 position-relative">
+                                <input type="password" name="password" id="registerPassword" class="form-control rounded-3 pe-5" placeholder="Mdp" required>
+                                <label for="registerPassword"><?= __('auth_password') ?></label>
+
+                                <button type="button" class="btn border-0 bg-transparent position-absolute top-50 end-0 translate-middle-y me-2 z-1" onclick="togglePassword('registerPassword', this)" tabindex="-1">
+                                    <i class="material-icons text-secondary align-middle">visibility</i>
+                                </button>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold"><?= __('auth_create_account') ?></button>
+                            <div class="form-text small mt-2 mb-4"><?= __('reset_help_text') ?></div>
+                            <div class="d-grid gap-2 col-12 mx-auto">
+                                <button type="submit" class="btn btn-primary w-50 rounded-pill mt-4 py-2 fw-bold mx-auto"><?= __('auth_create_account') ?></button>
+                            </div>
                         </form>
                         <?php
-                            if (isset($_GET['error'])) {
-                                if ($_GET['error'] == 'weak_password') {
-                                    echo '<div class="alert alert-warning mt-3 rounded-3 small">' . __('reset_weak') . '</div>';
-                                }
-                                if ($_GET['error'] == 'exists') {
-                                    echo '<div class="alert alert-danger mt-3 rounded-3 small">' . __('reset_account') . '</div>';
-                                }
+                        if (isset($_GET['error'])) {
+                            if ($_GET['error'] == 'weak_password') {
+                                echo '<div class="alert alert-warning mt-3 rounded-3 small">' . __('reset_weak') . '</div>';
                             }
+                            if ($_GET['error'] == 'exists') {
+                                echo '<div class="alert alert-danger mt-3 rounded-3 small">' . __('reset_account') . '</div>';
+                            }
+                        }
                         ?>
                     </div>
                 </div>
@@ -115,3 +127,5 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
         </div>
     </div>
 </div>
+
+<script src="assets/js/auth.js"></script>
