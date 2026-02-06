@@ -85,7 +85,6 @@ if (isset($_SESSION['force_loader'])) {
                         </svg>
                     </div>
                 </a>
-                <!--<button class="btn btn-sm d-lg-none ms-auto" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>-->
             </div>
 
             <div class="p-3 sidebar-scrollable">
@@ -119,7 +118,6 @@ if (isset($_SESSION['force_loader'])) {
                         </a>
                         <ul class="dropdown-menu sidebar-dropdown-menu rounded-3 border-0">
                             <li><a class="sidebar-dropdown-item bg-transparent" href="/profile"><i class="material-icons align-middle fs-5">&#xf02e;</i><?= __('menu_profile') ?></a></li>
-                            <!--<li><button class="sidebar-dropdown-item w-100 text-start border-0 bg-transparent" id="themeToggle"><i class="material-icons align-middle fs-5">&#xf34f;</i>Thème</button></li>-->
                             <li>
                                 <hr class="dropdown-divider my-1" style="border-color: rgba(255,255,255,0.1)">
                             </li>

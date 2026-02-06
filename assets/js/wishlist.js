@@ -99,8 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const img = g.image_url ? g.image_url : '';
 
         const formatIcon = (g.format === 'physical')
-            ? `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.js_fmt_physical}">&#xe1a1;</i>`
-            : `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.js_fmt_digital}">&#xe3dd;</i>`;
+            ? `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.fmt_physical}">&#xe1a1;</i>`
+            : `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.fmt_digital}">&#xe3dd;</i>`;
 
         const shadowColor = getNeonColor(g.dominant_color, 0.4);
         const borderColor = getNeonColor(g.dominant_color, 0.5);
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (g.metacritic_score > 0) {
             let metaIcon = g.metacritic_score >= 75 ? 'text-success' : (g.metacritic_score >= 50 ? 'text-warning' : 'text-danger');
-            metaHtml += `<span class="meta-tag" title="${LANG.js_meta_score}"><i class="svg-icon metacritic-icon ${metaIcon} me-1"></i>${g.metacritic_score}</span>`;
+            metaHtml += `<span class="meta-tag" title="${LANG.meta_score}"><i class="svg-icon metacritic-icon ${metaIcon} me-1"></i>${g.metacritic_score}</span>`;
         }
 
         if (g.estimated_price > 0) {
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
         
-        const acquireBtn = `<a href="/?action=acquire&id=${g.id}" class="btn-icon-action text-success" title="${LANG.js_btn_acquire}" onclick="return confirm('${LANG.js_confirm_acquire}')"><i class="material-icons-outlined icon-md">&#xe8cc;</i></a>`;
+        const acquireBtn = `<a href="/?action=acquire&id=${g.id}" class="btn-icon-action text-success" title="${LANG.btn_acquire}" onclick="return confirm('${LANG.confirm_acquire}')"><i class="material-icons-outlined icon-md">&#xe8cc;</i></a>`;
 
         return `
         <div class="col-sm-6 col-lg-4 col-xl-3 animate-in">
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe338;</i>';
         }
 
-        const acquireBtn = `<a href="/?action=acquire&id=${g.id}" class="btn-icon-action text-success" title="${LANG.js_btn_acquire}" onclick="return confirm('${LANG.js_confirm_acquire}')"><i class="material-icons-outlined icon-md">&#xe8cc;</i></a>`;
+        const acquireBtn = `<a href="/?action=acquire&id=${g.id}" class="btn-icon-action text-success" title="${LANG.btn_acquire}" onclick="return confirm('${LANG.confirm_acquire}')"><i class="material-icons-outlined icon-md">&#xe8cc;</i></a>`;
 
         return `
         <tr>

@@ -1,7 +1,5 @@
 <?php
-// Déterminer l'onglet actif par défaut en fonction des erreurs URL
-$activeTab = 'login'; // Par défaut : Connexion
-// Si l'erreur concerne l'inscription (mot de passe faible ou compte existant)
+$activeTab = 'login'; 
 if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists', 'register_failed'])) {
     $activeTab = 'register';
 }
@@ -20,17 +18,6 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                     </div>
                     <p class="fw-light text-secondary"><?= __('app_title') ?></p>
                 </div>
-
-                <!--<div class="mb-4">
-                    <a href="#" class="btn btn-outline-light w-100 rounded-pill py-2 d-flex align-items-center justify-content-center gap-2 border-secondary text-body" onclick="alert('Configuration serveur OAuth requise.')">
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20">
-                        <span class="fw-bold">Continuer avec Google</span>
-                    </a>
-                </div>
-                <div class="position-relative mb-4 text-center">
-                    <hr class="border-secondary opacity-25">
-                    <span class="position-absolute top-50 start-50 translate-middle bg-body px-3 text-secondary small">OU</span>
-                </div>-->
 
                 <ul class="nav nav-pills nav-fill mb-4 bg-transparent rounded-pill p-1">
                     <li class="nav-item px-1">

@@ -14,7 +14,6 @@
         <?php foreach ($users as $u): ?>
             <?php 
                 $isFollowing = in_array($u['id'], $following); 
-                // Avatar par défaut ou perso
                 $avatar = !empty($u['avatar_url']) ? $u['avatar_url'] : null;
                 $initial = strtoupper(substr($u['username'], 0, 1));
             ?>

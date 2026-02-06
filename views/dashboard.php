@@ -1,7 +1,6 @@
 <link rel="stylesheet" href="assets/css/dashboard.css">
 
 <?php
-// CALCULS PHP POUR L'EN-TÊTE
 $totalGames = 0;
 $finishedCount = 0;
 $playingCount = 0;

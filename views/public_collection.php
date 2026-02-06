@@ -1,5 +1,4 @@
 <?php
-// On récupère si l'utilisateur connecté suit déjà ce profil
 $isFollowing = false;
 if (isset($_SESSION['user_id']) && isset($owner['id'])) {
     require_once dirname(__DIR__) . '/models/User.php';

@@ -189,7 +189,6 @@ $totalWishlist = is_array($games) ? count($games) : 0;
 </div>
 
 <script>
-    // Variables passées de PHP à JS
     let localGames = <?= json_encode($games) ?>;
 </script>
 
