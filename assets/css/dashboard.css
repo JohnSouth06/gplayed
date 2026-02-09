@@ -26,7 +26,7 @@
 /* --- IMAGE DU HAUT --- */
 .card-cover-container {
     position: relative;
-    padding-top: 65%;
+    padding-top: 120%;
     /* Format un peu plus haut que 16/9 pour l'élégance */
     overflow: hidden;
     background-color: var(--bs-body-tertiary);
