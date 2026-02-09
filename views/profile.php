@@ -28,7 +28,7 @@
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
                             <div class="mb-3">
-                                <label class="form-label small text-muted text-uppercase fw-bold"><?= __('auth_username') ?? 'Nom d\'utilisateur' ?></label>
+                                <label class="form-label small text-muted text-uppercase fw-bold"><?= __('auth_user') ?? 'Nom d\'utilisateur' ?></label>
                                 <input type="text" name="username" class="form-control rounded-3" value="<?= htmlspecialchars($user['username']) ?>" required>
                             </div>
                             <div class="mb-3">
@@ -51,7 +51,7 @@
 
                             <div class="mb-4">
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('profile_label_avatar') ?></label>
-                                <input type="file" name="avatar" class="form-control rounded-3 mb-2">
+                                <input type="file" name="avatar" class="form-control file-upload rounded-3 mb-2">
                             
                             </div>
 
@@ -77,7 +77,7 @@
                                 <form action="/import_json" method="POST" enctype="multipart/form-data">
                                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                     <div class="input-group">
-                                        <input type="file" name="json_file" class="form-control rounded-3" accept=".json" required>
+                                        <input type="file" name="json_file" class="form-control file-upload rounded-3" accept=".json" required>
                                     </div>
                                     <div class="mt-2">
                                         <button type="submit" class="btn btn-outline w-100 rounded-3 text-secondary border">

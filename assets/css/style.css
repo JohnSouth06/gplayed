@@ -639,6 +639,10 @@ h6,
     color: #ffffff;
 }
 
+[data-bs-theme="dark"] input.file-upload.form-control:hover {
+    background-color: transparent !important;
+}
+
 [data-bs-theme="dark"] .form-control:focus,
 [data-bs-theme="dark"] .form-select:focus {
     background-color: #1a1a1a;
