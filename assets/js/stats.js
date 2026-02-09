@@ -1,6 +1,9 @@
-// window.localGames est injecté depuis stats.php
-
 document.addEventListener('DOMContentLoaded', () => {
+    // Filtrage global pour exclure la wishlist
+    if (window.localGames) {
+        window.localGames = window.localGames.filter(g => g.status !== 'wishlist');
+    }
+
     calculateKPIs();
     initStatusChart();
     initFormatChart();
@@ -11,9 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function calculateKPIs() {
     const total = window.localGames.length;
     if(total === 0) return;
+    
     document.getElementById('kpiTotal').innerText = total;
+    
     const finished = window.localGames.filter(g => ['finished', 'completed'].includes(g.status)).length;
     document.getElementById('kpiCompletion').innerText = Math.round((finished / total) * 100) + '%';
+    
     const ratedGames = window.localGames.filter(g => g.user_rating > 0);
     if(ratedGames.length > 0) {
         const sum = ratedGames.reduce((acc, g) => acc + parseInt(g.user_rating), 0);
@@ -21,6 +27,7 @@ function calculateKPIs() {
     } else {
         document.getElementById('kpiRating').innerText = '-';
     }
+    
     const physical = window.localGames.filter(g => g.format === 'physical').length;
     document.getElementById('kpiPhysical').innerText = Math.round((physical / total) * 100) + '%';
 }
@@ -36,15 +43,20 @@ const commonOptions = {
 function initStatusChart() {
     const ctx = document.getElementById('statusChart');
     if(!ctx) return;
-    const counts = { 'playing': 0, 'finished': 0, 'completed': 0, 'dropped': 0, 'wishlist': 0 };
-    window.localGames.forEach(g => { if(counts[g.status] !== undefined) counts[g.status]++; });
+
+    const counts = { 'playing': 0, 'finished': 0, 'completed': 0, 'dropped': 0 };
+    
+    window.localGames.forEach(g => { 
+        if(counts[g.status] !== undefined) counts[g.status]++; 
+    });
+
     new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['En cours', 'Terminé', 'Platiné', 'Abandonné', 'Souhait'],
+            labels: ['En cours', 'Terminé', 'Platiné', 'Abandonné'], 
             datasets: [{
-                data: [counts.playing, counts.finished, counts.completed, counts.dropped, counts.wishlist],
-                backgroundColor: ['#0dcaf0', '#198754', '#ffc107', '#dc3545', '#4ce5ae'],
+                data: [counts.playing, counts.finished, counts.completed, counts.dropped],
+                backgroundColor: ['#0dcaf0', '#198754', '#ffc107', '#dc3545'],
                 borderWidth: 0,
                 hoverOffset: 4
             }]
@@ -56,11 +68,13 @@ function initStatusChart() {
 function initFormatChart() {
     const ctx = document.getElementById('formatChart');
     if(!ctx) return;
+    
     const counts = { 'digital': 0, 'physical': 0 };
     window.localGames.forEach(g => { 
         const fmt = g.format || 'digital';
         if(counts[fmt] !== undefined) counts[fmt]++; 
     });
+    
     new Chart(ctx, {
         type: 'pie',
         data: {
@@ -79,6 +93,7 @@ function initFormatChart() {
 function initPlatformChart() {
     const ctx = document.getElementById('platformChart');
     if(!ctx) return;
+    
     const counts = {};
     window.localGames.forEach(g => {
         if(g.platform) {
@@ -86,7 +101,9 @@ function initPlatformChart() {
             parts.forEach(p => { counts[p] = (counts[p] || 0) + 1; });
         }
     });
+    
     const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 6);
+    
     new Chart(ctx, {
         type: 'bar',
         data: {
@@ -110,6 +127,7 @@ function initPlatformChart() {
 function initGenreChart() {
     const ctx = document.getElementById('genreChart');
     if(!ctx) return;
+    
     const counts = {};
     window.localGames.forEach(g => {
         if(g.genres) {
@@ -117,7 +135,9 @@ function initGenreChart() {
             parts.forEach(genre => { if(genre.length > 1) counts[genre] = (counts[genre] || 0) + 1; });
         }
     });
+    
     const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 10);
+    
     new Chart(ctx, {
         type: 'bar',
         data: {
