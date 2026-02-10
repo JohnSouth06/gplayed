@@ -16,7 +16,7 @@ function openModal() {
 
     const deleteBtn = document.getElementById('deleteBtnContainer');
     if (deleteBtn) deleteBtn.classList.add('d-none');
-    
+
     const statusField = document.getElementById('gameStatus');
     if (statusField) statusField.value = 'wishlist';
 
@@ -30,6 +30,7 @@ function editGame(game) {
     document.getElementById('gamePlatform').value = game.platform;
     document.getElementById('gameGenres').value = game.genres || '';
     document.getElementById('gameComment').value = game.comment || '';
+
     document.getElementById('gamePrice').value = game.estimated_price || '';
     
     document.getElementById('gameDate').value = game.release_date || '';
@@ -95,12 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.generateGridCard = function(g) {
-        const s = statusConfig[g.status] || statusConfig['playing'];
+        const s = statusConfig['wishlist'] || statusConfig['playing']; 
         const img = g.image_url ? g.image_url : '';
-
-        const formatIcon = (g.format === 'physical')
-            ? `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.fmt_physical}">&#xe1a1;</i>`
-            : `<i class="material-icons-outlined icon-sm text-secondary me-1" title="${LANG.fmt_digital}">&#xe3dd;</i>`;
 
         const shadowColor = getNeonColor(g.dominant_color, 0.4);
         const borderColor = getNeonColor(g.dominant_color, 0.5);
@@ -123,29 +120,25 @@ document.addEventListener('DOMContentLoaded', () => {
             metaHtml += `<span class="meta-tag" title="${LANG.meta_score}"><i class="svg-icon metacritic-icon ${metaIcon} me-1"></i>${g.metacritic_score}</span>`;
         }
 
-        if (g.estimated_price > 0) {
-            metaHtml += `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle"><i class="material-icons-outlined icon-sm me-1">&#xe54e;</i>${g.estimated_price}€</span>`;
-        }
 
         const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
-        
+
         const acquireBtn = `<a href="/?action=acquire&id=${g.id}" class="btn-icon-action text-success" title="${LANG.btn_acquire}" onclick="return confirm('${LANG.confirm_acquire}')"><i class="material-icons-outlined icon-md">&#xe8cc;</i></a>`;
 
         return `
-        <div class="col-sm-6 col-lg-4 col-xl-3 animate-in">
+        <div class="col-6 col-sm-6 col-lg-4 col-xl-3 animate-in">
             <div class="game-card-modern"
                  onmouseover="this.style.boxShadow='0 25px 60px -12px ${shadowColor}'; this.style.borderColor='${borderColor}'"
                  onmouseout="this.style.boxShadow=''; this.style.borderColor='rgba(0,0,0,0.05)'">
                 
                 <div class="card-cover-container">
                     ${img ? `<img src="${img}" class="card-cover-img" loading="lazy">` : imagePlaceholder}
-                    <span class="status-badge-float"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span>
+                    <span class="status-badge-float"><i class="material-icons-outlined icon-sm me-1">&#xe8cb;</i>Wishlist</span>
                 </div>
                 
                 <div class="card-content-area">
                     <div class="d-flex justify-content-between align-items-start">
                         <h6 class="game-title text-truncate" title="${g.title}">${g.title}</h6>
-                        ${g.user_rating > 0 ? `<div class="fw-bold text-warning d-flex align-items-center small"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</div>` : ''} 
                     </div>
                     
                     <div class="meta-badges">
@@ -154,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="card-actions-wrapper">
                         <div class="small text-muted text-truncate me-2 fw-medium" style="max-width: 120px; font-size: 0.8rem;">
-                            ${formatIcon} ${g.genres || `<span class="opacity-50">${LANG.unknown}</span>`}
+                            ${g.genres || `<span class="opacity-50">${LANG.unknown}</span>`}
                         </div>
                         <div class="d-flex gap-2">
                             ${acquireBtn}
@@ -168,12 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.generateListRow = function(g) {
-        const s = statusConfig[g.status] || statusConfig['playing'];
         const img = g.image_url ?
             `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
             `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
 
-        const price = g.estimated_price > 0 ? `<span class="badge bg-body-secondary text-body border">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
 
         let platIconHtml = '';
         if (g.platform && g.platform.includes(',')) {
@@ -198,15 +189,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </td>
             <td class="d-none d-sm-table-cell"><span class="meta-tag border">${platIconHtml}${g.platform}</span></td>
-            <td class="d-none d-lg-table-cell">${price}</td>
-            <td class="d-none d-lg-table-cell"><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span></td>
-            <td class="d-none d-lg-table-cell fw-bold text-warning"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating || '<span class="text-muted opacity-25">-</span>'}</td>
+            
             <td class="text-end pe-4">
                 ${acquireBtn}
                 <button class="btn-icon-action" onclick='edit(${g.id})' title="${LANG.btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
                 <a href="/?action=delete&id=${g.id}" class="btn-action btn-icon-action btn-light text-danger" onclick="return confirm('${LANG.confirm_delete}')" title="${LANG.btn_delete}"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
             </td>
         </tr>`;
+    };
+
+    window.loadMoreGames = function() {
+        if (displayedCount >= processedGamesCache.length) {
+            toggleLoader(false);
+            return;
+        }
+        toggleLoader(true);
+
+        requestAnimationFrame(() => {
+            const container = document.getElementById('gamesContainer');
+            const nextBatch = processedGamesCache.slice(displayedCount, displayedCount + batchSize);
+
+            if (currentView === 'grid') {
+                let html = '';
+                nextBatch.forEach(g => { html += generateGridCard(g); });
+                container.insertAdjacentHTML('beforeend', html);
+            } else {
+                let tbody = container.querySelector('tbody');
+                if (!tbody) {                    container.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="bg-body-tertiary text-secondary small text-uppercase fw-bold">
+                                            <tr>
+                                                <th class="ps-4 py-3">${LANG.table_game}</th>
+                                                <th class="d-none d-sm-table-cell">${LANG.table_platform}</th>
+                                                <th class="text-end text-nowrap pe-4">${LANG.table_actions}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>`;
+                    tbody = container.querySelector('tbody');
+                }
+                let rows = '';
+                nextBatch.forEach(g => { rows += generateListRow(g); });
+                tbody.insertAdjacentHTML('beforeend', rows);
+            }
+
+            displayedCount += nextBatch.length;
+            if (displayedCount >= processedGamesCache.length) toggleLoader(false);
+        });
     };
     
     if(typeof updateView === 'function') {

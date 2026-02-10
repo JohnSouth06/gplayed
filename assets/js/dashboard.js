@@ -244,9 +244,8 @@ function loadMoreGames() {
                                         <tr>
                                             <th class="ps-4 py-3">${LANG.table_game}</th>
                                             <th class="d-none d-sm-table-cell">${LANG.table_platform}</th>
-                                            <th class="d-none d-lg-table-cell">${LANG.table_price}</th>
+                                            <th class="d-none d-xxl-table-cell">${LANG.table_price}</th>
                                             <th class="d-none d-lg-table-cell">${LANG.table_status}</th>
-                                            <th class="d-none d-lg-table-cell">${LANG.table_rating}</th>
                                             <th class="text-end pe-4">${LANG.table_actions}</th>
                                         </tr>
                                     </thead>
@@ -336,7 +335,7 @@ function generateGridCard(g) {
     const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
 
     return `
-    <div class="col-sm-6 col-lg-4 col-xl-3 animate-in">
+    <div class="col-6 col-sm-6 col-lg-4 col-xl-3 animate-in">
         <div class="game-card-modern"
              onmouseover="this.style.boxShadow='0 25px 60px -12px ${shadowColor}'; this.style.borderColor='${borderColor}'"
              onmouseout="this.style.boxShadow=''; this.style.borderColor='rgba(0,0,0,0.05)'">
@@ -404,10 +403,8 @@ function generateListRow(g) {
             </div>
         </td>
         <td class="d-none d-sm-table-cell"><span class="meta-tag border">${platIconHtml}${g.platform}</span></td>
-        <td class="d-none d-lg-table-cell">${price}</td>
+        <td class="d-none d-xxl-table-cell">${price}</td>
         <td class="d-none d-lg-table-cell"><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span></td>
-        
-        <td class="d-none d-lg-table-cell">${ratingDisplay}</td>
 
         <td class="text-end pe-4">
             <button class="btn-icon-action" onclick='edit(${g.id})' title="${LANG.btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>

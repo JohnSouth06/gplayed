@@ -189,8 +189,8 @@ $totalWishlist = is_array($games) ? count($games) : 0;
 </div>
 
 <script>
+    window.isWishlistPage = true;
     let localGames = <?= json_encode($games) ?>;
 </script>
-
 <script src="assets/js/dashboard.js"></script>
 <script src="assets/js/wishlist.js"></script>

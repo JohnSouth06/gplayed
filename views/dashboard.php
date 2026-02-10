@@ -149,7 +149,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
 
 </div>
 
-<div id="gamesContainer" class="row g-xxl-4 g-md-3 g-sm-2"></div>
+<div id="gamesContainer" class="row g-xxl-4 g-md-3 g-2"></div>
 
 <div id="scrollSentinel" class="text-center py-4 my-2">
     <div class="spinner-border text-primary d-none" role="status" id="scrollLoader">
