@@ -25,7 +25,7 @@ class ProgressController {
         }
 
         $history = $this->progressModel->getAllByUser($_SESSION['user_id']);
-        $games = $this->gameModel->getAll($_SESSION['user_id']);
+        $games = $this->gameModel->getSelectableGames($_SESSION['user_id']);
 
         $totalHours = 0;
         foreach($history as $h) $totalHours += $h['duration_minutes'];

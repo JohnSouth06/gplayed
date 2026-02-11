@@ -1,14 +1,7 @@
-/**
- * GESTION DE LA COLLECTION PUBLIQUE
- * Gère la recherche, les filtres, le tri et l'affichage (Grille/Liste)
- */
-
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Récupération des données injectées via PHP (window.publicGamesData)
     const gamesData = window.publicGamesData || [];
     let currentView = localStorage.getItem('publicViewMode') || 'grid';
     
-    // Configuration LANG (Traductions depuis le système global)
     const statusConfig = {
         'not_started': { label: LANG.status_not_started, class: 'bg-secondary', icon: '&#xe837;' },
         'playing':     { label: LANG.status_playing,     class: 'bg-info',      icon: '&#xea5b;' },      
@@ -24,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' 
     };
 
-    // 2. Éléments DOM
     const container = document.getElementById('gamesContainer');
     const searchInput = document.getElementById('publicSearchInput');
     const btnClear = document.getElementById('btnClearSearch');
@@ -34,10 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnGrid = document.getElementById('btnGrid');
     const btnList = document.getElementById('btnList');
 
-    // Sécurité : si la page n'a pas les éléments (ex: erreur de chargement), on arrête.
     if (!container || !searchInput) return;
 
-    // 3. Helpers
     function getNeonColor(rgbString, opacity = 1) {
         if (!rgbString || rgbString === 'null') return `rgba(255, 255, 255, ${opacity})`;
         const match = rgbString.match(/\d+/g);
@@ -46,31 +36,25 @@ document.addEventListener('DOMContentLoaded', function() {
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     }
 
-    // 4. Moteur de Tri et Filtre
     function getProcessedGames() {
         const query = searchInput.value.toLowerCase();
         const platform = filterPlatform.value;
         const status = filterStatus.value;
         const sort = sortSelect.value;
 
-        // Filtrage
         let filtered = gamesData.filter(g => {
-            // Recherche texte
             if (query && !g.title.toLowerCase().includes(query)) return false;
             
-            // Filtre Plateforme
             if (platform !== 'all') {
                 if (g.platform === 'Multiplateforme') return true; 
                 if (!g.platform.includes(platform)) return false;
             }
 
-            // Filtre Statut
             if (status !== 'all' && g.status !== status) return false;
 
             return true;
         });
 
-        // Tri
         filtered.sort((a, b) => {
             const valA = (key) => a[key] || 0;
             const valB = (key) => b[key] || 0;
@@ -88,7 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return filtered;
     }
 
-    // 5. Générateurs HTML
     function generateGridCard(g) {
         const s = statusConfig[g.status] || statusConfig['playing'];
         const img = g.image_url ? g.image_url : '';
@@ -173,7 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>`;
     }
 
-    // 6. Rendu Principal
     function render() {
         const filtered = getProcessedGames();
         container.innerHTML = '';
@@ -198,7 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 7. Listeners
     if(searchInput) {
         [searchInput, filterPlatform, filterStatus, sortSelect].forEach(el => {
             if(el) el.addEventListener('input', render);
@@ -219,6 +200,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Init
     render();
 });

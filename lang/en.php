@@ -12,6 +12,9 @@ return [
     'auth_choose_pseudo' => 'Choose a nickname',
     'auth_forgot_password' => 'Forgot password?',
     'auth_create_account' => 'Create an account',
+    'auth_google_signup' => 'Sign in with Google',
+    'auth_discord_signup' => 'Sign in with Discord',
+    'auth_divider' => 'OR',
 
     // Sidebar / Menu
     'menu_library' => 'Library',
@@ -204,14 +207,37 @@ return [
     'public_collection_empty' => 'This player has not added any games yet.',
     'public_collection_search' => 'Search for a game in the player\'s collection...',
 
-    // Feed
-    'feed_title' => 'News Feed',
-    'feed_empty_title' => 'It\'s quiet here...',
-    'feed_btn_follow' => 'Follow members',
-    'feed_game_added' => 'added a game',
-    'feed_game_progress' => 'has made progress',
-    'feed_comment_placeholder' => 'Write a comment...',
+    // Javascript & Search
+    'js_voice_browser_unsupported' => 'Your browser does not support voice search. Try Chrome or Safari.',
+    'js_voice_incompatible' => 'Incompatible browser (try Chrome).',
+    'js_voice_listening' => 'Listening...',
+    'js_voice_listening_with_lang' => 'Listening ({lang})...',
+    'js_voice_lang_en' => 'in English',
+    'js_voice_lang_fr' => 'in French',
+    'js_voice_allow_mic' => 'Please allow microphone access.',
+    'js_voice_mic_refused' => 'Microphone refused.',
+    'js_search_placeholder' => 'Search for a game...',
+    'js_igdb_no_result' => 'No results found via IGDB.',
+    'js_server_error' => 'Server connection error.',
+    'js_game_exists_simple' => 'This game already exists: {name}',
+    'js_import_error_generic' => 'Error during import.',
+    'js_theme_label' => 'Theme',
+    'js_meta_score' => 'Metascore',
 
+    // Stats & Wishlist
+    'js_chart_games_label' => 'Games',
+    'js_btn_acquire' => 'Acquire',
+    'js_confirm_acquire' => 'Add this game to your collection?',
+
+    // Cookies
+    'cookie_banner_text' => 'This site uses essential cookies to ensure proper operation (session, preferences). No advertising trackers are used.',
+    'cookie_btn_accept' => 'Accept',
+    'cookie_btn_decline' => 'Continue without accepting',
+
+    // Section Cookies (Legal)
+    'legal_cookies_title' => 'Cookie Management',
+    'legal_cookies_text' => 'This site uses only "technical" cookies strictly necessary for its operation (e.g., maintaining your logged-in session). In accordance with privacy regulations, these cookies are exempt from prior consent. However, we inform you that you can configure your browser to block these cookies, but the user experience may be degraded (inability to stay logged in). No data is sold to third parties.',
+    
     // Legal Notice - EN
     'menu_legal' => 'Legal Mentions',
     'legal_title' => 'Legal Mentions',
@@ -313,4 +339,29 @@ return [
     'profile_danger_text' => 'Account deletion is irreversible. All your data will be lost.',
     'profile_btn_delete_account' => 'Delete my account',
     'profile_delete_confirm' => 'Are you ABSOLUTELY sure you want to delete your account?',
+
+    // Genres
+    'genre_Adventure' => 'Adventure',
+    'genre_Arcade' => 'Arcade',
+    'genre_Card & Board Game' => 'Card & Board Game',
+    'genre_Fighting' => 'Fighting',
+    'genre_Hack and slash/Beat \'em up' => 'Hack & Slash',
+    'genre_Indie' => 'Indie',
+    'genre_MOBA' => 'MOBA',
+    'genre_Music' => 'Music / Rhythm',
+    'genre_Pinball' => 'Pinball',
+    'genre_Platform' => 'Platform',
+    'genre_Point-and-click' => 'Point & Click',
+    'genre_Puzzle' => 'Puzzle / Strategy',
+    'genre_Quiz/Trivia' => 'Quiz',
+    'genre_Racing' => 'Racing',
+    'genre_Real Time Strategy (RTS)' => 'Real Time Strategy (RTS)',
+    'genre_Role-playing (RPG)' => 'Role-playing (RPG)',
+    'genre_Shooter' => 'Shooter (FPS/TPS)',
+    'genre_Simulator' => 'Simulation',
+    'genre_Sport' => 'Sport',
+    'genre_Strategy' => 'Strategy',
+    'genre_Tactical' => 'Tactical',
+    'genre_Turn-based strategy (TBS)' => 'Turn-based Strategy (TBS)',
+    'genre_Visual Novel' => 'Visual Novel',
 ];
