@@ -1,14 +1,12 @@
 <?php
-// Déterminer l'onglet actif par défaut en fonction des erreurs URL
-$activeTab = 'login'; // Par défaut : Connexion
-// Si l'erreur concerne l'inscription (mot de passe faible ou compte existant)
+$activeTab = 'login';
 if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists', 'register_failed'])) {
     $activeTab = 'register';
 }
 ?>
 
 <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
-    <div class="col-md-8 col-lg-6 col-xl-4">
+    <div class="col-sm-12 col-md-10 col-lg-8 col-xl-6 col-xxl-5">
         <div class="card shadow-lg border-0 rounded-4 bg-body">
             <div class="card-body p-5">
                 <div class="text-center mb-4">
@@ -20,17 +18,6 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                     </div>
                     <p class="fw-light text-secondary"><?= __('app_title') ?></p>
                 </div>
-
-                <!--<div class="mb-4">
-                    <a href="#" class="btn btn-outline-light w-100 rounded-pill py-2 d-flex align-items-center justify-content-center gap-2 border-secondary text-body" onclick="alert('Configuration serveur OAuth requise.')">
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20">
-                        <span class="fw-bold">Continuer avec Google</span>
-                    </a>
-                </div>
-                <div class="position-relative mb-4 text-center">
-                    <hr class="border-secondary opacity-25">
-                    <span class="position-absolute top-50 start-50 translate-middle bg-body px-3 text-secondary small">OU</span>
-                </div>-->
 
                 <ul class="nav nav-pills nav-fill mb-4 bg-transparent rounded-pill p-1">
                     <li class="nav-item px-1">
@@ -49,14 +36,20 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                                 <input type="text" name="username" class="form-control rounded-3" placeholder="Pseudo" required>
                                 <label><?= __('auth_user') ?></label>
                             </div>
-                            <div class="form-floating mb-3">
-                                <input type="password" name="password" class="form-control rounded-3" placeholder="Mdp" required>
-                                <label><?= __('auth_password') ?></label>
+                            <div class="form-floating mb-3 position-relative">
+                                <input type="password" name="password" id="loginPassword" class="form-control rounded-3 pe-5" placeholder="Mdp" required>
+                                <label for="loginPassword"><?= __('auth_password') ?></label>
+
+                                <button type="button" class="btn border-0 bg-transparent position-absolute top-50 end-0 translate-middle-y me-2 z-1" onclick="togglePassword('loginPassword', this)" tabindex="-1">
+                                    <i class="material-icons text-secondary align-middle">visibility</i>
+                                </button>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold"><?= __('auth_signin') ?></button>
+                            <div class="d-grid gap-2 col-12 mx-auto">
+                                <button type="submit" class="btn btn-primary w-50 rounded-pill mt-4 py-2 fw-bold mx-auto"><?= __('auth_signin') ?></button>
+                            </div>
                         </form>
 
-                        <div class="text-end mt-2">
+                        <div class="text-center mt-2">
                             <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal" class="text-decoration-none small text-secondary"><?= __('auth_forgot_password') ?></a>
                         </div>
 
@@ -81,25 +74,58 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                                 <input type="email" name="email" class="form-control rounded-3" placeholder="Email" required>
                                 <label><?= __('auth_mail') ?></label>
                             </div>
-                            <div class="form-floating mb-3">
-                                <input type="password" name="password" class="form-control rounded-3" placeholder="Mdp" required>
-                                <label><?= __('auth_password') ?></label>
-                                <div class="form-text small mt-2"><?= __('reset_help_text') ?></div>
+                            <div class="form-floating mb-3 position-relative">
+                                <input type="password" name="password" id="registerPassword" class="form-control rounded-3 pe-5" placeholder="Mdp" required>
+                                <label for="registerPassword"><?= __('auth_password') ?></label>
+
+                                <button type="button" class="btn border-0 bg-transparent position-absolute top-50 end-0 translate-middle-y me-2 z-1" onclick="togglePassword('registerPassword', this)" tabindex="-1">
+                                    <i class="material-icons text-secondary align-middle">visibility</i>
+                                </button>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold"><?= __('auth_create_account') ?></button>
+                            <div class="form-text small mt-2 mb-4"><?= __('reset_help_text') ?></div>
+                            <div class="d-grid gap-2 col-12 mx-auto">
+                                <button type="submit" class="btn btn-primary w-50 rounded-pill mt-4 py-2 fw-bold mx-auto"><?= __('auth_create_account') ?></button>
+                            </div>
                         </form>
                         <?php
-                            if (isset($_GET['error'])) {
-                                if ($_GET['error'] == 'weak_password') {
-                                    echo '<div class="alert alert-warning mt-3 rounded-3 small">' . __('reset_weak') . '</div>';
-                                }
-                                if ($_GET['error'] == 'exists') {
-                                    echo '<div class="alert alert-danger mt-3 rounded-3 small">' . __('reset_account') . '</div>';
-                                }
+                        if (isset($_GET['error'])) {
+                            if ($_GET['error'] == 'weak_password') {
+                                echo '<div class="alert alert-warning mt-3 rounded-3 small">' . __('reset_weak') . '</div>';
                             }
+                            if ($_GET['error'] == 'exists') {
+                                echo '<div class="alert alert-danger mt-3 rounded-3 small">' . __('reset_account') . '</div>';
+                            }
+                        }
                         ?>
                     </div>
                 </div>
+
+                <div class="divider-text my-4">
+                    <span><?= __('auth_divider') ?></span>
+                </div>
+
+                <div class="d-grid gap-2 col-12 mx-auto mb-3">
+                    <a href="/?action=login_google" class="btn btn-light border w-50 rounded-pill py-2 fw-bold mx-auto d-flex align-items-center justify-content-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48" class="me-2">
+                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                        </svg>
+                        <?= __('auth_google_signup') ?>
+                    </a>
+                </div>
+
+                <div class="d-grid gap-2 col-12 mx-auto mb-4">                    
+                    <a href="/?action=login_discord" class="btn btn-light border w-50 rounded-pill py-2 fw-bold mx-auto d-flex align-items-center justify-content-center" style="background-color: #5865F2; color: white; border: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                            <path d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.833.051.051 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.041.041 0 0 0-.021.018C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.276 13.276 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.329a.05.05 0 0 0-.01-.059.051.051 0 0 0-.018-.011 8.875 8.875 0 0 1-1.248-.595.05.05 0 0 1-.02-.066.051.051 0 0 1 .015-.019c.084-.063.168-.129.248-.195a.05.05 0 0 1 .051-.007c2.619 1.196 5.454 1.196 8.041 0a.052.052 0 0 1 .053.007c.08.066.164.132.248.195a.051.051 0 0 1-.004.085 8.254 8.254 0 0 1-1.249.594.05.05 0 0 0-.03.03.05.05 0 0 0 .003.041c.24.465.515.909.817 1.329a.05.05 0 0 0 .056.019 13.235 13.235 0 0 0 4.001-2.02.049.049 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.034.034 0 0 0-.02-.019Zm-8.198 7.307c-.789 0-1.438-.724-1.438-1.612 0-.889.637-1.613 1.438-1.613.807 0 1.45.73 1.438 1.613 0 .888-.637 1.612-1.438 1.612Zm5.316 0c-.788 0-1.438-.724-1.438-1.612 0-.889.637-1.613 1.438-1.613.807 0 1.451.73 1.438 1.613 0 .888-.631 1.612-1.438 1.612Z"/>
+                        </svg>
+                        <?= __('auth_discord_signup') ?>
+                    </a>
+                </div>
+
+
             </div>
         </div>
     </div>
@@ -122,9 +148,11 @@ if (isset($_GET['error']) && in_array($_GET['error'], ['weak_password', 'exists'
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
-                    <button type="submit" class="btn btn-primary rounded-pill w-100"><?= __('reset_send_link') ?></button>
+                    <button type="submit" class="btn btn-primary rounded-pill w-50 fw-bold mx-auto"><?= __('reset_send_link') ?></button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script src="assets/js/auth.js"></script>

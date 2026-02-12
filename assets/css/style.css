@@ -435,6 +435,12 @@ h6,
     padding: 3rem;
 }
 
+/* COOKIES */
+#cookieConsentBanner {
+    border-top: 1px solid rgba(255,255,255,0.1); 
+    z-index: 9999 !important;
+}
+
 /* LIENS SIDEBAR */
 .nav-link {
     border-radius: 8px;
@@ -456,13 +462,16 @@ h6,
 
 [data-bs-theme="dark"] .nav-link.active {
     background-color: rgba(var(--main-color-rgb), 0.10);
-    color: #fff;
-    /* border-left: 3px solid var(--main-color); */
+    color: var(--main-color);
+}
+
+[data-bs-theme="dark"] .nav-login.active {
+    color: var(--bs-body-bg);
 }
 
 /* LOGIN ACTIVE TAB IN DARK MODE */
 [data-bs-theme="dark"] .nav-link.nav-login.active {
-    background-color: rgba(var(--main-color-rgb), 1);
+    background-color: white;
 }
 
 [data-bs-theme="dark"] .nav-link.active i {
@@ -605,6 +614,31 @@ h6,
     stroke: #ffffff;
 }
 
+/* --- DIVIDERS --- */
+.divider {
+     margin: 3rem 0;
+     position: relative;
+ }
+
+ /* Simple Line with Text */
+ .divider-text {
+     display: flex;
+     align-items: center;
+     text-align: center;
+     color: #6f6f6f;
+ }
+
+ .divider-text::before,
+ .divider-text::after {
+     content: "";
+     flex: 1;
+     border-top: 1px solid #6f6f6f;
+ }
+
+ .divider-text span {
+     padding: 0 1rem;
+ }
+
 /* --- INPUTS --- */
 .form-control,
 .form-select,
@@ -628,6 +662,10 @@ h6,
     background-color: var(--bs-tertiary-bg) !important;
     border-color: #333;
     color: #ffffff;
+}
+
+[data-bs-theme="dark"] input.file-upload.form-control:hover {
+    background-color: transparent !important;
 }
 
 [data-bs-theme="dark"] .form-control:focus,
@@ -786,6 +824,13 @@ h6,
 
 @media (max-width: 575.98px) {
     div#gamesContainer {
-        gap: 1rem;
+    }
+}
+
+@media (min-width: 1400px) {
+    #gamesContainer > div:not(.col-12) {
+        flex: 0 0 auto;
+        width: 20%;
+        max-width: 20%;
     }
 }

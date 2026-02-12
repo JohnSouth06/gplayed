@@ -26,7 +26,7 @@
 /* --- IMAGE DU HAUT --- */
 .card-cover-container {
     position: relative;
-    padding-top: 65%;
+    padding-top: 120%;
     /* Format un peu plus haut que 16/9 pour l'élégance */
     overflow: hidden;
     background-color: var(--bs-body-tertiary);
@@ -293,6 +293,20 @@
 /* Header Modals */
 .modal-header .nav-tabs {
     --bs-nav-tabs-border-width: 0 !important;
+}
+
+/* Animation de pulsation pour le bouton micro actif */
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.pulse-animation {
+    animation: pulse-red 1.5s infinite;
+    background-color: #dc3545 !important; /* Rouge Bootstrap */
+    color: white !important;
+    border: none !important;
 }
 
 /* RESPONSIVE */

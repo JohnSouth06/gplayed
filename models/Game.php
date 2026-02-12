@@ -18,6 +18,19 @@ class Game
         return $stmt->fetchAll();
     }
 
+    public function getSelectableGames($userId)
+    {
+        $query = "SELECT * FROM " . $this->table . " 
+                  WHERE user_id = :user_id 
+                  AND status != 'wishlist' 
+                  ORDER BY title ASC";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
     public function getOne($id, $userId)
     {
         $query = "SELECT * FROM " . $this->table . " WHERE id = :id AND user_id = :user_id LIMIT 1";
