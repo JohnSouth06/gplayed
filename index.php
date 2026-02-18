@@ -26,7 +26,6 @@ require_once ROOT_PATH . '/controllers/AuthController.php';
 require_once ROOT_PATH . '/controllers/GameController.php';
 require_once ROOT_PATH . '/controllers/ProgressController.php';
 require_once ROOT_PATH . '/controllers/CommunityController.php';
-require_once ROOT_PATH . '/controllers/SocialController.php';
 require_once ROOT_PATH . '/controllers/TrophyController.php';
 require_once ROOT_PATH . '/config/lang.php';
 
@@ -37,7 +36,6 @@ $authController = new AuthController($db);
 $gameController = new GameController($db);
 $progressController = new ProgressController($db);
 $communityController = new CommunityController($db);
-$socialController = new SocialController($db);
 $trophyController = new TrophyController($db);
 
 $action = $_GET['action'] ?? 'home';
@@ -63,7 +61,7 @@ switch ($action) {
         $authController->deleteAccount();
         break;
 
-    //Password/Reset
+    // Password/Reset
     case 'forgot_password':
         $authController->forgotPassword();
         break;
@@ -72,6 +70,22 @@ switch ($action) {
         break;
     case 'do_reset':
         $authController->doReset();
+        break;
+
+    // Google Login
+    case 'login_google':
+        $authController->loginGoogle();
+        break;
+    case 'google_callback':
+        $authController->googleCallback();
+        break;
+
+    // Discord Login    
+    case 'login_discord':
+        $authController->loginDiscord();
+        break;
+    case 'discord_callback':
+        $authController->discordCallback();
         break;
 
     // Games
@@ -121,7 +135,7 @@ switch ($action) {
         $progressController->delete();
         break;
 
-    // --- Social
+    // --- Community
     case 'community':
         $communityController->index();
         break;
@@ -134,24 +148,10 @@ switch ($action) {
         $gameController->share();
         break;
 
-    // Actus
-    case 'feed':
-        $socialController->feed();
-        break;
-    case 'add_comment':
-        $socialController->addComment();
-        break;
-
+    // Legal
     case 'legal':
         $view = 'views/legal.php';
         require ROOT_PATH . '/views/layout.php';
-        break;
-
-    // Comments
-    case 'add_comment':
-        if (isset($socialController)) {
-            $socialController->addComment();
-        }
         break;
 
     // Trophy
@@ -174,25 +174,25 @@ switch ($action) {
         $trophyController->apiDelete();
         break;
 
-    // Générateur de fichier de langue JS
     case 'js_lang':
         header('Content-Type: application/javascript');
-        // On filtre uniquement les clés commençant par 'js_' pour la sécurité et la performance
+
         $jsTranslations = [];
         if (isset($GLOBALS['translations'])) {
             foreach ($GLOBALS['translations'] as $key => $value) {
                 if (strpos($key, 'js_') === 0) {
-                    // On enlève le préfixe 'js_' pour avoir des clés propres en JS (ex: 'js_btn_edit' devient 'btn_edit')
                     $cleanKey = substr($key, 3);
                     $jsTranslations[$cleanKey] = $value;
                 }
+                elseif (strpos($key, 'genre_') === 0) {
+                    $jsTranslations[$key] = $value;
+                }
             }
         }
-        // On affiche le code JS
+
         echo 'const LANG = ' . json_encode($jsTranslations) . ';';
         exit;
 
-        // Default
     case 'home':
     default:
         $gameController->index();

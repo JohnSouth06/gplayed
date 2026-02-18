@@ -67,13 +67,13 @@ if (isset($_SESSION['force_loader'])) {
 
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
     <?php if (isset($_SESSION['user_id'])): ?>
-    <div class="mobile-header d-lg-none d-flex justify-content-between">
-        <button class="btn border-0 p-2" onclick="toggleSidebar()"><i class="material-icons align-middle fs-5">&#xe5d2;</i></button>
-        <span class="fw-light fs-5 align-self-center"><?= __('app_title') ?></span>
-        <div style="width: 40px;"></div>
-    </div>
+        <div class="mobile-header d-lg-none d-flex justify-content-between">
+            <button class="btn border-0 p-2" onclick="toggleSidebar()"><i class="material-icons align-middle fs-5">&#xe5d2;</i></button>
+            <span class="fw-light fs-5 align-self-center"><?= __('app_title') ?></span>
+            <div style="width: 40px;"></div>
+        </div>
     <?php endif; ?>
-        
+
     <?php if (isset($_SESSION['user_id'])): ?>
         <nav id="sidebar">
             <div class="px-4 py-5 d-flex align-items-center justify-content-between flex-shrink-0">
@@ -85,7 +85,6 @@ if (isset($_SESSION['force_loader'])) {
                         </svg>
                     </div>
                 </a>
-                <!--<button class="btn btn-sm d-lg-none ms-auto" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>-->
             </div>
 
             <div class="p-3 sidebar-scrollable">
@@ -96,7 +95,6 @@ if (isset($_SESSION['force_loader'])) {
                     <li class="nav-item"><a href="/progression" class="nav-link <?= ($act == 'progression') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe6b1;</i><?= __('menu_journal') ?></a></li>
                     <li class="nav-item"><a href="/stats" class="nav-link <?= ($act == 'stats') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe26b;</i><?= __('menu_stats') ?></a></li>
                     <li class="nav-item"><a href="/community" class="nav-link <?= ($act == 'community' || $act == 'share') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xf233;</i><?= __('menu_community') ?></a></li>
-                    <li class="nav-item"><a href="/feed" class="nav-link <?= ($act == 'feed') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe24c;</i><?= __('menu_feed') ?></a></li>
                 </ul>
             </div>
             <div class="mx-auto">
@@ -110,17 +108,16 @@ if (isset($_SESSION['force_loader'])) {
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <div class="dropdown dropup">
                         <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-body" data-bs-toggle="dropdown" aria-expanded="false">
-                            <?php if (isset($_SESSION['avatar']) && $_SESSION['avatar']): ?>
-                                <img src="<?= $_SESSION['avatar'] ?>" class="user-avatar-sidebar me-2">
-                            <?php else: ?>
-                                <div class="user-avatar-sidebar bg-secondary d-flex align-items-center justify-content-center text-white me-2"><?= strtoupper(substr($_SESSION['username'], 0, 1)) ?></div>
-                            <?php endif; ?>
+                            <?php
+                            $sidebarAvatar = !empty($_SESSION['avatar']) ? $_SESSION['avatar'] : 'uploads/avatars/default.png';
+                            ?>
+                            <img src="<?= htmlspecialchars($sidebarAvatar) ?>" class="user-avatar-sidebar me-2 object-fit-cover" alt="Avatar">
+
                             <div class="overflow-hidden me-2"><strong class="d-block text-truncate"><?= htmlspecialchars($_SESSION['username']) ?></strong><small class="text-muted"><?= __('online') ?></small></div>
                             <i class="material-icons align-middle fs-5 custom-chevron ms-auto">&#xe316;</i>
                         </a>
                         <ul class="dropdown-menu sidebar-dropdown-menu rounded-3 border-0">
                             <li><a class="sidebar-dropdown-item bg-transparent" href="/profile"><i class="material-icons align-middle fs-5">&#xf02e;</i><?= __('menu_profile') ?></a></li>
-                            <!--<li><button class="sidebar-dropdown-item w-100 text-start border-0 bg-transparent" id="themeToggle"><i class="material-icons align-middle fs-5">&#xf34f;</i>Thème</button></li>-->
                             <li>
                                 <hr class="dropdown-divider my-1" style="border-color: rgba(255,255,255,0.1)">
                             </li>
@@ -135,7 +132,7 @@ if (isset($_SESSION['force_loader'])) {
         <?php require $view; ?>
         <div class="container-fluid py-4 mt-auto text-center">
             <small class="text-muted opacity-50">
-                Gplayed &copy; <?= date('Y') ?> •
+                GPlayed &copy; <?= date('Y') ?> •
                 <a href="/legal" class="text-reset text-decoration-none"><?= __('menu_legal') ?></a>
             </small>
         </div>
@@ -143,6 +140,19 @@ if (isset($_SESSION['force_loader'])) {
             <div id="liveToast" class="toast border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header bg-body border-bottom-0"><i class="material-icons align-middle text-primary me-2fs-5">&#xe88e;</i><strong class="me-auto pe-2">Notification</strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button></div>
                 <div class="toast-body bg-body rounded-bottom-2" id="toastMessage"></div>
+            </div>
+        </div>
+
+        <div id="cookieConsentBanner" class="position-fixed bottom-0 start-0 w-100 bg-dark text-white p-3 shadow-lg z-3 d-none">
+            <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="material-icons text-primary">&#xeaac;</i>
+                    <small><?= __('cookie_banner_text') ?> <a href="/legal" class="text-primary text-decoration-underline"><?= __('menu_legal') ?></a></small>
+                </div>
+                <div class="d-flex gap-2 text-nowrap">
+                    <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="handleCookieConsent(false)"><?= __('cookie_btn_decline') ?></button>
+                    <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="handleCookieConsent(true)"><?= __('cookie_btn_accept') ?></button>
+                </div>
             </div>
         </div>
 

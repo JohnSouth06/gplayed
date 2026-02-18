@@ -34,6 +34,10 @@
                 <h4 class="mb-3"><?= __('legal_privacy_title') ?></h4>
                 <p><?= __('legal_privacy_text') ?></p>
 
+                <hr>
+                <h4 class="mb-3"><?= __('legal_cookies_title') ?></h4>
+                <p><?= __('legal_cookies_text') ?></p>
+
             </div>
         </div>
     </div>

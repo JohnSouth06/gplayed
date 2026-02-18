@@ -2,7 +2,6 @@
     <h2 class="fw-light text-tertiary mb-1"><?= __('stats_title') ?></h2>
 </div>
 
-<!-- KPI Cards -->
 <div class="row g-4 mb-4">
     <div class="col-6 col-md-3">
         <div class="p-3 bg-body rounded-4 shadow-sm h-100 border-start border-4 border-primary">
@@ -30,7 +29,6 @@
     </div>
 </div>
 
-<!-- Charts Row 1 -->
 <div class="row g-4 mb-4">
     <div class="col-md-6 col-xl-4">
         <div class="card border-0 shadow-sm rounded-4 h-100 bg-body">
@@ -70,7 +68,6 @@
     </div>
 </div>
 
-<!-- Charts Row 2 -->
 <div class="row g-4">
     <div class="col-12">
         <div class="card border-0 shadow-sm rounded-4 bg-body">
@@ -86,7 +83,6 @@
     </div>
 </div>
 
-<!-- Scripts Stats -->
 <script>
     window.localGames = <?= json_encode($games) ?>;
 </script>

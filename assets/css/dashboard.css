@@ -26,7 +26,7 @@
 /* --- IMAGE DU HAUT --- */
 .card-cover-container {
     position: relative;
-    padding-top: 65%;
+    padding-top: 120%;
     /* Format un peu plus haut que 16/9 pour l'élégance */
     overflow: hidden;
     background-color: var(--bs-body-tertiary);
@@ -110,14 +110,43 @@
     align-items: center;
 }
 
-/* Zone actions (boutons) */
-.card-actions-wrapper {
-    margin-top: auto;
-    padding-top: 1rem;
-    border-top: 1px solid var(--bs-border-color-translucent);
+/* --- Overlay Actions (Boutons centrés avec flou) --- */
+.card-overlay-actions {
+    position: absolute;
+    inset: 0; /* Prend toute la taille de la carte (Haut/Bas/Gauche/Droite = 0) */
+    background: rgba(var(--bs-body-bg-rgb), 0.6); /* Fond semi-transparent utilisant la couleur du thème */
+    backdrop-filter: blur(8px); /* L'effet de flou magique */
+    -webkit-backdrop-filter: blur(8px); /* Support Safari */
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    gap: 1.5rem; /* Espace entre les deux boutons */
+    
+    /* Animation */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 20;
+    border-radius: 24px; /* Même arrondi que la carte */
+}
+
+/* Apparition au survol (ou au tap sur mobile) */
+.game-card-modern:hover .card-overlay-actions {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Petit effet de zoom sur les boutons ronds eux-mêmes */
+.scale-on-hover {
+    transition: transform 0.2s ease;
+}
+.scale-on-hover:hover {
+    transform: scale(1.15);
+}
+
+/* Suppression de l'ancien style si présent */
+.card-actions-wrapper {
+    display: none !important;
 }
 
 #statsRow {
@@ -293,6 +322,20 @@
 /* Header Modals */
 .modal-header .nav-tabs {
     --bs-nav-tabs-border-width: 0 !important;
+}
+
+/* Animation de pulsation pour le bouton micro actif */
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.pulse-animation {
+    animation: pulse-red 1.5s infinite;
+    background-color: #dc3545 !important; /* Rouge Bootstrap */
+    color: white !important;
+    border: none !important;
 }
 
 /* RESPONSIVE */
