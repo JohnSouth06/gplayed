@@ -72,7 +72,7 @@
     --glass-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
 
     /* Fonds Bootstrap (bg-body-secondary / tertiary) adaptés au thème noir */
-    --bs-body-bg: #161616;
+    --bs-body-bg: #1b1b1b;
     --bs-body-bg-rgb: 22, 22, 22;
     --bs-secondary-bg: #151515;
     /* Un peu plus clair que le fond */
@@ -124,14 +124,14 @@ h6,
 
 /* 1. PRIMAIRE */
 .btn-primary {
-    --bs-btn-color: #000;
+    --bs-btn-color: #1b1b1b;
     --bs-btn-bg: #4CE5AE;
     --bs-btn-border-color: #4CE5AE;
     --bs-btn-hover-color: #111111;
     --bs-btn-hover-bg: #34c18d;
     --bs-btn-hover-border-color: #2cb482;
     --bs-btn-focus-shadow-rgb: 49, 132, 253;
-    --bs-btn-active-color: #000;
+    --bs-btn-active-color: #1b1b1b;
     --bs-btn-active-bg: #2cb482;
     --bs-btn-active-border-color: #2cb482;
     --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
@@ -236,6 +236,17 @@ h6,
 .btn-action.btn-icon-action {
     text-decoration: none;
 }
+
+/* Ajustements bouton active */
+.btn-check:checked + .btn, .btn.active, .btn.show, .btn:first-child:active, :not(.btn-check) + .btn:active {
+    background-color: var(--main-color);
+    font-weight:700;
+    color: #1b1b1b !important;
+}
+.btn:hover {
+    color: var(--bs-body-bg) !important;
+}
+
 
 /* ========================================================================
    🛠️ UTILITAIRES CONNECTÉS (Badges, Textes, Fonds subtils)
@@ -612,6 +623,57 @@ h6,
 
 [data-bs-theme="dark"] .svg-adaptive-stroke {
     stroke: #ffffff;
+}
+
+/* --- PILL STATS --- */
+.stat-widget {
+    background-color: var(--bs-body-bg); /* S'adapte au Light/Dark mode */
+    border: 1px solid rgba(0, 0, 0, 0.05); /* Bordure très subtile */
+    border-radius: 16px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease;
+    min-width: 180px; /* Largeur minimale pour l'élégance */
+}
+
+.stat-widget:hover {
+    transform: translateY(-2px);
+}
+
+.stat-widget .stat-icon {
+    font-size: 2.5rem; /* Icône plus grande */
+    line-height: 1;
+    margin-right: 15px;
+    opacity: 0.9;
+}
+
+.stat-widget .stat-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1;
+}
+
+.stat-widget .stat-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--sec-color); /* Utilise votre variable secondaire */
+    margin-bottom: 2px;
+}
+
+.stat-widget .stat-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    /* La couleur sera définie par la classe utilitaire (text-primary, etc.) */
+}
+
+[data-bs-theme="dark"] .stat-widget {
+    background-color: var(--bs-tertiary-bg);
+    border-color: rgba(255, 255, 255, 0.05);
 }
 
 /* --- DIVIDERS --- */

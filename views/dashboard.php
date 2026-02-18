@@ -40,9 +40,29 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
         <h2 class="h2 dashboard-welcome mb-1 fw-light"><?= __('dashboard_hello') ?> <span class="text-primary fw-bold"><?= htmlspecialchars($username) ?></span> 👋</h2>
     </div>
     <div class="d-flex gap-2 overflow-x-auto pb-2 pb-md-0" style="scrollbar-width:none;">
-        <div class="stat-pill"><i class="material-icons text-primary align-top icon-lg pe-2">&#xea28;</i><?= __('dashboard_total') ?> <strong><?= $totalGames ?></strong></div>
-        <div class="stat-pill mx-3"><i class="material-icons text-info align-top icon-lg pe-2">&#xe037;</i><?= __('dashboard_playing') ?> <strong><?= $playingCount ?></strong></div>
-        <div class="stat-pill"><i class="material-icons text-success align-top icon-lg pe-2">&#xe5ca;</i><?= __('dashboard_finished') ?> <strong><?= $finishedCount ?></strong></div> 
+        <div class="stat-widget">
+            <i class="material-icons stat-icon text-warning-emphasis">&#xea28;</i>
+            <div class="stat-content">
+                <span class="stat-label"><?= __('dashboard_total') ?></span>
+                <span class="stat-value text-warning-emphasis animate-counter" data-target="<?= $totalGames ?>">0</span>                
+            </div>
+        </div>
+
+        <div class="stat-widget">
+            <i class="material-icons stat-icon text-info">&#xe037;</i>
+            <div class="stat-content">
+                <span class="stat-label"><?= __('dashboard_playing') ?></span>
+                <span class="stat-value text-info animate-counter" data-target="<?= $playingCount ?>">0</span>
+            </div>
+        </div>
+
+        <div class="stat-widget">
+            <i class="material-icons stat-icon text-primary">&#xe5ca;</i>
+            <div class="stat-content">
+                <span class="stat-label"><?= __('dashboard_finished') ?></span>
+                <span class="stat-value text-primary animate-counter" data-target="<?= $finishedCount ?>">0</span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -112,7 +132,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
     </div>
 </div>
 
-<div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-2">
+<div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
     <div class="input-group rounded-pill overflow-hidden border border-opacity-10 bg shadow-sm w-100 w-xxl-50">
         <span class="input-group-text border-0 ps-3 bg-transparent"><i class="material-icons-outlined text-secondary icon-md">&#xe8b6;</i></span>
@@ -120,42 +140,46 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
         <span class="input-group-text border-0 pe-3 bg-transparent" style="cursor:pointer" onclick="document.getElementById('internalSearchInput').value=''; updateView();"><i class="material-icons-outlined opacity-50 icon-sm">&#xe5cd;</i></span>
     </div>
 
-    <div class="d-flex flex-wrap justify-content-between justify-content-xxl-end gap-2 w-100 w-xxl-auto">
+    <div class="w-100 flex-grow-1 overflow-hidden"> <div class="filters-scroll-container">
+            
+            <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="all"><?= __('filter_platform') ?></option>
+                <option value="PS5">PlayStation 5</option>
+                <option value="PS4">PlayStation 4</option>
+                <option value="Xbox Series">Xbox Series</option>
+                <option value="Switch">Switch 1 / 2</option>
+                <option value="PC">PC / Steam</option>
+            </select>
 
-        <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="all"><?= __('filter_platform') ?></option>
-            <option value="PS5">PlayStation 5</option>
-            <option value="PS4">PlayStation 4</option>
-            <option value="Xbox Series">Xbox Series</option>
-            <option value="Switch">Switch 1 / 2</option>
-            <option value="PC">PC / Steam</option>
-        </select>
+            <select id="filterStatus" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="all"><?= __('filter_status') ?></option>
+                <option value="not_started"><?= __('status_not_started') ?></option>
+                <option value="playing"><?= __('status_playing') ?></option>
+                <option value="finished"><?= __('status_finished') ?></option>
+                <option value="completed"><?= __('status_completed') ?></option>
+                <option value="wishlist"><?= __('status_wishlist') ?></option>
+                <option value="dropped"><?= __('status_dropped') ?></option>
+            </select>
 
-        <select id="filterStatus" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="all"><?= __('filter_status') ?></option>
-            <option value="not_started"><?= __('status_not_started') ?></option>
-            <option value="playing"><?= __('status_playing') ?></option>
-            <option value="finished"><?= __('status_finished') ?></option>
-            <option value="completed"><?= __('status_completed') ?></option>
-            <option value="wishlist"><?= __('status_wishlist') ?></option>
-            <option value="dropped"><?= __('status_dropped') ?></option>
-        </select>
+            <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="date_desc"><?= __('sort_recent') ?></option>
+                <option value="alpha_asc"><?= __('sort_az') ?></option>
+                <option value="rating_desc"><?= __('sort_rating') ?></option>
+                <option value="platform_asc"><?= __('sort_platform') ?></option>
+            </select>
 
-        <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="date_desc"><?= __('sort_recent') ?></option>
-            <option value="alpha_asc"><?= __('sort_az') ?></option>
-            <option value="rating_desc"><?= __('sort_rating') ?></option>
-            <option value="status_asc"><?= __('sort_status') ?></option>
-            <option value="platform_asc"><?= __('sort_platform') ?></option>
-        </select>
-
-        <div class="bg-body rounded-3 shadow-sm p-1 d-flex">
-            <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
-            <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            <div class="bg-body rounded-3 shadow-sm border p-1 d-none d-md-flex view-toggle-desktop">
+                <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
+                <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            </div>
         </div>
     </div>
 
 </div>
+
+<button class="fab-view-toggle shadow-lg" id="fabViewToggle" onclick="toggleMobileView()">
+    <i class="material-icons-outlined" id="fabIcon">&#xe8ef;</i>
+</button>
 
 <div id="gamesContainer" class="row g-xxl-4 g-md-3 g-2"></div>
 

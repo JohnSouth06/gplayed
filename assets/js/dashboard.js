@@ -47,6 +47,40 @@ document.querySelectorAll('.dropdown-item').forEach(item => {
     });
 });
 
+// Variable pour suivre l'état actuel de la vue
+let currentViewMode = 'grid'; // Par défaut
+
+function toggleMobileView() {
+    if (currentViewMode === 'grid') {
+        setView('list');
+    } else {
+        setView('grid');
+    }
+}
+
+// Surcharger ou étendre la fonction setView existante pour mettre à jour l'icône du FAB
+// (Si vous ne voulez pas modifier votre fonction setView originale, ajoutez ceci après)
+const originalSetView = window.setView;
+window.setView = function(mode) {
+    // Appel de la fonction originale
+    if(originalSetView) originalSetView(mode);
+    
+    // Mise à jour de notre variable locale
+    currentViewMode = mode;
+
+    // Mise à jour de l'icône du FAB
+    const fabIcon = document.getElementById('fabIcon');
+    if (fabIcon) {
+        if (mode === 'grid') {
+            // Si on est en grille, le bouton propose de passer en liste
+            fabIcon.innerHTML = '&#xe8ef;'; // Icône List
+        } else {
+            // Si on est en liste, le bouton propose de passer en grille
+            fabIcon.innerHTML = '&#xe9b0;'; // Icône Grid
+        }
+    }
+};
+
 function handleServerSearch(query) {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
@@ -417,12 +451,64 @@ function generateListRow(g) {
     </tr>`;
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    initCounters();
+});
+
+function initCounters() {
+    const counters = document.querySelectorAll('.animate-counter');
+    const speed = 200; // Plus le chiffre est bas, plus ça va vite
+
+    const counterObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const counter = entry.target;
+                const target = +counter.getAttribute('data-target');
+                
+                // On lance l'animation
+                animateValue(counter, 0, target, 1500); // 1500ms de durée
+                
+                // On arrête d'observer une fois l'animation lancée
+                observer.unobserve(counter);
+            }
+        });
+    }, { threshold: 0.5 }); // L'animation se lance quand 50% de l'élément est visible
+
+    counters.forEach(counter => {
+        counterObserver.observe(counter);
+    });
+}
+
+function animateValue(obj, start, end, duration) {
+    if (end === 0) {
+        obj.innerHTML = 0;
+        return;
+    }
+    
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        
+        // Easing pour un effet plus naturel (ralentit à la fin)
+        // obj.innerHTML = Math.floor(progress * (end - start) + start); // Linéaire
+        obj.innerHTML = Math.floor(end * (1 - Math.pow(1 - progress, 3))); // Cubic Ease Out
+
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            obj.innerHTML = end; // S'assurer qu'on finit bien sur le chiffre exact
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
 function toggleLoader(show) { const l = document.getElementById('scrollLoader'); if (show && l) l.classList.remove('d-none'); else if (l) l.classList.add('d-none'); }
 function searchPrice() { const title = document.getElementById('gameTitle').value; const platform = document.getElementById('gamePlatform').value; if (title) { const query = encodeURIComponent(`${title} ${platform}`); const w = 1000; const h = 600; const left = (screen.width / 2) - (w / 2); const top = (screen.height / 2) - (h / 2); window.open(`https://www.ebay.fr/sch/i.html?_nkw=${query}&_sacat=139973`, 'PriceCheck', `width=${w},height=${h},top=${top},left=${left}`); } else { alert(LANG.alert_enter_title); } }
 function handleEnter(e) { if (e.key === 'Enter') searchIgdb(); }
 function closeSearch() { document.getElementById('rawgContainer').classList.add('d-none'); document.getElementById('rawgSearchInput').value = ''; }
 function setView(v) { currentView = v; localStorage.setItem('viewMode', v); initViewButtons(); updateView(); }
-function initViewButtons() { document.getElementById('btnGrid').className = currentView === 'grid' ? 'btn btn-sm btn-light rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; document.getElementById('btnList').className = currentView === 'list' ? 'btn btn-sm btn-light rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; }
+function initViewButtons() { document.getElementById('btnGrid').className = currentView === 'grid' ? 'btn btn-sm btn-primary rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; document.getElementById('btnList').className = currentView === 'list' ? 'btn btn-sm btn-primary rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; }
 function previewFile(input) { if (input.files && input.files[0]) { var reader = new FileReader(); reader.onload = function (e) { document.getElementById('previewImg').src = e.target.result; document.getElementById('previewImg').classList.remove('d-none'); document.getElementById('uploadPlaceholder').classList.add('d-none'); }; reader.readAsDataURL(input.files[0]); } }
 
 function toggleCustomPlatform() { const select = document.getElementById('gamePlatform'); const container = document.getElementById('multiPlatformContainer'); const hiddenInput = document.getElementById('gamePlatformCustom'); if (select.value === 'Multiplateforme') { container.classList.remove('d-none'); if (document.getElementById('platformInputsList').children.length === 0) addPlatformInput(); } else { container.classList.add('d-none'); hiddenInput.value = ''; } }

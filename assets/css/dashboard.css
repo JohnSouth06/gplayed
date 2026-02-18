@@ -316,15 +316,12 @@
 
 #trophyDropdownBtn.show::after {
     transform: rotate(225deg);
-    /* 45 + 180 degrés pour la retourner */
 }
 
-/* Header Modals */
 .modal-header .nav-tabs {
     --bs-nav-tabs-border-width: 0 !important;
 }
 
-/* Animation de pulsation pour le bouton micro actif */
 @keyframes pulse-red {
     0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
     70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
@@ -336,6 +333,91 @@
     background-color: #dc3545 !important; /* Rouge Bootstrap */
     color: white !important;
     border: none !important;
+}
+
+/* --- FILTRES MOBILES (Scroll horizontal uniquement sur mobile) --- */
+@media (max-width: 767.98px) {
+    .filters-scroll-container {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        gap: 10px;
+        padding-bottom: 5px;
+        scrollbar-width: none;
+        mask-image: linear-gradient(to right, black 90%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
+    }
+
+    .filters-scroll-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filters-scroll-container .form-select {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 140px;
+        background-color: var(--bs-body-bg);
+    }
+}
+
+/* --- FILTRES TABLETTE & DESKTOP (Pleine largeur) --- */
+@media (min-width: 768px) {
+    .filters-scroll-container {
+        display: flex;
+        width: 100%;
+        gap: 10px;
+        justify-content: space-between; /* Distribue l'espace */
+    }
+
+    /* Les selects s'étirent équitablement */
+    .filters-scroll-container .form-select {
+        flex: 1 1 0; /* Prend tout l'espace disponible */
+        width: 100%;
+        min-width: 0; 
+        text-align: left; /* <--- CHANGEMENT ICI : Force l'alignement à gauche */
+    }
+
+    /* Le conteneur des boutons vue (Grille/Liste) s'étire aussi */
+    .filters-scroll-container .view-toggle-desktop {
+        flex: 1 1 0; 
+        display: flex;
+        justify-content: center; /* Les boutons restent centrés dans leur bloc */
+        width: 100%;
+    }
+    
+    .filters-scroll-container .view-toggle-desktop .btn {
+        flex: 1; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* --- BOUTON FLOTTANT (FAB) --- */
+.fab-view-toggle {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--main-color);
+    color: #111;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.fab-view-toggle:active { transform: scale(0.90); }
+.fab-view-toggle i { font-size: 28px; }
+
+@media (min-width: 768px) {
+    .fab-view-toggle { display: none !important; }
 }
 
 /* RESPONSIVE */
