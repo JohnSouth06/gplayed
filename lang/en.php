@@ -25,7 +25,16 @@ return [
     'menu_wishlist' => 'Wishlist',
     'menu_profile' => 'My Profile',
     'menu_logout' => 'Logout',
+    'menu_wheel' => 'What are we playing?',
     'online' => 'Online',
+
+    // Wheel
+    'wheel_result' => 'The destiny has chosen:',
+    'wheel_relaunch' => 'Relaunch',
+    'wheel_launch' => 'Let\'s go!',
+    'wheel_spin' => 'Spin the wheel',
+    'wheel_error' => 'An error occurred during validation.',
+    'wheel_no_games' => 'You have no games with the status \'Backlog\'.',
 
     // Titles
     'app_title' => 'Your Gaming Story',
@@ -327,6 +336,10 @@ return [
     'profile_placeholder_pass' => 'Leave blank if unchanged',
     'profile_label_avatar' => 'Avatar (URL or Upload)',
     'profile_btn_update' => 'Update Profile',
+    'profile_share_title' => 'Share my collection',
+    'profile_share_desc' => 'Send this link to your friends so they can view your game library.',
+    'profile_share_copy' => 'Copy',
+    'profile_share_link_copied' => 'Link copied to clipboard!',
 
     // Import / Export
     'profile_data_title' => 'My Data',

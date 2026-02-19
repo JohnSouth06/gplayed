@@ -350,6 +350,44 @@ class GameController
         exit();
     }
 
+    // --- WHEEL ---
+    public function apiRouletteGames()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Non autorisé']);
+            exit();
+        }
+
+        // On appelle la fonction modifiée (sans limite)
+        $games = $this->gameModel->getGamesByStatusRandom($_SESSION['user_id'], 'not_started');
+        
+        header('Content-Type: application/json');
+        echo json_encode(['games' => $games]);
+        exit();
+    }
+
+    public function apiStartGame()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            exit();
+        }
+
+        // Récupération des données JSON envoyées par fetch()
+        $data = json_decode(file_get_contents('php://input'), true);
+        $gameId = $data['game_id'] ?? null;
+
+        if ($gameId && $this->gameModel->updateGameStatus($gameId, $_SESSION['user_id'], 'playing')) {
+            // On prépare un message de succès pour le rechargement de la page
+            $_SESSION['toast'] = ['msg' => "C'est parti ! Le jeu est maintenant en cours.", 'type' => 'success'];
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Erreur lors de la mise à jour']);
+        }
+        exit();
+    }
+
     // --- VUE PARTAGÉE (PROFIL PUBLIC) ---
     public function share()
     {

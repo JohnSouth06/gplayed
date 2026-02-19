@@ -25,7 +25,16 @@ return [
     'menu_wishlist' => 'Liste de souhait',
     'menu_profile' => 'Mon Profil',
     'menu_logout' => 'Déconnexion',
+    'menu_wheel' => 'À quoi on joue ?',
     'online' => 'En ligne',
+
+    // Wheel
+    'wheel_result' => 'Le destin a choisi :',
+    'wheel_relaunch' => 'Relancer',
+    'wheel_launch' => 'C\'est parti !',
+    'wheel_spin' => 'Faire tourner',
+    'wheel_error' => 'Une erreur s\'est produite lors de la validation.',
+    'wheel_no_games' => 'Vous n\'avez aucun jeu avec le statut \'À faire\'.',
 
     // Titles
     'app_title' => 'Vos jeux. Votre histoire',
@@ -334,6 +343,11 @@ return [
     'profile_export_btn' => 'Exporter ma collection (JSON)',
     'profile_import_btn' => 'Importer un fichier JSON',
     'profile_import_help' => 'Permet de restaurer une sauvegarde.',
+    'profile_share_title' => 'Partager ma collection',
+    'profile_share_desc' => 'Envoyez ce lien à vos amis pour qu\'ils puissent consulter votre ludothèque.',
+    'profile_share_copy' => 'Copier',
+    'profile_share_link_copied' => 'Lien copié dans le presse-papier !',
+
 
     // Zone de danger
     'profile_danger_title' => 'Zone de danger',

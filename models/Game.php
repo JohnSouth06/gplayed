@@ -442,4 +442,31 @@ class Game
         imagedestroy($dst);
         return $saved ? $webFilePath : null;
     }
+
+    // Wheel
+    public function getGamesByStatusRandom($userId, $status)
+    {
+        $query = "SELECT id, title, image_url, dominant_color FROM " . $this->table . " 
+                  WHERE user_id = :user_id AND status = :status 
+                  ORDER BY RAND()";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':status', $status);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Met à jour le statut d'un jeu
+    public function updateGameStatus($id, $userId, $status)
+    {
+        $query = "UPDATE " . $this->table . " SET status = :status WHERE id = :id AND user_id = :user_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':user_id', $userId);
+        return $stmt->execute();
+    }
+
 }

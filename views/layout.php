@@ -90,11 +90,13 @@ if (isset($_SESSION['force_loader'])) {
             <div class="p-3 sidebar-scrollable">
                 <ul class="nav flex-column mb-4">
                     <?php $act = $_GET['action'] ?? 'home'; ?>
-                    <li class="nav-item"><a href="/home" class="nav-link <?= ($act == 'home' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe431;</i><?= __('menu_library') ?></a></li>
-                    <li class="nav-item"><a href="/wishlist" class="nav-link <?= ($act == 'wishlist' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe8b1;</i><?= __('menu_wishlist') ?></a></li>
-                    <li class="nav-item"><a href="/progression" class="nav-link <?= ($act == 'progression') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe6b1;</i><?= __('menu_journal') ?></a></li>
-                    <li class="nav-item"><a href="/stats" class="nav-link <?= ($act == 'stats') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe26b;</i><?= __('menu_stats') ?></a></li>
-                    <li class="nav-item"><a href="/community" class="nav-link <?= ($act == 'community' || $act == 'share') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xf233;</i><?= __('menu_community') ?></a></li>
+                    <li class="nav-item"><a href="/home" class="nav-link <?= ($act == 'home' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe431;</i><?= __('menu_library') ?></a></li>
+                    <li class="nav-item"><a href="/wishlist" class="nav-link <?= ($act == 'wishlist' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe8b1;</i><?= __('menu_wishlist') ?></a></li>
+                    <li class="nav-item"><a href="/progression" class="nav-link <?= ($act == 'progression') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe6b1;</i><?= __('menu_journal') ?></a></li>
+                    <li class="nav-item"><a href="/stats" class="nav-link <?= ($act == 'stats') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe26b;</i><?= __('menu_stats') ?></a></li>
+                    <li class="nav-item"><a href="/community" class="nav-link <?= ($act == 'community' || $act == 'share') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xf233;</i><?= __('menu_community') ?></a></li>
+                    <hr class="border-secondary my-2">
+                    <li class="nav-item"><a href="#" class="nav-link text-primary-emphasis" onclick="openRouletteModal()"><i class="material-icons align-middle pb-1 fs-5">&#xe021;</i><?= __('menu_wheel') ?></a></li>
                 </ul>
             </div>
             <div class="mx-auto">
@@ -152,6 +154,41 @@ if (isset($_SESSION['force_loader'])) {
                 <div class="d-flex gap-2 text-nowrap">
                     <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="handleCookieConsent(false)"><?= __('cookie_btn_decline') ?></button>
                     <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="handleCookieConsent(true)"><?= __('cookie_btn_accept') ?></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="rouletteModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content text-white border-0 shadow-lg rounded-4">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-primary-emphasis"><i class="material-icons align-middle me-2">&#xe021;</i><?= __('menu_wheel') ?></h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+
+                        <div id="rouletteContainer" class="roulette-container position-relative overflow-hidden rounded-3">
+                            <div class="rouletteGradient"></div>
+                                <div id="rouletteItems"></div>
+                                <div class="roulette-focus-zone position-absolute top-50 start-50 translate-middle w-100"></div>
+                                <div class="roulette-arrow-left position-absolute top-50 start-0 translate-middle-y"></div>
+                                <div class="roulette-arrow-right position-absolute top-50 end-0 translate-middle-y"></div>
+                        </div>
+
+                        <div id="rouletteResult" class="mt-4 d-none fade-in">
+                            <p class="mb-1 text-muted"><?= __('wheel_result') ?></p>
+                            <h4 id="winnerTitle" class="text-primary fw-bold mb-3"></h4>
+
+                            <img id="winnerImage" src="" alt="Couverture" class="img-fluid rounded-3 mb-4">
+
+                            <div class="d-flex justify-content-center gap-2">
+                                <button class="btn btn-outline-light rounded-pill px-3" onclick="spinRoulette()"><i class="material-icons align-middle fs-6 me-1">&#xe040;</i> <?= __('wheel_relaunch') ?></button>
+                                <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="btnAcceptGame" onclick="acceptRouletteGame()"></i><?= __('wheel_launch') ?></button>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-light rounded-pill px-5 py-2 mt-3 fw-bold shadow" id="btnStartRoulette" onclick="spinRoulette()"><?= __('wheel_spin') ?></button>
+                    </div>
                 </div>
             </div>
         </div>
