@@ -36,8 +36,7 @@ if (isset($_SESSION['force_loader'])) {
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <link rel="stylesheet" href="assets/css/style.css">
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js_lang"></script>
+    <script src="/?action=js_lang"></script>
 </head>
 
 <body class="bg-body-tertiary <?= $forceLoader ? 'loading' : '' ?>">
@@ -88,13 +87,27 @@ if (isset($_SESSION['force_loader'])) {
             </div>
 
             <div class="p-3 sidebar-scrollable">
+                <?php
+                $hasLoanedGames = false;
+                global $db;
+                if (isset($_SESSION['user_id']) && $db) {
+                    $stmtMenu = $db->prepare("SELECT COUNT(*) FROM games WHERE user_id = :uid AND status = 'loaned'");
+                    $stmtMenu->execute(['uid' => $_SESSION['user_id']]);
+                    if ($stmtMenu->fetchColumn() > 0) {
+                        $hasLoanedGames = true;
+                    }
+                }
+            ?>
                 <ul class="nav flex-column mb-4">
                     <?php $act = $_GET['action'] ?? 'home'; ?>
-                    <li class="nav-item"><a href="/home" class="nav-link <?= ($act == 'home' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe431;</i><?= __('menu_library') ?></a></li>
-                    <li class="nav-item"><a href="/wishlist" class="nav-link <?= ($act == 'wishlist' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe8b1;</i><?= __('menu_wishlist') ?></a></li>
-                    <li class="nav-item"><a href="/progression" class="nav-link <?= ($act == 'progression') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe6b1;</i><?= __('menu_journal') ?></a></li>
-                    <li class="nav-item"><a href="/stats" class="nav-link <?= ($act == 'stats') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xe26b;</i><?= __('menu_stats') ?></a></li>
-                    <li class="nav-item"><a href="/community" class="nav-link <?= ($act == 'community' || $act == 'share') ? 'active' : '' ?>"><i class="material-icons align-middle fs-5">&#xf233;</i><?= __('menu_community') ?></a></li>
+                    <li class="nav-item"><a href="/home" class="nav-link <?= ($act == 'home' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe431;</i><?= __('menu_library') ?></a></li>
+                    <?php if ($hasLoanedGames): ?><li class="nav-item"><a href="/loaned" class="nav-link <?= ($act == 'loaned') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe0e3;</i><?= __('menu_loaned') ?></a></li><?php endif; ?>
+                    <li class="nav-item"><a href="/wishlist" class="nav-link <?= ($act == 'wishlist' || $act == '') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe8b1;</i><?= __('menu_wishlist') ?></a></li>
+                    <li class="nav-item"><a href="/progression" class="nav-link <?= ($act == 'progression') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe6b1;</i><?= __('menu_journal') ?></a></li>
+                    <li class="nav-item"><a href="/stats" class="nav-link <?= ($act == 'stats') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xe26b;</i><?= __('menu_stats') ?></a></li>
+                    <li class="nav-item"><a href="/community" class="nav-link <?= ($act == 'community' || $act == 'share') ? 'active' : '' ?>"><i class="material-icons align-middle pb-1 fs-5">&#xf233;</i><?= __('menu_community') ?></a></li>
+                    <hr class="border-secondary my-2">
+                    <li class="nav-item"><a href="#" class="nav-link text-primary-emphasis" onclick="openRouletteModal()"><i class="material-icons align-middle pb-1 fs-5">&#xe021;</i><?= __('menu_wheel') ?></a></li>
                 </ul>
             </div>
             <div class="mx-auto">
@@ -156,6 +169,41 @@ if (isset($_SESSION['force_loader'])) {
             </div>
         </div>
 
+        <div class="modal fade" id="rouletteModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content text-white border-0 shadow-lg rounded-4">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-primary-emphasis"><i class="material-icons align-middle me-2">&#xe021;</i><?= __('menu_wheel') ?></h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+
+                        <div id="rouletteContainer" class="roulette-container position-relative overflow-hidden rounded-3">
+                            <div class="rouletteGradient"></div>
+                                <div id="rouletteItems"></div>
+                                <div class="roulette-focus-zone position-absolute top-50 start-50 translate-middle w-100"></div>
+                                <div class="roulette-arrow-left position-absolute top-50 start-0 translate-middle-y"></div>
+                                <div class="roulette-arrow-right position-absolute top-50 end-0 translate-middle-y"></div>
+                        </div>
+
+                        <div id="rouletteResult" class="mt-4 d-none fade-in">
+                            <p class="mb-1 text-muted"><?= __('wheel_result') ?></p>
+                            <h4 id="winnerTitle" class="text-primary fw-bold mb-3"></h4>
+
+                            <img id="winnerImage" src="" alt="Couverture" class="img-fluid rounded-3 mb-4">
+
+                            <div class="d-flex justify-content-center gap-2">
+                                <button class="btn btn-outline-light rounded-pill px-3" onclick="spinRoulette()"><i class="material-icons align-middle fs-6 me-1">&#xe040;</i> <?= __('wheel_relaunch') ?></button>
+                                <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="btnAcceptGame" onclick="acceptRouletteGame()"></i><?= __('wheel_launch') ?></button>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-light rounded-pill px-5 py-2 mt-3 fw-bold shadow" id="btnStartRoulette" onclick="spinRoulette()"><?= __('wheel_spin') ?></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
         <script>
@@ -165,6 +213,7 @@ if (isset($_SESSION['force_loader'])) {
         </script>
 
         <script src="assets/js/main.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 

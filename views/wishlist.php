@@ -207,7 +207,9 @@ if (isset($games) && is_array($games)) {
         </div>
     </div>
 </div>
-
+<template id="gridCardTemplate">
+    <?php include 'views/_game_card_template.html'; ?>
+</template>
 <script>
     window.isWishlistPage = true;
     let localGames = <?= json_encode($games) ?>;

@@ -4,7 +4,8 @@ const statusConfig = {
     'finished': { label: LANG.status_finished, class: 'bg-success', icon: '&#xe86c;' },
     'completed': { label: LANG.status_completed, class: 'bg-warning text-dark', icon: '&#xea23;' },
     'dropped': { label: LANG.status_dropped, class: 'bg-danger', icon: '&#xe14b;' },
-    'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-white', icon: '&#xe8b1;' }
+    'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-dark', icon: '&#xe8b1;' },
+    'loaned': { label: (typeof LANG !== 'undefined' && LANG.status_loaned) ? LANG.status_loaned : 'Prêté', class: 'bg-warning text-dark', icon: '&#xe0e3;' }
 };
 
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
@@ -15,11 +16,15 @@ let displayedCount = 0;
 const batchSize = 12;
 let observer;
 let modal;
-
 let searchTimeout;
 
 document.addEventListener('DOMContentLoaded', () => {
-    modal = new bootstrap.Modal(document.getElementById('gameModal'));
+    // 1. Initialisation sécurisée de la modale
+    const modalElement = document.getElementById('gameModal');
+    if (modalElement) {
+        modal = new bootstrap.Modal(modalElement);
+    }
+
     initViewButtons();
     setupIntersectionObserver();
 
@@ -32,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateView();
+    initCounters(); // 2. Initialisation des compteurs ici
 });
 
 document.querySelectorAll('.dropdown-item').forEach(item => {
@@ -41,43 +47,27 @@ document.querySelectorAll('.dropdown-item').forEach(item => {
         const selectedHtml = this.innerHTML;
 
         const btn = document.getElementById('trophyDropdownBtn');
-        btn.querySelector('span').innerHTML = selectedHtml;
+        if (btn) btn.querySelector('span').innerHTML = selectedHtml;
 
-        document.getElementById('newTrophyType').value = selectedValue;
+        const typeInput = document.getElementById('newTrophyType');
+        if (typeInput) typeInput.value = selectedValue;
     });
 });
 
-// Variable pour suivre l'état actuel de la vue
-let currentViewMode = 'grid'; // Par défaut
+let currentViewMode = 'grid';
 
 function toggleMobileView() {
-    if (currentViewMode === 'grid') {
-        setView('list');
-    } else {
-        setView('grid');
-    }
+    if (currentViewMode === 'grid') setView('list');
+    else setView('grid');
 }
 
-// Surcharger ou étendre la fonction setView existante pour mettre à jour l'icône du FAB
-// (Si vous ne voulez pas modifier votre fonction setView originale, ajoutez ceci après)
 const originalSetView = window.setView;
-window.setView = function(mode) {
-    // Appel de la fonction originale
-    if(originalSetView) originalSetView(mode);
-    
-    // Mise à jour de notre variable locale
+window.setView = function (mode) {
+    if (originalSetView) originalSetView(mode);
     currentViewMode = mode;
-
-    // Mise à jour de l'icône du FAB
     const fabIcon = document.getElementById('fabIcon');
     if (fabIcon) {
-        if (mode === 'grid') {
-            // Si on est en grille, le bouton propose de passer en liste
-            fabIcon.innerHTML = '&#xe8ef;'; // Icône List
-        } else {
-            // Si on est en liste, le bouton propose de passer en grille
-            fabIcon.innerHTML = '&#xe9b0;'; // Icône Grid
-        }
+        fabIcon.innerHTML = (mode === 'grid') ? '&#xe8ef;' : '&#xe9b0;';
     }
 };
 
@@ -118,14 +108,18 @@ function setupIntersectionObserver() {
 }
 
 function getProcessedGames() {
-    const platformFilter = document.getElementById('filterPlatform').value;
-    const statusFilter = document.getElementById('filterStatus').value;
-    const sortType = document.getElementById('sortSelect').value;
+    const platformFilterElement = document.getElementById('filterPlatform');
+    const statusFilterElement = document.getElementById('filterStatus');
+    const sortSelectElement = document.getElementById('sortSelect');
+
+    const platformFilter = platformFilterElement ? platformFilterElement.value : 'all';
+    const statusFilter = statusFilterElement ? statusFilterElement.value : 'all';
+    const sortType = sortSelectElement ? sortSelectElement.value : 'date_desc';
 
     let filtered = localGames.filter(g => {
         if (platformFilter !== 'all') {
             if (g.platform === 'Multiplateforme') return true;
-            if (!g.platform.includes(platformFilter)) return false;
+            if (!g.platform || !g.platform.includes(platformFilter)) return false;
         }
         if (statusFilter !== 'all' && g.status !== statusFilter) return false;
         return true;
@@ -137,10 +131,10 @@ function getProcessedGames() {
 
         switch (sortType) {
             case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
-            case 'alpha_asc': return a.title.localeCompare(b.title);
+            case 'alpha_asc': return (a.title || '').localeCompare(b.title || '');
             case 'rating_desc': return valB('user_rating') - valA('user_rating');
-            case 'status_asc': return a.status.localeCompare(b.status);
-            case 'platform_asc': return a.platform.localeCompare(b.platform);
+            case 'status_asc': return (a.status || '').localeCompare(b.status || '');
+            case 'platform_asc': return (a.platform || '').localeCompare(b.platform || '');
             default: return new Date(b.created_at) - new Date(a.created_at);
         }
     });
@@ -152,8 +146,8 @@ let currentVoiceLang = 'en-US';
 
 function toggleVoiceLang(e) {
     if (e) e.stopPropagation();
-
     const badge = document.getElementById('langBadge');
+    if (!badge) return;
 
     if (currentVoiceLang === 'en-US') {
         currentVoiceLang = 'fr-FR';
@@ -166,7 +160,6 @@ function toggleVoiceLang(e) {
         badge.classList.remove('bg-primary');
         badge.classList.add('bg-dark');
     }
-
     badge.style.transform = "scale(1.2)";
     setTimeout(() => badge.style.transform = "translate(-50%, -50%) scale(1)", 200);
 }
@@ -179,9 +172,7 @@ function toggleVoiceSearch() {
     }
 
     const recognition = new SpeechRecognition();
-
     recognition.lang = currentVoiceLang;
-
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -192,41 +183,36 @@ function toggleVoiceSearch() {
     recognition.start();
 
     recognition.onstart = () => {
-        micBtn.classList.remove('btn-light', 'border');
-        micBtn.classList.add('btn-danger', 'pulse-animation');
-        micIcon.innerText = 'mic_off';
-
+        if(micBtn) { micBtn.classList.remove('btn-light', 'border'); micBtn.classList.add('btn-danger', 'pulse-animation'); }
+        if(micIcon) micIcon.innerText = 'mic_off';
         const langLabel = currentVoiceLang === 'en-US' ? LANG.js_voice_lang_en : LANG.js_voice_lang_fr;
-        searchInput.placeholder = LANG.js_voice_listening_with_lang.replace('{lang}', langLabel);
+        if(searchInput) searchInput.placeholder = LANG.js_voice_listening_with_lang.replace('{lang}', langLabel);
     };
 
-    recognition.onend = () => {
-        resetMicVisuals();
-    };
+    recognition.onend = () => resetMicVisuals();
 
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        console.log(`Voix détectée (${currentVoiceLang}):`, transcript);
-        searchInput.value = transcript;
+        if(searchInput) searchInput.value = transcript;
         searchIgdb(true);
     };
 
     recognition.onerror = (event) => {
-        console.error('Erreur vocale:', event.error);
         resetMicVisuals();
         if (event.error === 'not-allowed') alert(LANG.js_voice_mic_refused);
     };
 
     function resetMicVisuals() {
-        micBtn.classList.remove('btn-danger', 'pulse-animation');
-        micBtn.classList.add('btn-light', 'border');
-        micIcon.innerHTML = '&#xe029;';
-        searchInput.placeholder = LANG.js_search_placeholder;
+        if(micBtn) { micBtn.classList.remove('btn-danger', 'pulse-animation'); micBtn.classList.add('btn-light', 'border'); }
+        if(micIcon) micIcon.innerHTML = '&#xe029;';
+        if(searchInput) searchInput.placeholder = LANG.js_search_placeholder;
     }
 }
 
 function updateView() {
     const container = document.getElementById('gamesContainer');
+    if (!container) return;
+    
     container.innerHTML = '';
     processedGamesCache = getProcessedGames();
     displayedCount = 0;
@@ -260,6 +246,8 @@ function loadMoreGames() {
 
     requestAnimationFrame(() => {
         const container = document.getElementById('gamesContainer');
+        if (!container) return;
+        
         const nextBatch = processedGamesCache.slice(displayedCount, displayedCount + batchSize);
 
         if (currentView === 'grid') {
@@ -337,7 +325,6 @@ function generateGridCard(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
     const img = g.image_url ? g.image_url : '';
 
-    // --- MODIFICATION 1 : Format déplacé dans une variable simple pour les badges ---
     const formatIcon = (g.format === 'physical')
         ? `<i class="material-icons-outlined icon-sm text-secondary" title="${LANG.fmt_physical}">&#xe1a1;</i>`
         : `<i class="material-icons-outlined icon-sm text-secondary" title="${LANG.fmt_digital}">&#xe3dd;</i>`;
@@ -346,20 +333,11 @@ function generateGridCard(g) {
     const borderColor = getNeonColor(g.dominant_color, 0.5);
 
     let metaHtml = '';
+    let platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
+    if (g.platform && g.platform.includes(',')) platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
+    else if (platformIcons[g.platform]) platIconHtml = `<i class="${platformIcons[g.platform]} me-1"></i>`;
 
-    let platIconHtml = '';
-    if (g.platform && g.platform.includes(',')) {
-        platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
-    } else if (platformIcons[g.platform]) {
-        platIconHtml = `<i class="${platformIcons[g.platform]} me-1"></i>`;
-    } else {
-        platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
-    }
-
-    // Badge Plateforme
     metaHtml += `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
-    
-    // --- AJOUT : Badge Format (ajouté ici pour qu'il soit toujours visible) ---
     metaHtml += `<span class="meta-tag bg-body-secondary border-0">${formatIcon}</span>`;
 
     if (g.metacritic_score > 0) {
@@ -371,50 +349,76 @@ function generateGridCard(g) {
         metaHtml += `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle"><i class="material-icons-outlined icon-sm me-1">&#xe54e;</i>${g.estimated_price}€</span>`;
     }
 
-    const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
+    const imageHtml = img ? `<img src="${img}" class="card-cover-img" loading="lazy">` : `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
+    const statusHtml = `<i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}`;
+    const ratingHtml = g.user_rating > 0 ? `<div class="fw-bold text-warning d-flex align-items-center small"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</div>` : '';
 
-    return `
-    <div class="col-6 col-sm-6 col-lg-4 col-xl-3 animate-in">
-        <div class="game-card-modern"
-             onmouseover="this.style.boxShadow='0 25px 60px -12px ${shadowColor}'; this.style.borderColor='${borderColor}'"
-             onmouseout="this.style.boxShadow=''; this.style.borderColor='rgba(0,0,0,0.05)'">
-            
-            <div class="card-cover-container">
-                ${img ? `<img src="${img}" class="card-cover-img" loading="lazy">` : imagePlaceholder}
-                <span class="status-badge-float"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span>
-            </div>
-            
-            <div class="card-content-area pb-4"> <div class="d-flex justify-content-between align-items-start">
-                    <h6 class="game-title text-truncate" title="${g.title}">${g.title}</h6>
-                    ${g.user_rating > 0 ? `<div class="fw-bold text-warning d-flex align-items-center small"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</div>` : ''} 
-                </div>
-                
-                <div class="meta-badges mb-0"> ${metaHtml}
-                </div>
-                <div class="small text-muted text-truncate mt-2">${g.genres || ''}</div>
-            </div>
+    let loanBtnHtml = '';
+    if (g.format === 'physical') {
+        let safeTitle = g.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        loanBtnHtml = `
+            <button class="btn-icon-action btn-light text-warning rounded-circle shadow-sm" onclick="openLoanModal(${g.id}, '${safeTitle}')" title="${LANG.js_btn_loan}">
+                <i class="material-icons-outlined icon-md">&#xe0e3;</i>
+            </button>`;
+    }
 
-            <div class="card-overlay-actions">
-                <button class="btn-icon-action btn-light rounded-circle shadow-sm" onclick='edit(${g.id})' title="${LANG.btn_edit}">
-                    <i class="material-icons-outlined icon-md">&#xe3c9;</i>
-                </button>
-                <a href="/?action=delete&id=${g.id}" class="btn-icon-action btn-light text-danger rounded-circle shadow-sm" onclick="return confirm('${LANG.confirm_delete}')" title="${LANG.btn_delete}">
-                    <i class="material-icons-outlined icon-md">&#xe872;</i>
-                </a>
-            </div>
+    let actionsHtml = `
+        <button class="btn-icon-action btn-light rounded-circle shadow-sm" onclick='edit(${g.id})' title="${LANG.js_btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
+        ${loanBtnHtml}
+        <a href="/?action=delete&id=${g.id}" class="btn-icon-action btn-light text-danger rounded-circle shadow-sm" onclick="return confirm('${LANG.js_confirm_delete}')" title="${LANG.js_btn_delete}"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
+    `;
 
-        </div>
-    </div>`;
+    let loanInfoHtml = '';
+
+    if (window.isLoanedPage) {
+        let dateStr = '';
+        if (g.loaned_date) {
+            const d = new Date(g.loaned_date);
+            dateStr = ("0" + d.getDate()).slice(-2) + "/" + ("0"+(d.getMonth()+1)).slice(-2) + "/" + d.getFullYear();
+        }
+
+        loanInfoHtml = `
+        <div class="bg-body rounded-3 p-2 border border-warning border-opacity-25 mt-3 mb-1">
+            <div class="small text-muted mb-1 text-truncate" title="${g.loaned_to || ''}">
+                <i class="material-icons-outlined icon-sm align-middle me-1 text-warning">&#xe7fd;</i>${LANG.js_loaned_to} <strong class="text-body">${g.loaned_to || ''}</strong>
+            </div>
+            <div class="small text-muted">
+                <i class="material-icons-outlined icon-sm align-middle me-1 text-warning">&#xe8df;</i>${LANG.js_loaned_date} <strong class="text-body">${dateStr}</strong>
+            </div>
+        </div>`;
+
+        actionsHtml = `
+        <a href="/?action=returnGame&id=${g.id}" class="btn-icon-action btn-light text-warning rounded-circle shadow-sm" onclick="return confirm('${LANG.js_confirm_return}')" title="${LANG.js_mark_returned}">
+            <i class="material-icons-outlined icon-md">&#xe0e3;</i>
+        </a>`;
+    }
+
+    const templateNode = document.getElementById('gridCardTemplate');
+    if (!templateNode) return ''; 
+    let templateHtml = templateNode.innerHTML;
+
+    return templateHtml
+        .replaceAll('{shadowColor}', shadowColor)
+        .replaceAll('{borderColor}', borderColor)
+        .replaceAll('{imageHtml}', imageHtml)
+        .replaceAll('{statusClass}', s.class || '')
+        .replaceAll('{statusHtml}', statusHtml)
+        .replaceAll('{title}', g.title)
+        .replaceAll('{ratingHtml}', ratingHtml)
+        .replaceAll('{metaHtml}', metaHtml)
+        .replaceAll('{genres}', g.genres || '')
+        .replaceAll('{loanInfoHtml}', loanInfoHtml)
+        .replaceAll('{actionsHtml}', actionsHtml);
 }
 
 function generateListRow(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
-    
+
     const img = g.image_url ?
         `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
         `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
 
-    const price = g.estimated_price > 0 ? `<span class="badge bg-body-secondary text-body border">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
+    const price = g.estimated_price > 0 ? `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
 
     let platIconHtml = '';
     if (g.platform && g.platform.includes(',')) {
@@ -425,9 +429,27 @@ function generateListRow(g) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe338;</i>';
     }
 
-    const ratingDisplay = g.user_rating > 0 
-        ? `<span class="fw-bold text-warning"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</span>` 
-        : '<span class="text-muted opacity-25">-</span>';
+    let loanBtnHtml = '';
+    if (g.format === 'physical') {
+        let safeTitle = g.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        loanBtnHtml = `
+            <button class="btn-icon-action btn-light text-warning" onclick="openLoanModal(${g.id}, '${safeTitle}')" title="${LANG.js_btn_loan}">
+                <i class="material-icons-outlined icon-md">&#xe0e3;</i>
+            </button>`;
+    }
+
+    let actionsHtml = `
+        <button class="btn-icon-action" onclick='edit(${g.id})' title="${LANG.js_btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
+        ${loanBtnHtml}
+        <a href="/?action=delete&id=${g.id}" class="btn-action btn-icon-action btn-light text-danger" onclick="return confirm('${LANG.js_confirm_delete}')" title="${LANG.js_btn_delete}"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
+    `;
+
+    if (window.isLoanedPage) {
+        actionsHtml = `
+        <a href="/?action=returnGame&id=${g.id}" class="btn-action btn-icon-action btn-light text-warning" onclick="return confirm('${LANG.js_confirm_return}')" title="${LANG.js_mark_returned}">
+            <i class="material-icons-outlined icon-md">&#xe0e3;</i>
+        </a>`;
+    }
 
     return `
     <tr>
@@ -442,37 +464,27 @@ function generateListRow(g) {
         </td>
         <td class="d-none d-sm-table-cell"><span class="meta-tag border">${platIconHtml}${g.platform}</span></td>
         <td class="d-none d-xxl-table-cell">${price}</td>
-        <td class="d-none d-lg-table-cell"><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span></td>
-
+        <td class="d-none d-lg-table-cell"><span class="badge status-badge-list rounded-pill py-2 px-3 fw-normal"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span></td>
         <td class="text-end text-nowrap pe-4">
-            <button class="btn-icon-action" onclick='edit(${g.id})' title="${LANG.btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
-            <a href="/?action=delete&id=${g.id}" class="btn-action btn-icon-action btn-light text-danger" onclick="return confirm('${LANG.confirm_delete}')" title="${LANG.btn_delete}"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
+            ${actionsHtml}
         </td>
     </tr>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    initCounters();
-});
-
 function initCounters() {
     const counters = document.querySelectorAll('.animate-counter');
-    const speed = 200; // Plus le chiffre est bas, plus ça va vite
+    const speed = 200; 
 
     const counterObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const counter = entry.target;
                 const target = +counter.getAttribute('data-target');
-                
-                // On lance l'animation
-                animateValue(counter, 0, target, 1500); // 1500ms de durée
-                
-                // On arrête d'observer une fois l'animation lancée
+                animateValue(counter, 0, target, 1500); 
                 observer.unobserve(counter);
             }
         });
-    }, { threshold: 0.5 }); // L'animation se lance quand 50% de l'élément est visible
+    }, { threshold: 0.5 }); 
 
     counters.forEach(counter => {
         counterObserver.observe(counter);
@@ -484,20 +496,17 @@ function animateValue(obj, start, end, duration) {
         obj.innerHTML = 0;
         return;
     }
-    
+
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        
-        // Easing pour un effet plus naturel (ralentit à la fin)
-        // obj.innerHTML = Math.floor(progress * (end - start) + start); // Linéaire
-        obj.innerHTML = Math.floor(end * (1 - Math.pow(1 - progress, 3))); // Cubic Ease Out
+        obj.innerHTML = Math.floor(end * (1 - Math.pow(1 - progress, 3))); 
 
         if (progress < 1) {
             window.requestAnimationFrame(step);
         } else {
-            obj.innerHTML = end; // S'assurer qu'on finit bien sur le chiffre exact
+            obj.innerHTML = end; 
         }
     };
     window.requestAnimationFrame(step);
@@ -508,84 +517,120 @@ function searchPrice() { const title = document.getElementById('gameTitle').valu
 function handleEnter(e) { if (e.key === 'Enter') searchIgdb(); }
 function closeSearch() { document.getElementById('rawgContainer').classList.add('d-none'); document.getElementById('rawgSearchInput').value = ''; }
 function setView(v) { currentView = v; localStorage.setItem('viewMode', v); initViewButtons(); updateView(); }
-function initViewButtons() { document.getElementById('btnGrid').className = currentView === 'grid' ? 'btn btn-sm btn-primary rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; document.getElementById('btnList').className = currentView === 'list' ? 'btn btn-sm btn-primary rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; }
+function initViewButtons() { const gridBtn = document.getElementById('btnGrid'); const listBtn = document.getElementById('btnList'); if(gridBtn) gridBtn.className = currentView === 'grid' ? 'btn btn-sm btn-primary rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; if(listBtn) listBtn.className = currentView === 'list' ? 'btn btn-sm btn-primary rounded-2 active border-0' : 'btn btn-sm btn-transparent rounded-2 text-secondary'; }
 function previewFile(input) { if (input.files && input.files[0]) { var reader = new FileReader(); reader.onload = function (e) { document.getElementById('previewImg').src = e.target.result; document.getElementById('previewImg').classList.remove('d-none'); document.getElementById('uploadPlaceholder').classList.add('d-none'); }; reader.readAsDataURL(input.files[0]); } }
-
-function toggleCustomPlatform() { const select = document.getElementById('gamePlatform'); const container = document.getElementById('multiPlatformContainer'); const hiddenInput = document.getElementById('gamePlatformCustom'); if (select.value === 'Multiplateforme') { container.classList.remove('d-none'); if (document.getElementById('platformInputsList').children.length === 0) addPlatformInput(); } else { container.classList.add('d-none'); hiddenInput.value = ''; } }
-function addPlatformInput(value = '') { const list = document.getElementById('platformInputsList'); const div = document.createElement('div'); div.className = 'input-group input-group-sm mb-1'; div.innerHTML = `<input type="text" class="form-control rounded-start-2 border-end-0 bg-white" value="${value}" placeholder="${LANG.placeholder_name}" oninput="updateHiddenPlatformInput()"><button type="button" class="btn btn-outline-danger border-start-0 rounded-end-2 bg-white text-danger" onclick="this.parentElement.remove(); updateHiddenPlatformInput()"><i class="material-icons-outlined icon-sm">&#xe5cd;</i></button>`; list.appendChild(div); updateHiddenPlatformInput(); }
-function updateHiddenPlatformInput() { const inputs = document.querySelectorAll('#platformInputsList input'); const values = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== ''); document.getElementById('gamePlatformCustom').value = values.join(', '); }
+function toggleCustomPlatform() { const select = document.getElementById('gamePlatform'); const container = document.getElementById('multiPlatformContainer'); const hiddenInput = document.getElementById('gamePlatformCustom'); if(select && container && hiddenInput) { if (select.value === 'Multiplateforme') { container.classList.remove('d-none'); if (document.getElementById('platformInputsList').children.length === 0) addPlatformInput(); } else { container.classList.add('d-none'); hiddenInput.value = ''; } } }
+function addPlatformInput(value = '') { const list = document.getElementById('platformInputsList'); if(!list) return; const div = document.createElement('div'); div.className = 'input-group input-group-sm mb-1'; div.innerHTML = `<input type="text" class="form-control rounded-start-2 border-end-0 bg-white" value="${value}" placeholder="${LANG.placeholder_name}" oninput="updateHiddenPlatformInput()"><button type="button" class="btn btn-outline-danger border-start-0 rounded-end-2 bg-white text-danger" onclick="this.parentElement.remove(); updateHiddenPlatformInput()"><i class="material-icons-outlined icon-sm">&#xe5cd;</i></button>`; list.appendChild(div); updateHiddenPlatformInput(); }
+function updateHiddenPlatformInput() { const inputs = document.querySelectorAll('#platformInputsList input'); const values = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== ''); const hidden = document.getElementById('gamePlatformCustom'); if(hidden) hidden.value = values.join(', '); }
 
 function edit(id) { openModal(localGames.find(g => g.id == id)); }
+
 function openModal(g = null) {
-    if (!modal) modal = new bootstrap.Modal(document.getElementById('gameModal'));
-    document.getElementById('gameId').value = g ? g.id : '';
-    document.getElementById('gameRawgId').value = '';
-    document.getElementById('gameTitle').value = g ? g.title : '';
+    if (!modal) {
+        const modalElement = document.getElementById('gameModal');
+        if(!modalElement) return;
+        modal = new bootstrap.Modal(modalElement);
+    }
+    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    
+    safeSet('gameId', g ? g.id : '');
+    safeSet('gameRawgId', '');
+    safeSet('gameTitle', g ? g.title : '');
+    safeSet('gameImageHidden', g ? (g.image_url || '') : '');
+
     const prev = document.getElementById('previewImg');
     const holder = document.getElementById('uploadPlaceholder');
-    document.getElementById('gameImageHidden').value = g ? (g.image_url || '') : '';
-    if (g && g.image_url) { prev.src = g.image_url; prev.classList.remove('d-none'); holder.classList.add('d-none'); } else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
+    if(prev && holder) {
+        if (g && g.image_url) { prev.src = g.image_url; prev.classList.remove('d-none'); holder.classList.add('d-none'); } 
+        else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
+    }
 
     const priceVal = g ? (g.estimated_price || '') : '';
+    safeSet('gamePriceTablet', priceVal);
+    safeSet('gamePriceDesktop', priceVal);
+
     const priceTablet = document.getElementById('gamePriceTablet');
     const priceDesktop = document.getElementById('gamePriceDesktop');
-
-    if (priceTablet) priceTablet.value = priceVal;
-    if (priceDesktop) priceDesktop.value = priceVal;
-
     if (priceTablet && priceDesktop) {
-        priceTablet.oninput = function() { priceDesktop.value = this.value; };
-        priceDesktop.oninput = function() { priceTablet.value = this.value; };
+        priceTablet.oninput = function () { priceDesktop.value = this.value; };
+        priceDesktop.oninput = function () { priceTablet.value = this.value; };
     }
 
     const standardPlatforms = ['PS5', 'PS4', 'Xbox Series', 'Switch', 'PC'];
     const platformSelect = document.getElementById('gamePlatform');
     const listContainer = document.getElementById('platformInputsList');
-    listContainer.innerHTML = '';
-    if (g && g.platform) { if (standardPlatforms.includes(g.platform)) { platformSelect.value = g.platform; toggleCustomPlatform(); } else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); } } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
+    if(listContainer) listContainer.innerHTML = '';
+    
+    if (platformSelect) {
+        if (g && g.platform) { 
+            if (standardPlatforms.includes(g.platform)) { platformSelect.value = g.platform; toggleCustomPlatform(); } 
+            else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); } 
+        } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
+    }
+    
     checkPsnVisibility();
-    if (g && g.format === 'digital') document.getElementById('fmtDigital').checked = true; else document.getElementById('fmtPhysical').checked = true;
+    
+    const fmtDigital = document.getElementById('fmtDigital');
+    const fmtPhysical = document.getElementById('fmtPhysical');
+    if(fmtDigital && fmtPhysical) {
+        if (g && g.format === 'digital') fmtDigital.checked = true; 
+        else fmtPhysical.checked = true;
+    }
+
     const isWishlistPage = window.location.pathname.includes('wishlist');
-    document.getElementById('gameStatus').value = g
-        ? (g.status || 'not_started')
-        : (isWishlistPage ? 'wishlist' : 'not_started');
-    document.getElementById('gameDate').value = g ? g.release_date : '';
-    document.getElementById('gameMeta').value = g ? g.metacritic_score : '';
-    document.getElementById('gameRating').value = g ? g.user_rating : '';
-    document.getElementById('gameComment').value = g ? g.comment : '';
-    document.getElementById('gameDesc').value = g ? g.description : '';
-    document.getElementById('gameGenres').value = g ? g.genres : '';
+    safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
+    safeSet('gameDate', g ? g.release_date : '');
+    safeSet('gameMeta', g ? g.metacritic_score : '');
+    safeSet('gameRating', g ? g.user_rating : '');
+    safeSet('gameComment', g ? g.comment : '');
+    safeSet('gameDesc', g ? g.description : '');
+    safeSet('gameGenres', g ? g.genres : '');
+    
     if (g && g.id) loadTrophies(g.id);
     modal.show();
 }
 
-function checkPsnVisibility() { const plat = document.getElementById('gamePlatform').value; const tabs = document.getElementById('modalTabs'); if (plat.includes('PS') || plat.includes('PlayStation')) { tabs.style.display = 'flex'; } else { tabs.style.display = 'none'; const firstTabEl = document.querySelector('#modalTabs li:first-child button') || document.querySelector('#modalTabs li:first-child a'); if (firstTabEl) { const firstTab = new bootstrap.Tab(firstTabEl); firstTab.show(); } } }
+function checkPsnVisibility() { const plat = document.getElementById('gamePlatform'); if(!plat) return; const tabs = document.getElementById('modalTabs'); if(!tabs) return; if (plat.value.includes('PS') || plat.value.includes('PlayStation')) { tabs.style.display = 'flex'; } else { tabs.style.display = 'none'; const firstTabEl = document.querySelector('#modalTabs li:first-child button') || document.querySelector('#modalTabs li:first-child a'); if (firstTabEl) { const firstTab = new bootstrap.Tab(firstTabEl); firstTab.show(); } } }
 
-async function loadTrophies(gameId) { const list = document.getElementById('trophiesList'); list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>'; try { const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`); const data = await res.json(); const pct = data.progress.percent; document.getElementById('trophyProgressBar').style.width = pct + '%'; document.getElementById('trophyProgressText').innerText = pct + '%'; list.innerHTML = ''; if (data.trophies.length === 0) { list.innerHTML = `<div class="text-center text-muted small py-3">${LANG.no_trophies}</div>`; return; } data.trophies.forEach(t => { const colorClass = `trophy-${t.type}`; const icon = t.type === 'platinum' ? '<img src="../assets/images/platinum.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'gold' ? '<img src="../assets/images/gold.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'silver' ? '<img src="../assets/images/silver.png" class="trophy-icon d-table-cell me-2">' : '<img src="../assets/images/bronze.png" class="trophy-icon d-table-cell me-2">')); const isObtained = t.is_obtained == 1; const gameTitle = document.getElementById('gameTitle').value; const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title + LANG.google_guide)}`; list.innerHTML += `<div class="d-flex align-items-center p-2 mb-2 bg-body-tertiary rounded trophy-item ${colorClass}"><div class="trophy-icon fs-5">${icon}</div><div class="flex-grow-1 ms-2" style="cursor:pointer" onclick="toggleTrophy(${t.id})"><div class="fw-bold small ${isObtained ? 'text-decoration-line-through text-muted' : ''}">${t.title}</div></div><div class="d-flex gap-2"><a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="${LANG.search_solution}"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a><button class="btn btn-sm btn-link text-danger p-0" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button></div></div>`; }); } catch (e) { list.innerHTML = LANG.error_loading; } }
-async function addTrophy() { const gameId = document.getElementById('gameId').value; if (!gameId) { alert(LANG.alert_save_first); return; } const title = document.getElementById('newTrophyTitle').value; const type = document.getElementById('newTrophyType').value; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('/?action=api_add_trophy', { method: 'POST', body: formData }); document.getElementById('newTrophyTitle').value = ''; loadTrophies(gameId); }
-async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
-async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
+let loanModal;
+function openLoanModal(gameId, gameTitle) {
+    const loanEl = document.getElementById('loanModal');
+    if(!loanEl) return;
+    if (!loanModal) loanModal = new bootstrap.Modal(loanEl);
+    const loanGameId = document.getElementById('loanGameId');
+    const loanGameTitle = document.getElementById('loanGameTitle');
+    if(loanGameId) loanGameId.value = gameId;
+    if(loanGameTitle) loanGameTitle.innerText = gameTitle;
+    loanModal.show();
+}
+
+async function loadTrophies(gameId) { const list = document.getElementById('trophiesList'); if(!list) return; list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>'; try { const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`); const data = await res.json(); const pct = data.progress.percent; const bar = document.getElementById('trophyProgressBar'); const txt = document.getElementById('trophyProgressText'); if(bar) bar.style.width = pct + '%'; if(txt) txt.innerText = pct + '%'; list.innerHTML = ''; if (data.trophies.length === 0) { list.innerHTML = `<div class="text-center text-muted small py-3">${LANG.no_trophies}</div>`; return; } data.trophies.forEach(t => { const colorClass = `trophy-${t.type}`; const icon = t.type === 'platinum' ? '<img src="../assets/images/platinum.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'gold' ? '<img src="../assets/images/gold.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'silver' ? '<img src="../assets/images/silver.png" class="trophy-icon d-table-cell me-2">' : '<img src="../assets/images/bronze.png" class="trophy-icon d-table-cell me-2">')); const isObtained = t.is_obtained == 1; const gameTitleEl = document.getElementById('gameTitle'); const gameTitle = gameTitleEl ? gameTitleEl.value : ''; const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title + (typeof LANG !== 'undefined' ? LANG.google_guide : ''))}`; list.innerHTML += `<div class="d-flex align-items-center p-2 mb-2 bg-body-tertiary rounded trophy-item ${colorClass}"><div class="trophy-icon fs-5">${icon}</div><div class="flex-grow-1 ms-2" style="cursor:pointer" onclick="toggleTrophy(${t.id})"><div class="fw-bold small ${isObtained ? 'text-decoration-line-through text-muted' : ''}">${t.title}</div></div><div class="d-flex gap-2"><a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="Chercher une solution"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a><button class="btn btn-sm btn-link text-danger p-0" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button></div></div>`; }); } catch (e) { list.innerHTML = LANG.error_loading; } }
+async function addTrophy() { const gameIdEl = document.getElementById('gameId'); if(!gameIdEl) return; const gameId = gameIdEl.value; if (!gameId) { alert(LANG.alert_save_first); return; } const titleEl = document.getElementById('newTrophyTitle'); const typeEl = document.getElementById('newTrophyType'); const title = titleEl ? titleEl.value : ''; const type = typeEl ? typeEl.value : ''; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('/?action=api_add_trophy', { method: 'POST', body: formData }); if(titleEl) titleEl.value = ''; loadTrophies(gameId); }
+async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if(gameIdEl) loadTrophies(gameIdEl.value); }
+async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if(gameIdEl) loadTrophies(gameIdEl.value); }
 
 async function searchIgdb(autoOpen = false) {
     const input = document.getElementById('rawgSearchInput');
+    if(!input) return;
     const q = input.value;
-
     if (!q) return;
 
     input.blur();
 
-    document.getElementById('rawgContainer').classList.remove('d-none');
-    document.getElementById('rawgLoading').classList.remove('d-none');
-    document.getElementById('rawgResults').innerHTML = '';
+    const container = document.getElementById('rawgContainer');
+    const loading = document.getElementById('rawgLoading');
+    const results = document.getElementById('rawgResults');
+    if(container) container.classList.remove('d-none');
+    if(loading) loading.classList.remove('d-none');
+    if(results) results.innerHTML = '';
 
     try {
         const res = await fetch(`/?action=search_igdb&q=${encodeURIComponent(q)}`);
         const data = await res.json();
 
         if (autoOpen && data.results && data.results.length > 0) {
-            console.log("Ouverture auto de :", data.results[0].name);
             fetchGameDetails(data.results[0].id);
-            return; 
+            return;
         }
 
         let html = '';
@@ -593,7 +638,6 @@ async function searchIgdb(autoOpen = false) {
             data.results.forEach(g => {
                 const imgUrl = g.background_image || 'assets/images/no-cover.png';
                 const year = g.released || '';
-
                 html += `
                 <div class="card border-0 shadow-sm flex-shrink-0 bg-body-tertiary" 
                      style="width: 160px; cursor: pointer; overflow: hidden; border-radius: 12px;" 
@@ -605,68 +649,68 @@ async function searchIgdb(autoOpen = false) {
                     </div>
                 </div>`;
             });
-            document.getElementById('rawgResults').innerHTML = html;
+            if(results) results.innerHTML = html;
         } else {
-            document.getElementById('rawgResults').innerHTML = `<div class="text-muted w-100 text-center py-2">${LANG.js_igdb_no_result}</div>`;
+            if(results) results.innerHTML = `<div class="text-muted w-100 text-center py-2">${LANG.js_igdb_no_result}</div>`;
         }
 
     } catch (e) {
-        console.error(e);
-        document.getElementById('rawgResults').innerHTML = `<div class="text-danger w-100 text-center py-2">${LANG.js_server_error}</div>`;
+        if(results) results.innerHTML = `<div class="text-danger w-100 text-center py-2">${LANG.js_server_error}</div>`;
     } finally {
-        if (!autoOpen) {
-            document.getElementById('rawgLoading').classList.add('d-none');
+        if (!autoOpen && loading) {
+            loading.classList.add('d-none');
         }
     }
 }
 
 async function fetchGameDetails(id) {
-    document.getElementById('rawgLoading').classList.remove('d-none');
+    const loading = document.getElementById('rawgLoading');
+    if(loading) loading.classList.remove('d-none');
     try {
         const res = await fetch(`/?action=get_igdb_details&id=${id}`);
-
         if (!res.ok) throw new Error('Erreur API');
 
         const g = await res.json();
 
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
             const cleanTitle = g.name.trim().toLowerCase();
-            const existingGame = localGames.find(game =>
-                game.title.trim().toLowerCase() === cleanTitle
-            );
-
+            const existingGame = localGames.find(game => game.title && game.title.trim().toLowerCase() === cleanTitle);
             if (existingGame) {
                 const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate)
                     ? LANG.alert_duplicate.replace('{name}', g.name).replace('{platform}', existingGame.platform)
-                    : LANG.js_game_exists_simple.replace('{name}', g.name);
+                    : (LANG.js_game_exists_simple || '').replace('{name}', g.name);
                 alert(msg);
             }
         }
 
         openModal();
 
-        document.getElementById('gameTitle').value = g.name;
-        document.getElementById('gameDate').value = g.released;
-        document.getElementById('gameMeta').value = g.metacritic;
-
-        document.getElementById('gameImageHidden').value = g.background_image;
-        if (g.background_image) {
-            document.getElementById('previewImg').src = g.background_image;
-            document.getElementById('previewImg').classList.remove('d-none');
-            document.getElementById('uploadPlaceholder').classList.add('d-none');
-        } else {
-            document.getElementById('previewImg').classList.add('d-none');
-            document.getElementById('uploadPlaceholder').classList.remove('d-none');
+        const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
+        safeSet('gameTitle', g.name);
+        safeSet('gameDate', g.released);
+        safeSet('gameMeta', g.metacritic);
+        safeSet('gameImageHidden', g.background_image);
+        
+        const prev = document.getElementById('previewImg');
+        const uploadPl = document.getElementById('uploadPlaceholder');
+        if(prev && uploadPl) {
+            if (g.background_image) {
+                prev.src = g.background_image;
+                prev.classList.remove('d-none');
+                uploadPl.classList.add('d-none');
+            } else {
+                prev.classList.add('d-none');
+                uploadPl.classList.remove('d-none');
+            }
         }
 
-        document.getElementById('gameDesc').value = g.description_raw;
-        document.getElementById('gameGenres').value = g.genres_list || '';
-        document.getElementById('gameRawgId').value = id;
+        safeSet('gameDesc', g.description_raw);
+        safeSet('gameGenres', g.genres_list || '');
+        safeSet('gameRawgId', id);
 
     } catch (e) {
-        console.error(e);
         alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : LANG.js_import_error_generic);
     } finally {
-        document.getElementById('rawgLoading').classList.add('d-none');
+        if(loading) loading.classList.add('d-none');
     }
 }

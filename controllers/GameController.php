@@ -152,7 +152,7 @@ class GameController
         exit();
     }
 
-    // --- Delete ---
+    // --- DELETE ---
     public function delete()
     {
         if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) return;
@@ -347,6 +347,96 @@ class GameController
             $_SESSION['toast'] = ['msg' => "$count jeux importés avec succès !", 'type' => 'success'];
         }
         header("Location: /profile");
+        exit();
+    }
+
+    // --- WHEEL ---
+    public function apiRouletteGames()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Non autorisé']);
+            exit();
+        }
+
+        // On appelle la fonction modifiée (sans limite)
+        $games = $this->gameModel->getGamesByStatusRandom($_SESSION['user_id'], 'not_started');
+        
+        header('Content-Type: application/json');
+        echo json_encode(['games' => $games]);
+        exit();
+    }
+
+    public function apiStartGame()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            exit();
+        }
+
+        // Récupération des données JSON envoyées par fetch()
+        $data = json_decode(file_get_contents('php://input'), true);
+        $gameId = $data['game_id'] ?? null;
+
+        if ($gameId && $this->gameModel->updateGameStatus($gameId, $_SESSION['user_id'], 'playing')) {
+            // On prépare un message de succès pour le rechargement de la page
+            $_SESSION['toast'] = ['msg' => "C'est parti ! Le jeu est maintenant en cours.", 'type' => 'success'];
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Erreur lors de la mise à jour']);
+        }
+        exit();
+    }
+
+    // --- GESTION DES PRÊTS ---
+    public function loaned()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: /");
+            exit();
+        }
+        $games = $this->gameModel->getLoanedGames($_SESSION['user_id']);
+        
+        // Nous allons utiliser une nouvelle vue spécifique pour ça
+        $view = dirname(__DIR__) . '/views/loaned.php';
+        require dirname(__DIR__) . '/views/layout.php';
+    }
+
+    // Traiter le formulaire de prêt
+    public function loan()
+    {
+        if (!isset($_SESSION['user_id'])) return;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->checkCsrf();
+
+            $gameId = $_POST['game_id'] ?? null;
+            $loanedTo = $_POST['loaned_to'] ?? '';
+            $loanedDate = $_POST['loaned_date'] ?? date('Y-m-d');
+
+            if ($gameId && !empty($loanedTo)) {
+                if ($this->gameModel->loanGame($gameId, $_SESSION['user_id'], $loanedTo, $loanedDate)) {
+                    $_SESSION['toast'] = ['msg' => "Le jeu a été marqué comme prêté !", 'type' => 'success'];
+                } else {
+                    $_SESSION['toast'] = ['msg' => "Erreur lors de l'enregistrement du prêt.", 'type' => 'danger'];
+                }
+            }
+        }
+        header("Location: /");
+        exit();
+    }
+
+    // Marquer un jeu comme "Retourné"
+    public function returnGame()
+    {
+        if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) return;
+
+        if ($this->gameModel->returnLoanedGame($_GET['id'], $_SESSION['user_id'])) {
+            $_SESSION['toast'] = ['msg' => "Le jeu est de retour dans votre collection !", 'type' => 'success'];
+        }
+        
+        // On redirige vers la liste des jeux prêtés
+        header("Location: /loaned"); 
         exit();
     }
 
