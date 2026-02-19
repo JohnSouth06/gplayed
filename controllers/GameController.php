@@ -353,22 +353,30 @@ class GameController
     // --- VUE PARTAGÉE (PROFIL PUBLIC) ---
     public function share()
     {
-        $username = $_GET['user'] ?? null;
-        if (!$username) {
+        $targetUser = null;
+
+        // 1. Priorité à l'ID (ce que votre lien de partage utilise)
+        if (isset($_GET['id'])) {
+            $targetUser = $this->userModel->getById($_GET['id']);
+        } 
+        // 2. Fallback sur le pseudo (si vous voulez des liens du type ?user=John)
+        elseif (isset($_GET['user'])) {
+            $targetUser = $this->userModel->getIdByUsername($_GET['user']);
+        }
+
+        // Si aucun utilisateur n'est trouvé ou spécifié, retour à l'accueil
+        if (!$targetUser) {
             header("Location: /");
             exit();
         }
 
-        $targetUser = $this->userModel->getIdByUsername($username);
-
-        if (!$targetUser) {
-            echo "Utilisateur introuvable.";
-            exit();
-        }
-
+        // Récupération des jeux de cet utilisateur
         $games = $this->gameModel->getAll($targetUser['id']);
+        
+        // On définit $owner pour que la vue puisse afficher les infos du profil
         $owner = $targetUser;
 
+        // Note: $db est nécessaire si vous utilisez User dans la vue pour suivre/ne plus suivre
         $db = $this->db;
 
         $view = dirname(__DIR__) . '/views/public_collection.php';

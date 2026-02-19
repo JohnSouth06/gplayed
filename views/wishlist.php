@@ -4,26 +4,13 @@
 $username = $_SESSION['username'] ?? 'Gamer';
 $totalWishlist = is_array($games) ? count($games) : 0;
 
-/**
- * Génère l'icône de plateforme identique au CSS du dashboard
- */
-function getPlatformIconClass($platform) {
-    $p = strtolower($platform);
-    if (strpos($p, 'ps') !== false || strpos($p, 'playstation') !== false) return 'svg-icon ps-icon';
-    if (strpos($p, 'xbox') !== false) return 'svg-icon xbox-icon';
-    if (strpos($p, 'switch') !== false || strpos($p, 'nintendo') !== false) return 'svg-icon switch-icon';
-    if (strpos($p, 'pc') !== false || strpos($p, 'steam') !== false) return 'svg-icon pc-icon';
-    return 'material-icons-outlined icon-sm'; // Fallback
-}
-
-/**
- * Génère la couleur ombrée (approximation PHP de la fonction JS getNeonColor)
- */
-function getShadowStyle($color) {
-    if (empty($color) || $color === 'null') return '';
-    // On nettoie la chaîne pour avoir juste les chiffres rgb
-    // Format attendu en DB : "rgb(r, g, b)"
-    return "box-shadow: 0 25px 60px -12px " . str_replace('rgb', 'rgba', str_replace(')', ', 0.4)', $color)) . "; border-color: " . str_replace('rgb', 'rgba', str_replace(')', ', 0.5)', $color)) . ";";
+if (isset($games) && is_array($games)) {
+    foreach ($games as &$game) {
+        if (!empty($game['genres'])) {
+            $game['genres'] = translate_genres($game['genres']);
+        }
+    }
+    unset($game);
 }
 ?>
 
@@ -31,7 +18,13 @@ function getShadowStyle($color) {
     <div>
         <h2 class="h2 dashboard-welcome mb-1 fw-light"><?= __('wishlist_title') ?></h2>
     </div>
-    <div class="stat-pill"><i class="material-icons text-danger align-top icon-lg pe-2">&#xe8b1;</i><?= __('wishlist_count_label') ?> <strong><?= $totalWishlist ?></strong></div>
+    <div class="stat-widget">
+    <i class="material-icons stat-icon text-danger">&#xe8b1;</i>
+    <div class="stat-content">
+        <span class="stat-label"><?= __('wishlist_count_label') ?></span>
+        <span class="stat-value text-danger animate-counter" data-target="<?= $totalWishlist ?>">0</span>
+    </div>
+</div>
 </div>
 
 <div class="card bg-body-primaary border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
@@ -49,7 +42,7 @@ function getShadowStyle($color) {
             
             <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
                 <div class="flex-grow-1 w-100">
-                    <div class="search-wrapper mt-0 mb-2">
+                    <div class="search-wrapper">
                         <div class="search-box">
                             <i class="material-icons-outlined search-icon icon-md">&#xe8b6;</i>
                             <input type="text" id="rawgSearchInput" class="form-control border rounded-pill search-input" placeholder="<?= __('wishlist_search_placeholder') ?>" onkeypress="handleEnter(event)">
@@ -73,7 +66,7 @@ function getShadowStyle($color) {
     </div>
 </div>
 
-<div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-2">
+<div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
     <div class="input-group rounded-pill overflow-hidden border border-opacity-10 bg shadow-sm w-100 w-xxl-50">
         <span class="input-group-text border-0 ps-3 bg-transparent"><i class="material-icons-outlined text-secondary icon-md">&#xe8b6;</i></span>
@@ -81,33 +74,38 @@ function getShadowStyle($color) {
         <span class="input-group-text border-0 pe-3 bg-transparent" style="cursor:pointer" onclick="document.getElementById('internalSearchInput').value=''; updateView();"><i class="material-icons-outlined opacity-50 icon-sm">&#xe5cd;</i></span>
     </div>
 
-    <div class="d-flex flex-wrap justify-content-between justify-content-xxl-end gap-2 w-100 w-xxl-auto">
+    <div class="w-100 flex-grow-1 overflow-hidden"> <div class="filters-scroll-container">
 
-        <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="all"><?= __('filter_platform') ?></option>
-            <option value="PS5">PlayStation 5</option>
-            <option value="PS4">PlayStation 4</option>
-            <option value="Xbox Series">Xbox Series</option>
-            <option value="Switch">Switch 1 / 2</option>
-            <option value="PC">PC / Steam</option>
-        </select>
+            <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="all"><?= __('filter_platform') ?></option>
+                <option value="PS5">PlayStation 5</option>
+                <option value="PS4">PlayStation 4</option>
+                <option value="Xbox Series">Xbox Series</option>
+                <option value="Switch">Switch 1 / 2</option>
+                <option value="PC">PC / Steam</option>
+            </select>
 
-        <input type="hidden" id="filterStatus" value="wishlist">
+            <input type="hidden" id="filterStatus" value="wishlist">
 
-        <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="date_desc"><?= __('sort_recent') ?></option>
-            <option value="alpha_asc"><?= __('sort_az') ?></option>
-            <option value="rating_desc"><?= __('sort_rating') ?></option>
-            <option value="platform_asc"><?= __('sort_platform') ?></option>
-        </select>
+            <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="date_desc"><?= __('sort_recent') ?></option>
+                <option value="alpha_asc"><?= __('sort_az') ?></option>
+                <option value="rating_desc"><?= __('sort_rating') ?></option>
+                <option value="platform_asc"><?= __('sort_platform') ?></option>
+            </select>
 
-        <div class="bg-body rounded-3 shadow-sm p-1 d-flex">
-            <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
-            <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            <div class="bg-body rounded-3 shadow-sm border p-1 d-none d-md-flex view-toggle-desktop">
+                <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
+                <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            </div>
         </div>
     </div>
 
 </div>
+
+<button class="fab-view-toggle shadow-lg" id="fabViewToggle" onclick="toggleMobileView()">
+    <i class="material-icons-outlined" id="fabIcon">&#xe8ef;</i>
+</button>
 
 <div id="gamesContainer" class="row g-xxl-4 g-md-3 g-sm-2"></div>
 
@@ -211,8 +209,8 @@ function getShadowStyle($color) {
 </div>
 
 <script>
+    window.isWishlistPage = true;
     let localGames = <?= json_encode($games) ?>;
 </script>
-
 <script src="assets/js/dashboard.js"></script>
 <script src="assets/js/wishlist.js"></script>

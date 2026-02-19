@@ -1,14 +1,24 @@
 <link rel="stylesheet" href="assets/css/dashboard.css">
 
 <?php
-// CALCULS PHP POUR L'EN-TÊTE
-$totalGames = isset($games) && is_array($games) ? count($games) : 0;
+// 1. Initialisation des compteurs
+$totalGames = 0;
 $finishedCount = 0;
 $playingCount = 0;
 
-if ($totalGames > 0) {
-    foreach ($games as $g) {
-        if (isset($g['status'])) {
+// 2. Boucle unique pour traiter les jeux (Compteurs + Traduction)
+if (isset($games) && is_array($games)) {
+    foreach ($games as &$g) { // Le '&' est important si on modifie les genres
+        
+        // --- Partie Traduction (Si vous l'avez ajoutée) ---
+        if (!empty($g['genres']) && function_exists('translate_genres')) {
+            $g['genres'] = translate_genres($g['genres']);
+        }
+        
+        // --- Partie Compteurs (Votre code) ---
+        if (isset($g['status']) && $g['status'] !== 'wishlist') {
+            $totalGames++; 
+
             if ($g['status'] == 'finished' || $g['status'] == 'completed') {
                 $finishedCount++;
             }
@@ -17,8 +27,10 @@ if ($totalGames > 0) {
             }
         }
     }
+    unset($g); // Toujours unset après un passage par référence
 }
 
+// 3. Récupération de l'utilisateur et du lien de partage
 $username = $_SESSION['username'] ?? 'Gamer';
 $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[SCRIPT_NAME]?action=share&user=" . $username;
 ?>
@@ -28,9 +40,29 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
         <h2 class="h2 dashboard-welcome mb-1 fw-light"><?= __('dashboard_hello') ?> <span class="text-primary fw-bold"><?= htmlspecialchars($username) ?></span> 👋</h2>
     </div>
     <div class="d-flex gap-2 overflow-x-auto pb-2 pb-md-0" style="scrollbar-width:none;">
-        <div class="stat-pill"><i class="material-icons text-primary align-top icon-lg pe-2">&#xea28;</i><?= __('dashboard_total') ?> <strong><?= $totalGames ?></strong></div>
-        <div class="stat-pill mx-3"><i class="material-icons text-info align-top icon-lg pe-2">&#xe037;</i><?= __('dashboard_playing') ?> <strong><?= $playingCount ?></strong></div>
-        <div class="stat-pill"><i class="material-icons text-success align-top icon-lg pe-2">&#xe5ca;</i><?= __('dashboard_finished') ?> <strong><?= $finishedCount ?></strong></div> 
+        <div class="stat-widget">
+            <i class="material-icons stat-icon text-warning-emphasis">&#xea28;</i>
+            <div class="stat-content">
+                <span class="stat-label"><?= __('dashboard_total') ?></span>
+                <span class="stat-value text-warning-emphasis animate-counter" data-target="<?= $totalGames ?>">0</span>                
+            </div>
+        </div>
+
+        <div class="stat-widget">
+            <i class="material-icons stat-icon text-info">&#xe037;</i>
+            <div class="stat-content">
+                <span class="stat-label"><?= __('dashboard_playing') ?></span>
+                <span class="stat-value text-info animate-counter" data-target="<?= $playingCount ?>">0</span>
+            </div>
+        </div>
+
+        <div class="stat-widget">
+            <i class="material-icons stat-icon text-primary">&#xe5ca;</i>
+            <div class="stat-content">
+                <span class="stat-label"><?= __('dashboard_finished') ?></span>
+                <span class="stat-value text-primary animate-counter" data-target="<?= $finishedCount ?>">0</span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -57,18 +89,33 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
 
                 <div class="flex-grow-1 w-100">
-                    <div class="search-wrapper mt-0 mb-2">
+                    <div class="search-wrapper">
                         <div class="search-box">
                             <i class="material-icons-outlined search-icon icon-md">&#xe8b6;</i>
                             <input type="text" id="rawgSearchInput" class="form-control border rounded-pill search-input" placeholder="<?= __('dashboard_search_api') ?>" onkeypress="handleEnter(event)">
                         </div>
                     </div>
                 </div>
-
+                <div class="position-relative">
+                    <button class="btn btn-light border shadow-sm rounded-circle d-flex align-items-center justify-content-center" 
+                            style="width: 45px; height: 45px;" 
+                            id="micBtn"
+                            onclick="toggleVoiceSearch()" 
+                            title="Recherche vocale">
+                        <i class="material-icons-outlined icon-md" id="micIcon">&#xe029;</i>
+                    </button>
+                    
+                    <span id="langBadge" 
+                        onclick="toggleVoiceLang(event)"
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark border border-white shadow-sm" 
+                        style="cursor: pointer; font-size: 0.65rem; z-index: 10;"
+                        title="Changer de langue (EN/FR)">
+                        EN
+                    </span>
+                </div>
                 <button class="btn btn-outline-primary shadow-sm rounded-pill fw-bold px-4 py-2 w-auto text-nowrap" onclick="openModal()">
                     <i class="material-icons-outlined icon-sm fs-4 me-2">&#xea28;</i><?= __('dashboard_manual_add') ?>
                 </button>
-
             </div>
 
             <div id="rawgContainer" class="mt-3 d-none border-top pt-3">
@@ -81,12 +128,11 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 </div>
                 <div id="rawgResults" class="d-flex gap-2 overflow-auto pb-2"></div>
             </div>
-
         </div>
     </div>
 </div>
 
-<div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-2">
+<div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
     <div class="input-group rounded-pill overflow-hidden border border-opacity-10 bg shadow-sm w-100 w-xxl-50">
         <span class="input-group-text border-0 ps-3 bg-transparent"><i class="material-icons-outlined text-secondary icon-md">&#xe8b6;</i></span>
@@ -94,44 +140,48 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
         <span class="input-group-text border-0 pe-3 bg-transparent" style="cursor:pointer" onclick="document.getElementById('internalSearchInput').value=''; updateView();"><i class="material-icons-outlined opacity-50 icon-sm">&#xe5cd;</i></span>
     </div>
 
-    <div class="d-flex flex-wrap justify-content-between justify-content-xxl-end gap-2 w-100 w-xxl-auto">
+    <div class="w-100 flex-grow-1 overflow-hidden"> <div class="filters-scroll-container">
+            
+            <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="all"><?= __('filter_platform') ?></option>
+                <option value="PS5">PlayStation 5</option>
+                <option value="PS4">PlayStation 4</option>
+                <option value="Xbox Series">Xbox Series</option>
+                <option value="Switch">Switch 1 / 2</option>
+                <option value="PC">PC / Steam</option>
+            </select>
 
-        <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="all"><?= __('filter_platform') ?></option>
-            <option value="PS5">PlayStation 5</option>
-            <option value="PS4">PlayStation 4</option>
-            <option value="Xbox Series">Xbox Series</option>
-            <option value="Switch">Switch 1 / 2</option>
-            <option value="PC">PC / Steam</option>
-        </select>
+            <select id="filterStatus" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="all"><?= __('filter_status') ?></option>
+                <option value="not_started"><?= __('status_not_started') ?></option>
+                <option value="playing"><?= __('status_playing') ?></option>
+                <option value="finished"><?= __('status_finished') ?></option>
+                <option value="completed"><?= __('status_completed') ?></option>
+                <option value="wishlist"><?= __('status_wishlist') ?></option>
+                <option value="dropped"><?= __('status_dropped') ?></option>
+            </select>
 
-        <select id="filterStatus" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="all"><?= __('filter_status') ?></option>
-            <option value="not_started"><?= __('status_not_started') ?></option>
-            <option value="playing"><?= __('status_playing') ?></option>
-            <option value="finished"><?= __('status_finished') ?></option>
-            <option value="completed"><?= __('status_completed') ?></option>
-            <option value="wishlist"><?= __('status_wishlist') ?></option>
-            <option value="dropped"><?= __('status_dropped') ?></option>
-        </select>
+            <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="date_desc"><?= __('sort_recent') ?></option>
+                <option value="alpha_asc"><?= __('sort_az') ?></option>
+                <option value="rating_desc"><?= __('sort_rating') ?></option>
+                <option value="platform_asc"><?= __('sort_platform') ?></option>
+            </select>
 
-        <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2 bg-body" style="width: auto; cursor: pointer;" onchange="updateView()">
-            <option value="date_desc"><?= __('sort_recent') ?></option>
-            <option value="alpha_asc"><?= __('sort_az') ?></option>
-            <option value="rating_desc"><?= __('sort_rating') ?></option>
-            <option value="status_asc"><?= __('sort_status') ?></option>
-            <option value="platform_asc"><?= __('sort_platform') ?></option>
-        </select>
-
-        <div class="bg-body rounded-3 shadow-sm p-1 d-flex">
-            <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
-            <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            <div class="bg-body rounded-3 shadow-sm border p-1 d-none d-md-flex view-toggle-desktop">
+                <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
+                <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            </div>
         </div>
     </div>
 
 </div>
 
-<div id="gamesContainer" class="row g-xxl-4 g-md-3 g-sm-2"></div>
+<button class="fab-view-toggle shadow-lg" id="fabViewToggle" onclick="toggleMobileView()">
+    <i class="material-icons-outlined" id="fabIcon">&#xe8ef;</i>
+</button>
+
+<div id="gamesContainer" class="row g-xxl-4 g-md-3 g-2"></div>
 
 <div id="scrollSentinel" class="text-center py-4 my-2">
     <div class="spinner-border text-primary d-none" role="status" id="scrollLoader">
@@ -177,7 +227,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                     <div class="mt-3 d-none d-md-block d-lg-none">
                                         <label class="form-label small fw-bold text-secondary"><?= __('modal_price_label') ?></label>
                                         <div class="input-group">
-                                            <input type="number" name="estimated_price" id="gamePrice" class="form-control rounded-start border-end-0" step="0.01" placeholder="0.00">
+                                            <input type="number" name="estimated_price_tablet" id="gamePriceTablet" class="form-control rounded-start border-end-0" step="0.01" placeholder="0.00">
                                             <span class="input-group-text bg-body-tertiary border-start-0 rounded-end">€</span>
                                             <button type="button" class="btn btn-primary ms-2 rounded" onclick="searchPrice()" title="<?= __('modal_price_search_title') ?>">
                                                 <i class="material-icons icon-md">&#xe8b6;</i>
@@ -222,21 +272,21 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                         </div>
                                     </div>
                                     <div class="row g-2 mb-3">
-                                        <div class="col-6">
+                                        <div class="col-12">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_format_label') ?></label>
                                             <div class="bg-body-transparent p-1 rounded-3 d-flex gap-1">
                                                 <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" checked>
-                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtPhysical"><i class="material-icons-outlined icon-sm me-1">&#xe1a1;</i> <?= __('modal_format_physical') ?></label>
+                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2 py-2" for="fmtPhysical"><i class="material-icons-outlined icon-sm me-1">&#xe1a1;</i> <?= __('modal_format_physical') ?></label>
                                                 <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital">
-                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2" for="fmtDigital"><i class="material-icons-outlined icon-sm me-1">&#xe3dd;</i> <?= __('modal_format_digital') ?></label>
+                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2 py-2" for="fmtDigital"><i class="material-icons-outlined icon-sm me-1">&#xe3dd;</i> <?= __('modal_format_digital') ?></label>
                                                 
                                             </div>
                                         </div>
-                                        <div class="col-3">
+                                        <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_rating_label') ?></label>
                                             <input type="number" name="user_rating" id="gameRating" class="form-control rounded-3" max="10">
                                         </div>
-                                        <div class="col-3">
+                                        <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_meta_label') ?></label>
                                             <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---">
                                         </div>
@@ -248,7 +298,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                     <div class="mt-3 d-md-none d-lg-block">
                                         <label class="form-label small fw-bold text-secondary"><?= __('modal_price_label') ?></label>
                                         <div class="input-group">
-                                            <input type="number" name="estimated_price" id="gamePrice" class="form-control rounded-start border-end-0" step="0.01" placeholder="0.00">
+                                            <input type="number" name="estimated_price" id="gamePriceDesktop" class="form-control rounded-start border-end-0" step="0.01" placeholder="0.00">
                                             <span class="input-group-text bg-body-tertiary border-start-0 rounded-end">€</span>
                                             <button type="button" class="btn btn-primary ms-2 rounded" onclick="searchPrice()" title="<?= __('modal_price_search_title') ?>">
                                                 <i class="material-icons icon-md">&#xe8b6;</i>
@@ -312,6 +362,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
 </div>
 
 <script>
+    window.isDashboard = true;
     let localGames = <?= json_encode($games) ?>;
 </script>
 <script src="assets/js/dashboard.js"></script>

@@ -72,7 +72,7 @@
     --glass-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
 
     /* Fonds Bootstrap (bg-body-secondary / tertiary) adaptés au thème noir */
-    --bs-body-bg: #161616;
+    --bs-body-bg: #1b1b1b;
     --bs-body-bg-rgb: 22, 22, 22;
     --bs-secondary-bg: #151515;
     /* Un peu plus clair que le fond */
@@ -124,14 +124,14 @@ h6,
 
 /* 1. PRIMAIRE */
 .btn-primary {
-    --bs-btn-color: #000;
+    --bs-btn-color: #1b1b1b;
     --bs-btn-bg: #4CE5AE;
     --bs-btn-border-color: #4CE5AE;
     --bs-btn-hover-color: #111111;
     --bs-btn-hover-bg: #34c18d;
     --bs-btn-hover-border-color: #2cb482;
     --bs-btn-focus-shadow-rgb: 49, 132, 253;
-    --bs-btn-active-color: #000;
+    --bs-btn-active-color: #1b1b1b;
     --bs-btn-active-bg: #2cb482;
     --bs-btn-active-border-color: #2cb482;
     --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
@@ -236,6 +236,17 @@ h6,
 .btn-action.btn-icon-action {
     text-decoration: none;
 }
+
+/* Ajustements bouton active */
+.btn-check:checked + .btn, .btn.active, .btn.show, .btn:first-child:active, :not(.btn-check) + .btn:active {
+    background-color: var(--main-color);
+    font-weight:700;
+    color: #1b1b1b !important;
+}
+.btn:hover {
+    color: var(--bs-body-bg) !important;
+}
+
 
 /* ========================================================================
    🛠️ UTILITAIRES CONNECTÉS (Badges, Textes, Fonds subtils)
@@ -435,6 +446,12 @@ h6,
     padding: 3rem;
 }
 
+/* COOKIES */
+#cookieConsentBanner {
+    border-top: 1px solid rgba(255,255,255,0.1); 
+    z-index: 9999 !important;
+}
+
 /* LIENS SIDEBAR */
 .nav-link {
     border-radius: 8px;
@@ -456,13 +473,16 @@ h6,
 
 [data-bs-theme="dark"] .nav-link.active {
     background-color: rgba(var(--main-color-rgb), 0.10);
-    color: #fff;
-    /* border-left: 3px solid var(--main-color); */
+    color: var(--main-color);
+}
+
+[data-bs-theme="dark"] .nav-login.active {
+    color: var(--bs-body-bg);
 }
 
 /* LOGIN ACTIVE TAB IN DARK MODE */
 [data-bs-theme="dark"] .nav-link.nav-login.active {
-    background-color: rgba(var(--main-color-rgb), 1);
+    background-color: white;
 }
 
 [data-bs-theme="dark"] .nav-link.active i {
@@ -605,6 +625,82 @@ h6,
     stroke: #ffffff;
 }
 
+/* --- PILL STATS --- */
+.stat-widget {
+    background-color: var(--bs-body-bg); /* S'adapte au Light/Dark mode */
+    border: 1px solid rgba(0, 0, 0, 0.05); /* Bordure très subtile */
+    border-radius: 16px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease;
+    min-width: 180px; /* Largeur minimale pour l'élégance */
+}
+
+.stat-widget:hover {
+    transform: translateY(-2px);
+}
+
+.stat-widget .stat-icon {
+    font-size: 2.5rem; /* Icône plus grande */
+    line-height: 1;
+    margin-right: 15px;
+    opacity: 0.9;
+}
+
+.stat-widget .stat-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1;
+}
+
+.stat-widget .stat-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--sec-color); /* Utilise votre variable secondaire */
+    margin-bottom: 2px;
+}
+
+.stat-widget .stat-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    /* La couleur sera définie par la classe utilitaire (text-primary, etc.) */
+}
+
+[data-bs-theme="dark"] .stat-widget {
+    background-color: var(--bs-tertiary-bg);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* --- DIVIDERS --- */
+.divider {
+     margin: 3rem 0;
+     position: relative;
+ }
+
+ /* Simple Line with Text */
+ .divider-text {
+     display: flex;
+     align-items: center;
+     text-align: center;
+     color: #6f6f6f;
+ }
+
+ .divider-text::before,
+ .divider-text::after {
+     content: "";
+     flex: 1;
+     border-top: 1px solid #6f6f6f;
+ }
+
+ .divider-text span {
+     padding: 0 1rem;
+ }
+
 /* --- INPUTS --- */
 .form-control,
 .form-select,
@@ -628,6 +724,10 @@ h6,
     background-color: var(--bs-tertiary-bg) !important;
     border-color: #333;
     color: #ffffff;
+}
+
+[data-bs-theme="dark"] input.file-upload.form-control:hover {
+    background-color: transparent !important;
 }
 
 [data-bs-theme="dark"] .form-control:focus,
@@ -758,6 +858,15 @@ h6,
     align-items: center;
     justify-content: center;
     gap: 4px;
+    text-decoration: none;
+}
+
+/* ACTION BUTTONS ON CARDS */
+.card-overlay-actions
+.btn-icon-action:not(.d-none) {
+    width: 54px;
+    height: 54px;
+    background-color: rgba(var(--bs-body-bg-rgb), 0.60)!important;
 }
 
 .filled-icon {
@@ -785,7 +894,15 @@ h6,
 }
 
 @media (max-width: 575.98px) {
-    div#gamesContainer {
-        gap: 1rem;
+    .card-overlay-actions  {
+        gap: 0.5rem !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    #gamesContainer > div:not(.col-12) {
+        flex: 0 0 auto;
+        width: 20%;
+        max-width: 20%;
     }
 }
