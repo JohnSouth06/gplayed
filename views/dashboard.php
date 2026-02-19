@@ -16,7 +16,7 @@ if (isset($games) && is_array($games)) {
         }
         
         // --- Partie Compteurs (Votre code) ---
-        if (isset($g['status']) && $g['status'] !== 'wishlist') {
+        if (isset($g['status']) && $g['status'] !== 'wishlist' && $g['status'] !== 'loaned') {
             $totalGames++; 
 
             if ($g['status'] == 'finished' || $g['status'] == 'completed') {
@@ -159,6 +159,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <option value="completed"><?= __('status_completed') ?></option>
                 <option value="wishlist"><?= __('status_wishlist') ?></option>
                 <option value="dropped"><?= __('status_dropped') ?></option>
+                <option value="loaned"><?= __('status_loaned') ?></option>
             </select>
 
             <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
@@ -267,6 +268,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                                 <option value="finished"><?= __('status_finished') ?></option>
                                                 <option value="completed"><?= __('status_completed') ?></option>
                                                 <option value="dropped"><?= __('status_dropped') ?></option>
+                                                <option value="loaned"><?= __('status_loaned') ?></option>
                                                 <option value="wishlist"><?= __('status_wishlist') ?></option>
                                             </select>
                                         </div>
@@ -355,6 +357,40 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <div class="modal-footer border-top-0">
                     <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4"><?= __('modal_btn_save') ?></button>
                     <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal"><?= __('modal_btn_cancel') ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="loanModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <form action="/loan" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="game_id" id="loanGameId">
+                
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fs-5 fw-bold"><i class="material-icons-outlined me-2">&#xe0e3;</i>Prêter un jeu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <p class="text-secondary small mb-4">Vous vous apprêtez à prêter <strong id="loanGameTitle" class="text-body"></strong>. Il sera temporairement masqué de votre collection principale.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">À qui le prêtez-vous ?</label>
+                        <input type="text" name="loaned_to" class="form-control rounded-3" required placeholder="Nom de l'ami, du collègue...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Date du prêt</label>
+                        <input type="date" name="loaned_date" class="form-control rounded-3" required value="<?= date('Y-m-d') ?>">
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-top-0">
+                    <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4 text-dark">Confirmer le prêt</button>
+                    <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
                 </div>
             </form>
         </div>

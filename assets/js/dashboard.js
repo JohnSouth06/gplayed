@@ -4,7 +4,8 @@ const statusConfig = {
     'finished': { label: LANG.status_finished, class: 'bg-success', icon: '&#xe86c;' },
     'completed': { label: LANG.status_completed, class: 'bg-warning text-dark', icon: '&#xea23;' },
     'dropped': { label: LANG.status_dropped, class: 'bg-danger', icon: '&#xe14b;' },
-    'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-white', icon: '&#xe8b1;' }
+    'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-white', icon: '&#xe8b1;' },
+    'loaned': { label: 'Prêté', class: 'bg-warning text-dark', icon: '&#xe0e3;' }
 };
 
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
@@ -58,13 +59,12 @@ function toggleMobileView() {
     }
 }
 
-// Surcharger ou étendre la fonction setView existante pour mettre à jour l'icône du FAB
 // (Si vous ne voulez pas modifier votre fonction setView originale, ajoutez ceci après)
 const originalSetView = window.setView;
-window.setView = function(mode) {
+window.setView = function (mode) {
     // Appel de la fonction originale
-    if(originalSetView) originalSetView(mode);
-    
+    if (originalSetView) originalSetView(mode);
+
     // Mise à jour de notre variable locale
     currentViewMode = mode;
 
@@ -358,7 +358,7 @@ function generateGridCard(g) {
 
     // Badge Plateforme
     metaHtml += `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
-    
+
     // --- AJOUT : Badge Format (ajouté ici pour qu'il soit toujours visible) ---
     metaHtml += `<span class="meta-tag bg-body-secondary border-0">${formatIcon}</span>`;
 
@@ -372,6 +372,16 @@ function generateGridCard(g) {
     }
 
     const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
+
+    // Bouton de prêt
+    let loanBtnHtml = '';
+    if (g.format === 'physical') {
+        let safeTitle = g.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        loanBtnHtml = `
+            <button class="btn-icon-action btn-light text-warning rounded-circle shadow-sm" onclick="openLoanModal(${g.id}, '${safeTitle}')" title="Prêter ce jeu">
+                <i class="material-icons-outlined icon-md">&#xe0e3;</i>
+            </button>`;
+    }
 
     return `
     <div class="col-6 col-sm-6 col-lg-4 col-xl-3 animate-in">
@@ -398,6 +408,7 @@ function generateGridCard(g) {
                 <button class="btn-icon-action btn-light rounded-circle shadow-sm" onclick='edit(${g.id})' title="${LANG.btn_edit}">
                     <i class="material-icons-outlined icon-md">&#xe3c9;</i>
                 </button>
+                ${loanBtnHtml}
                 <a href="/?action=delete&id=${g.id}" class="btn-icon-action btn-light text-danger rounded-circle shadow-sm" onclick="return confirm('${LANG.confirm_delete}')" title="${LANG.btn_delete}">
                     <i class="material-icons-outlined icon-md">&#xe872;</i>
                 </a>
@@ -409,7 +420,7 @@ function generateGridCard(g) {
 
 function generateListRow(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
-    
+
     const img = g.image_url ?
         `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
         `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
@@ -425,8 +436,8 @@ function generateListRow(g) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe338;</i>';
     }
 
-    const ratingDisplay = g.user_rating > 0 
-        ? `<span class="fw-bold text-warning"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</span>` 
+    const ratingDisplay = g.user_rating > 0
+        ? `<span class="fw-bold text-warning"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</span>`
         : '<span class="text-muted opacity-25">-</span>';
 
     return `
@@ -446,6 +457,7 @@ function generateListRow(g) {
 
         <td class="text-end text-nowrap pe-4">
             <button class="btn-icon-action" onclick='edit(${g.id})' title="${LANG.btn_edit}"><i class="material-icons-outlined icon-md">&#xe3c9;</i></button>
+            ${loanBtnHtml}
             <a href="/?action=delete&id=${g.id}" class="btn-action btn-icon-action btn-light text-danger" onclick="return confirm('${LANG.confirm_delete}')" title="${LANG.btn_delete}"><i class="material-icons-outlined icon-md">&#xe872;</i></a>
         </td>
     </tr>`;
@@ -464,10 +476,10 @@ function initCounters() {
             if (entry.isIntersecting) {
                 const counter = entry.target;
                 const target = +counter.getAttribute('data-target');
-                
+
                 // On lance l'animation
                 animateValue(counter, 0, target, 1500); // 1500ms de durée
-                
+
                 // On arrête d'observer une fois l'animation lancée
                 observer.unobserve(counter);
             }
@@ -484,12 +496,12 @@ function animateValue(obj, start, end, duration) {
         obj.innerHTML = 0;
         return;
     }
-    
+
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        
+
         // Easing pour un effet plus naturel (ralentit à la fin)
         // obj.innerHTML = Math.floor(progress * (end - start) + start); // Linéaire
         obj.innerHTML = Math.floor(end * (1 - Math.pow(1 - progress, 3))); // Cubic Ease Out
@@ -534,8 +546,8 @@ function openModal(g = null) {
     if (priceDesktop) priceDesktop.value = priceVal;
 
     if (priceTablet && priceDesktop) {
-        priceTablet.oninput = function() { priceDesktop.value = this.value; };
-        priceDesktop.oninput = function() { priceTablet.value = this.value; };
+        priceTablet.oninput = function () { priceDesktop.value = this.value; };
+        priceDesktop.oninput = function () { priceTablet.value = this.value; };
     }
 
     const standardPlatforms = ['PS5', 'PS4', 'Xbox Series', 'Switch', 'PC'];
@@ -561,6 +573,18 @@ function openModal(g = null) {
 
 function checkPsnVisibility() { const plat = document.getElementById('gamePlatform').value; const tabs = document.getElementById('modalTabs'); if (plat.includes('PS') || plat.includes('PlayStation')) { tabs.style.display = 'flex'; } else { tabs.style.display = 'none'; const firstTabEl = document.querySelector('#modalTabs li:first-child button') || document.querySelector('#modalTabs li:first-child a'); if (firstTabEl) { const firstTab = new bootstrap.Tab(firstTabEl); firstTab.show(); } } }
 
+let loanModal;
+
+function openLoanModal(gameId, gameTitle) {
+    if (!loanModal) loanModal = new bootstrap.Modal(document.getElementById('loanModal'));
+
+    // Remplir les champs cachés et l'affichage
+    document.getElementById('loanGameId').value = gameId;
+    document.getElementById('loanGameTitle').innerText = gameTitle;
+
+    loanModal.show();
+}
+
 async function loadTrophies(gameId) { const list = document.getElementById('trophiesList'); list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>'; try { const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`); const data = await res.json(); const pct = data.progress.percent; document.getElementById('trophyProgressBar').style.width = pct + '%'; document.getElementById('trophyProgressText').innerText = pct + '%'; list.innerHTML = ''; if (data.trophies.length === 0) { list.innerHTML = `<div class="text-center text-muted small py-3">${LANG.no_trophies}</div>`; return; } data.trophies.forEach(t => { const colorClass = `trophy-${t.type}`; const icon = t.type === 'platinum' ? '<img src="../assets/images/platinum.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'gold' ? '<img src="../assets/images/gold.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'silver' ? '<img src="../assets/images/silver.png" class="trophy-icon d-table-cell me-2">' : '<img src="../assets/images/bronze.png" class="trophy-icon d-table-cell me-2">')); const isObtained = t.is_obtained == 1; const gameTitle = document.getElementById('gameTitle').value; const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title + LANG.google_guide)}`; list.innerHTML += `<div class="d-flex align-items-center p-2 mb-2 bg-body-tertiary rounded trophy-item ${colorClass}"><div class="trophy-icon fs-5">${icon}</div><div class="flex-grow-1 ms-2" style="cursor:pointer" onclick="toggleTrophy(${t.id})"><div class="fw-bold small ${isObtained ? 'text-decoration-line-through text-muted' : ''}">${t.title}</div></div><div class="d-flex gap-2"><a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="${LANG.search_solution}"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a><button class="btn btn-sm btn-link text-danger p-0" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button></div></div>`; }); } catch (e) { list.innerHTML = LANG.error_loading; } }
 async function addTrophy() { const gameId = document.getElementById('gameId').value; if (!gameId) { alert(LANG.alert_save_first); return; } const title = document.getElementById('newTrophyTitle').value; const type = document.getElementById('newTrophyType').value; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('/?action=api_add_trophy', { method: 'POST', body: formData }); document.getElementById('newTrophyTitle').value = ''; loadTrophies(gameId); }
 async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); loadTrophies(document.getElementById('gameId').value); }
@@ -585,7 +609,7 @@ async function searchIgdb(autoOpen = false) {
         if (autoOpen && data.results && data.results.length > 0) {
             console.log("Ouverture auto de :", data.results[0].name);
             fetchGameDetails(data.results[0].id);
-            return; 
+            return;
         }
 
         let html = '';
