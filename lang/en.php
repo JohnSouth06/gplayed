@@ -18,6 +18,7 @@ return [
 
     // Sidebar / Menu
     'menu_library' => 'Library',
+    'menu_loaned' => 'Loaned',
     'menu_journal' => 'Journal',
     'menu_stats' => 'Statistics',
     'menu_community' => 'Community',
@@ -25,7 +26,44 @@ return [
     'menu_wishlist' => 'Wishlist',
     'menu_profile' => 'My Profile',
     'menu_logout' => 'Logout',
+    'menu_wheel' => 'What are we playing?',
     'online' => 'Online',
+
+    // Loan
+    'status_loaned' => 'Loaned',
+    'loaned_title_part1' => 'Loaned',
+    'loaned_title_part2' => 'Games',
+    'loaned_count_label' => 'Games on loan:',
+    'loaned_empty_title' => 'No games loaned',
+    'loaned_empty_desc' => 'All your games are safe and sound in your collection.',
+    'loaned_btn_back' => 'Back to collection',
+    'loaned_title' => 'Lend a game',
+    'loaned_desc2' => 'You are about to lend',
+    'loaned_masked_game' => 'It will be temporarily hidden from your main collection.',
+    'loaned_to' => 'Loaned to:',
+    'loaned_date' => 'Loan date:',
+    'loaned_confirm_return' => 'Confirm the loan',
+    'loaned_btn_return' => 'Recover the game',
+    'loaned_research_placeholder' => 'Search in my loans...',
+    'loaned_name_placeholder' => 'Name of friend, colleague...', 
+
+    // JavaScript Actions
+    'js_btn_loan' => 'Loan this game',
+    'js_btn_edit' => 'Edit',
+    'js_btn_delete' => 'Delete',
+    'js_confirm_delete' => 'Confirm deletion?',
+    'js_loaned_to' => 'Loaned to:',
+    'js_loaned_date' => 'Loan date:',
+    'js_confirm_return' => 'Have you recovered the game?',
+    'js_mark_returned' => 'Recover the game',
+
+    // Wheel
+    'wheel_result' => 'The destiny has chosen:',
+    'wheel_relaunch' => 'Relaunch',
+    'wheel_launch' => 'Let\'s go!',
+    'wheel_spin' => 'Spin the wheel',
+    'wheel_error' => 'An error occurred during validation.',
+    'wheel_no_games' => 'You have no games with the status \'Backlog\'.',
 
     // Titles
     'app_title' => 'Your Gaming Story',
@@ -327,6 +365,10 @@ return [
     'profile_placeholder_pass' => 'Leave blank if unchanged',
     'profile_label_avatar' => 'Avatar (URL or Upload)',
     'profile_btn_update' => 'Update Profile',
+    'profile_share_title' => 'Share my collection',
+    'profile_share_desc' => 'Send this link to your friends so they can view your game library.',
+    'profile_share_copy' => 'Copy',
+    'profile_share_link_copied' => 'Link copied to clipboard!',
 
     // Import / Export
     'profile_data_title' => 'My Data',

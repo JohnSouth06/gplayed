@@ -92,9 +92,9 @@
 
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
-                        <h5 class="card-title mb-3 fw-bold">Partager ma collection</h5>
+                        <h5 class="card-title mb-3 fw-bold"><?= __('profile_share_title') ?></h5>
                         <p class="small text-secondary mb-3">
-                            Envoyez ce lien à vos amis pour qu'ils puissent consulter votre ludothèque.
+                            <?= __('profile_share_desc') ?>
                         </p>
 
                         <div class="input-group">
@@ -106,11 +106,11 @@
                             ?>
                             <input type="text" id="shareLinkInput" class="form-control rounded-start-3" value="<?= $shareLink ?>" readonly>
                             <button class="btn btn-primary rounded-end-3" onclick="copyShareLink()">
-                                <i class="material-icons icon-sm align-middle">content_copy</i> Copier
+                                <i class="material-icons icon-sm align-middle">content_copy</i> <?= __('profile_share_copy') ?>
                             </button>
                         </div>
                         <div id="copyFeedback" class="form-text text-success mt-2" style="display:none;">
-                            <i class="fas fa-check-circle me-1"></i> Lien copié dans le presse-papier !
+                            <i class="fas fa-check-circle me-1"></i><?= __('profile_share_link_copied') ?>
                         </div>
                     </div>
                 </div>
