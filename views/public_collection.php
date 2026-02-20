@@ -8,7 +8,7 @@ if (isset($_SESSION['user_id']) && isset($owner['id'])) {
 }
 
 $ownedGamesCount = count(array_filter($games, function($g) {
-    return isset($g['status']) && $g['status'] !== 'wishlist';
+    return isset($g['status']) && $g['status'] !== 'wishlist' && $g['status'] !== 'loaned';
 }));
 ?>
 

@@ -22,8 +22,20 @@ class Game
     {
         $query = "SELECT * FROM " . $this->table . " 
                   WHERE user_id = :user_id 
-                  AND status != 'wishlist' 
+                  AND status NOT IN ('wishlist', 'loaned') 
                   ORDER BY title ASC";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function getLoanedGames($userId)
+    {
+        $query = "SELECT * FROM " . $this->table . " 
+                  WHERE user_id = :user_id AND status = 'loaned' 
+                  ORDER BY loaned_date DESC";
                   
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
@@ -442,4 +454,63 @@ class Game
         imagedestroy($dst);
         return $saved ? $webFilePath : null;
     }
+
+    // Prêt de jeux
+    public function loanGame($id, $userId, $loanedTo, $loanedDate)
+    {
+        $query = "UPDATE " . $this->table . " 
+                  SET status = 'loaned', loaned_to = :loaned_to, loaned_date = :loaned_date 
+                  WHERE id = :id AND user_id = :user_id";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':loaned_to', $loanedTo);
+        $stmt->bindParam(':loaned_date', $loanedDate);
+        
+        return $stmt->execute();
+    }
+
+    // Récupérer un jeu prêté (retour dans la collection)
+    public function returnLoanedGame($id, $userId)
+    {
+        // On repasse le jeu en "not_started" (ou un autre statut par défaut) 
+        // et on vide les informations de prêt
+        $query = "UPDATE " . $this->table . " 
+                  SET status = 'not_started', loaned_to = NULL, loaned_date = NULL 
+                  WHERE id = :id AND user_id = :user_id";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':user_id', $userId);
+        
+        return $stmt->execute();
+    }
+
+    // Wheel
+    public function getGamesByStatusRandom($userId, $status)
+    {
+        $query = "SELECT id, title, image_url, dominant_color FROM " . $this->table . " 
+                  WHERE user_id = :user_id AND status = :status 
+                  ORDER BY RAND()";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':user_id', $userId);
+        $stmt->bindParam(':status', $status);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Met à jour le statut d'un jeu
+    public function updateGameStatus($id, $userId, $status)
+    {
+        $query = "UPDATE " . $this->table . " SET status = :status WHERE id = :id AND user_id = :user_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':user_id', $userId);
+        return $stmt->execute();
+    }
+
 }

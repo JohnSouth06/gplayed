@@ -89,12 +89,22 @@
                         </div>
                     </div>
                 </div>
-
+<!-- 
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
-                        <h5 class="card-title mb-3 fw-bold">Partager ma collection</h5>
+                        <h5 class="card-title mb-3 fw-bold">Lier un compte Steam</h5>
+                        <p class="small text-secondary mb-4">Importez automatiquement votre bibliothèque Steam et votre temps de jeu. Assurez-vous que la visibilité des jeux de votre profil Steam est définie sur <strong>Public</strong>.</p>
+                        <a href="/steam_login">
+                            <img src="https://community.cloudflare.steamstatic.com/public/images/signinthroughsteam/sits_02.png" alt="Se connecter via Steam">
+                        </a>
+                    </div>
+                </div>
+-->
+                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
+                    <div class="card-body p-4">
+                        <h5 class="card-title mb-3 fw-bold"><?= __('profile_share_title') ?></h5>
                         <p class="small text-secondary mb-3">
-                            Envoyez ce lien à vos amis pour qu'ils puissent consulter votre ludothèque.
+                            <?= __('profile_share_desc') ?>
                         </p>
 
                         <div class="input-group">
@@ -106,11 +116,11 @@
                             ?>
                             <input type="text" id="shareLinkInput" class="form-control rounded-start-3" value="<?= $shareLink ?>" readonly>
                             <button class="btn btn-primary rounded-end-3" onclick="copyShareLink()">
-                                <i class="material-icons icon-sm align-middle">content_copy</i> Copier
+                                <i class="material-icons icon-sm align-middle">content_copy</i> <?= __('profile_share_copy') ?>
                             </button>
                         </div>
                         <div id="copyFeedback" class="form-text text-success mt-2" style="display:none;">
-                            <i class="fas fa-check-circle me-1"></i> Lien copié dans le presse-papier !
+                            <i class="fas fa-check-circle me-1"></i><?= __('profile_share_link_copied') ?>
                         </div>
                     </div>
                 </div>
@@ -137,4 +147,24 @@
     </div>
 </div>
 
+<?php if (isset($_GET['importing']) && $_GET['importing'] === 'steam'): ?>
+<!--  <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
+    <div class="card-body p-4 text-center">
+        <h5 class="card-title mb-3 fw-bold"><i class="fab fa-steam text-dark me-2"></i>Intégration Steam</h5>
+        <p class="small text-secondary mb-4">
+            Importez votre bibliothèque pour la première fois ou mettez à jour vos temps de jeu actuels en un clic.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/steam_login" class="btn btn-dark rounded-pill px-4 shadow-sm">
+                <i class="fas fa-cloud-download-alt me-2"></i>Importer mes jeux
+            </a>
+            
+            <a href="/update_steam_playtime" class="btn btn-outline-dark rounded-pill px-4 shadow-sm">
+                <i class="fas fa-stopwatch me-2"></i>Actualiser les temps
+            </a>
+        </div>
+    </div>
+</div> -->
+
 <script src="assets/js/profile.js"></script>
+<?php endif; ?>
