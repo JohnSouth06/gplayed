@@ -31,7 +31,6 @@ function updateDashboardStats() {
     let finished = 0;
 
     localGames.forEach(g => {
-
         if (g.format === currentLibraryFormat && g.status !== 'wishlist') {
             total++;
             if (g.status === 'playing') playing++;
@@ -44,7 +43,6 @@ function updateDashboardStats() {
     const elFinished = document.getElementById('statFinished');
 
     if (elTotal && elPlaying && elFinished) {
-
         const currentTotal = parseInt(elTotal.innerText) || 0;
         const currentPlaying = parseInt(elPlaying.innerText) || 0;
         const currentFinished = parseInt(elFinished.innerText) || 0;
@@ -342,8 +340,19 @@ function loadMoreGames() {
     });
 }
 
-function getNeonColor(rgbString, opacity = 1) {
-    if (!rgbString || rgbString === 'null') return `rgba(255, 255, 255, ${opacity})`;
+// --- ALGORITHME HSL UNIFORMISÉ ---
+function getNeonColor(rgbString, opacity = 1, platform = '') {
+    if (!rgbString || rgbString === 'null' || rgbString === 'rgb(30, 30, 30)') {
+        let r = 255, g = 255, b = 255; 
+        if (platform) {
+            if (platform.includes('PS') || platform.includes('PlayStation')) { r = 0; g = 112; b = 210; }
+            else if (platform.includes('Xbox')) { r = 16; g = 124; b = 16; }
+            else if (platform.includes('Switch')) { r = 228; g = 0; b = 15; }
+            else if (platform.includes('PC')) { r = 102; g = 192; b = 244; }
+        }
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+
     const match = rgbString.match(/\d+/g);
     if (!match || match.length < 3) return `rgba(255, 255, 255, ${opacity})`;
 
@@ -379,8 +388,9 @@ function generateGridCard(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
     const img = g.image_url ? g.image_url : '';
 
-    const shadowColor = getNeonColor(g.dominant_color, 0.4);
-    const borderColor = getNeonColor(g.dominant_color, 0.5);
+    // --- Appel avec la plateforme ajoutée ---
+    const shadowColor = getNeonColor(g.dominant_color, 0.4, g.platform);
+    const borderColor = getNeonColor(g.dominant_color, 0.5, g.platform);
 
     let metaHtml = '';
     let platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';

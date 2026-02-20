@@ -49,12 +49,50 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (!container || !searchInput) return;
 
-    function getNeonColor(rgbString, opacity = 1) {
-        if (!rgbString || rgbString === 'null') return `rgba(255, 255, 255, ${opacity})`;
+    // --- ALGORITHME HSL AJOUTÉ POUR UNIFIER L'EFFET NÉON ---
+    function getNeonColor(rgbString, opacity = 1, platform = '') {
+        // Fallback si la couleur est absente ou ancienne valeur buggée
+        if (!rgbString || rgbString === 'null' || rgbString === 'rgb(30, 30, 30)') {
+            let r = 255, g = 255, b = 255; 
+            if (platform) {
+                if (platform.includes('PS') || platform.includes('PlayStation')) { r = 0; g = 112; b = 210; }
+                else if (platform.includes('Xbox')) { r = 16; g = 124; b = 16; }
+                else if (platform.includes('Switch')) { r = 228; g = 0; b = 15; }
+                else if (platform.includes('PC')) { r = 102; g = 192; b = 244; }
+            }
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        }
+
         const match = rgbString.match(/\d+/g);
         if (!match || match.length < 3) return `rgba(255, 255, 255, ${opacity})`;
+
         let [r, g, b] = match.map(Number);
-        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+
+        // Boost saturation et contrainte de luminosité pour l'effet lueur
+        if (s > 0.1) s = Math.max(s, 0.85);
+        l = Math.max(0.50, Math.min(0.75, l));
+
+        h = Math.round(h * 360);
+        s = Math.round(s * 100);
+        l = Math.round(l * 100);
+
+        return `hsla(${h}, ${s}%, ${l}%, ${opacity})`;
     }
 
     // Gestion de l'affichage du loader
@@ -120,8 +158,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function generateGridCard(g) {
         const s = statusConfig[g.status] || statusConfig['playing'];
         const img = g.image_url ? g.image_url : '';
-        const shadowColor = getNeonColor(g.dominant_color, 0.4);
-        const borderColor = getNeonColor(g.dominant_color, 0.5);
+        
+        // --- On utilise la couleur plateforme en cas de besoin ---
+        const shadowColor = getNeonColor(g.dominant_color, 0.4, g.platform);
+        const borderColor = getNeonColor(g.dominant_color, 0.5, g.platform);
 
         let platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
         if (g.platform && g.platform.includes(',')) platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
@@ -153,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>`;
     }
 
-    // Remplace generateListTable pour générer uniquement une ligne par ligne (pour le chargement progressif)
     function generateListRow(g) {
         const s = statusConfig[g.status] || statusConfig['playing'];
         const img = g.image_url ?
@@ -180,7 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </tr>`;
     }
 
-    // Fonction responsable d'ajouter les jeux progressivement
     function loadMoreGames() {
         if (displayedCount >= processedGamesCache.length) {
             toggleLoader(false);
@@ -231,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function render() {
         processedGamesCache = getProcessedGames();
         container.innerHTML = '';
-        displayedCount = 0; // Réinitialiser le compteur d'affichage
+        displayedCount = 0; 
 
         if (processedGamesCache.length === 0) {
             container.innerHTML = `<div class="col-12 text-center py-5 text-muted"><i class="material-icons-outlined icon-xl opacity-25 mb-3">&#xe811;</i><p>${LANG.no_game_found}</p></div>`;
@@ -250,10 +288,9 @@ document.addEventListener('DOMContentLoaded', function() {
             btnGrid.classList.add('bg-transparent', 'text-secondary');
         }
 
-        loadMoreGames(); // Lancer le premier chargement par lot
+        loadMoreGames(); 
     }
 
-    // Initialisation du scroll
     setupIntersectionObserver();
 
     if(searchInput) {

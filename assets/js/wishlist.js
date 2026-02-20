@@ -89,8 +89,9 @@ window.generateGridCard = function(g) {
         ? `<i class="material-icons-outlined icon-sm text-secondary" title="${LANG.fmt_physical}">&#xe1a1;</i>`
         : `<i class="material-icons-outlined icon-sm text-secondary" title="${LANG.fmt_digital}">&#xe3dd;</i>`;
 
-    const shadowColor = getNeonColor(g.dominant_color, 0.4);
-    const borderColor = getNeonColor(g.dominant_color, 0.5);
+    // --- Appel avec la plateforme ajoutée ---
+    const shadowColor = getNeonColor(g.dominant_color, 0.4, g.platform);
+    const borderColor = getNeonColor(g.dominant_color, 0.5, g.platform);
 
     let metaHtml = '';
     let platIconHtml = '';
@@ -223,9 +224,8 @@ window.loadMoreGames = function() {
             container.insertAdjacentHTML('beforeend', html);
         } else {
             let tbody = container.querySelector('tbody');
-            // Si le tbody n'existe pas ou si l'en-tête est incorrect (détecté par le nombre de colonnes), on recrée tout
             const existingHeader = container.querySelector('thead tr');
-            const isWrongHeader = existingHeader && existingHeader.children.length > 3; // Le dashboard en a 5, la wishlist 3
+            const isWrongHeader = existingHeader && existingHeader.children.length > 3;
 
             if (!tbody || isWrongHeader) {
                 container.innerHTML = `
@@ -276,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Appel de sécurité au cas où dashboard.js aurait déjà fait un rendu
     if(typeof updateView === 'function') {
         updateView();
     }
