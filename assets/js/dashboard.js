@@ -57,9 +57,17 @@ function updateDashboardStats() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    if(currentLibraryFormat === 'physical') { document.getElementById('btnLibPhys').checked = true; } 
-    else { document.getElementById('btnLibDigi').checked = true; }
-    // 1. Initialisation sécurisée de la modale
+    const btnLibPhys = document.getElementById('btnLibPhys');
+    const btnLibDigi = document.getElementById('btnLibDigi');
+    
+    if (btnLibPhys && btnLibDigi) {
+        if(currentLibraryFormat === 'physical') { 
+            btnLibPhys.checked = true; 
+        } else { 
+            btnLibDigi.checked = true; 
+        }
+    }
+
     const modalElement = document.getElementById('gameModal');
     if (modalElement) {
         modal = new bootstrap.Modal(modalElement);
@@ -77,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateView();
-    initCounters(); // 2. Initialisation des compteurs ici
+    initCounters();
 });
 
 document.querySelectorAll('.dropdown-item').forEach(item => {
@@ -157,7 +165,7 @@ function getProcessedGames() {
     const sortType = sortSelectElement ? sortSelectElement.value : 'date_desc';
 
     let filtered = localGames.filter(g => {
-        if (g.format !== currentLibraryFormat) return false;
+        if (!window.isLoanedPage && g.format !== currentLibraryFormat) return false;
         
         if (platformFilter !== 'all') {
             if (g.platform === 'Multiplateforme') return true;
@@ -523,16 +531,24 @@ function initCounters() {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const counter = entry.target;
-                const target = +counter.getAttribute('data-target');
+
+                if (['statTotal', 'statPlaying', 'statFinished'].includes(counter.id)) {
+                    observer.unobserve(counter);
+                    return;
+                }
+
+                const target = parseInt(counter.getAttribute('data-target')) || 0;
                 animateValue(counter, 0, target, 800); 
                 observer.unobserve(counter);
             }
         });
-    }, { threshold: 0.5 }); 
+    }, { threshold: 0.5 });
+
 
     counters.forEach(counter => {
         counterObserver.observe(counter);
     });
+    
 }
 
 function animateValue(obj, start, end, duration) {
