@@ -1,6 +1,27 @@
 document.addEventListener('DOMContentLoaded', function() {
     const gamesData = window.publicGamesData || [];
     let currentView = localStorage.getItem('publicViewMode') || 'grid';
+    let currentLibraryFormat = localStorage.getItem('publicLibraryFormat') || 'physical';
+
+    // Nouvelles variables pour le chargement progressif par lot
+    let processedGamesCache = [];
+    let displayedCount = 0;
+    const batchSize = 12;
+    let observer;
+
+    window.setLibraryFormat = function(format) {
+        currentLibraryFormat = format;
+        localStorage.setItem('publicLibraryFormat', format);
+        render();
+    };
+
+    if(currentLibraryFormat === 'physical') { 
+        const btnPhys = document.getElementById('btnLibPhys');
+        if (btnPhys) btnPhys.checked = true; 
+    } else { 
+        const btnDigi = document.getElementById('btnLibDigi');
+        if (btnDigi) btnDigi.checked = true; 
+    }
     
     const statusConfig = {
         'not_started': { label: LANG.status_not_started, class: 'bg-secondary', icon: '&#xe837;' },
@@ -36,6 +57,27 @@ document.addEventListener('DOMContentLoaded', function() {
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     }
 
+    // Gestion de l'affichage du loader
+    function toggleLoader(show) { 
+        const l = document.getElementById('scrollLoader'); 
+        if (show && l) l.classList.remove('d-none'); 
+        else if (l) l.classList.add('d-none'); 
+    }
+
+    // Configuration de l'IntersectionObserver pour le défilement infini
+    function setupIntersectionObserver() {
+        const options = { root: null, rootMargin: '0px', threshold: 0.1 };
+        observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    loadMoreGames();
+                }
+            });
+        }, options);
+        const sentinel = document.getElementById('scrollSentinel');
+        if (sentinel) observer.observe(sentinel);
+    }
+
     function getProcessedGames() {
         const query = searchInput.value.toLowerCase();
         const platform = filterPlatform.value;
@@ -43,6 +85,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const sort = sortSelect.value;
 
         let filtered = gamesData.filter(g => {
+            const gFormat = g.format || 'physical';
+            if (gFormat !== currentLibraryFormat) return false;
+
             if (query && !g.title.toLowerCase().includes(query)) return false;
             
             if (platform !== 'all') {
@@ -85,6 +130,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let metaHtml = `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
         if (g.user_rating > 0) metaHtml += `<span class="meta-tag text-warning bg-warning-subtle border-warning-subtle"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</span>`;
 
+        if (g.format === 'digital' && g.playtime && g.playtime > 0) {
+            metaHtml += `<span class="meta-tag text-info bg-info-subtle border-info-subtle"><i class="material-icons-outlined icon-sm me-1">&#xe425;</i>${g.playtime} h</span>`;
+        }
+
         const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
 
         return `
@@ -92,93 +141,120 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="game-card-modern"
                  onmouseover="this.style.boxShadow='0 25px 60px -12px ${shadowColor}'; this.style.borderColor='${borderColor}'"
                  onmouseout="this.style.boxShadow=''; this.style.borderColor='rgba(0,0,0,0.05)'">
-                <div class="card-cover-container">
+                <div class="card-cover-container ${g.format === 'digital' ? 'ratio-digital' : ''}">
                     ${img ? `<img src="${img}" class="card-cover-img" loading="lazy">` : imagePlaceholder}
                     <span class="status-badge-float"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span>
                 </div>
                 <div class="card-content-area">
                     <h6 class="game-title text-truncate" title="${g.title}">${g.title}</h6>
                     <div class="meta-badges">${metaHtml}</div>
-                    <div class="mt-auto pt-3 border-top border-light-subtle ${!g.comment ? 'd-none' : ''}">
-                         <p class="small text-secondary mb-0 fst-italic text-truncate">${g.comment || ''}</p>
-                    </div>
                 </div>
             </div>
         </div>`;
     }
 
-    function generateListTable(games) {
-        if(games.length === 0) return '';
-        let rows = '';
-        games.forEach(g => {
-            const s = statusConfig[g.status] || statusConfig['playing'];
-            const img = g.image_url ?
-                `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
-                `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
-            
-            let platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
-            if (platformIcons[g.platform]) platIconHtml = `<i class="${platformIcons[g.platform]} me-1"></i>`;
-
-            rows += `
-            <tr>
-                <td class="ps-4">
-                    <div class="d-flex align-items-center gap-3">
-                        ${img}
-                        <div>
-                            <div class="fw-bold text-body">${g.title}</div>
-                            <div class="small text-secondary">${g.genres || ''}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="d-none d-sm-table-cell"><span class="meta-tag border">${platIconHtml}${g.platform}</span></td>
-                <td class="d-none d-lg-table-cell"><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span></td>
-                <td class="d-none d-lg-table-cell fw-bold text-warning">${g.user_rating ? `<i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}` : '<span class="text-muted opacity-25">-</span>'}</td>
-            </tr>`;
-        });
+    // Remplace generateListTable pour générer uniquement une ligne par ligne (pour le chargement progressif)
+    function generateListRow(g) {
+        const s = statusConfig[g.status] || statusConfig['playing'];
+        const img = g.image_url ?
+            `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
+            `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
+        
+        let platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
+        if (platformIcons[g.platform]) platIconHtml = `<i class="${platformIcons[g.platform]} me-1"></i>`;
 
         return `
-        <div class="col-12">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-body-tertiary text-secondary small text-uppercase fw-bold">
-                            <tr>
-                                <th class="ps-4 py-3">${LANG.table_game}</th>
-                                <th class="d-none d-sm-table-cell">${LANG.table_platform}</th>
-                                <th class="d-none d-lg-table-cell">${LANG.table_status}</th>
-                                <th class="d-none d-lg-table-cell">${LANG.table_rating}</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
+        <tr>
+            <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                    ${img}
+                    <div>
+                        <div class="fw-bold text-body">${g.title}</div>
+                        <div class="small text-secondary">${g.genres || ''}</div>
+                    </div>
                 </div>
-            </div>
-        </div>`;
+            </td>
+            <td class="d-none d-sm-table-cell"><span class="meta-tag border">${platIconHtml}${g.platform}</span></td>
+            <td class="d-none d-lg-table-cell"><span class="badge ${s.class} rounded-pill bg-opacity-75"><i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}</span></td>
+            <td class="d-none d-lg-table-cell fw-bold text-warning">${g.user_rating ? `<i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}` : '<span class="text-muted opacity-25">-</span>'}</td>
+        </tr>`;
+    }
+
+    // Fonction responsable d'ajouter les jeux progressivement
+    function loadMoreGames() {
+        if (displayedCount >= processedGamesCache.length) {
+            toggleLoader(false);
+            return;
+        }
+        toggleLoader(true);
+
+        window.requestAnimationFrame(() => {
+            const nextBatch = processedGamesCache.slice(displayedCount, displayedCount + batchSize);
+
+            if (currentView === 'grid') {
+                let html = '';
+                nextBatch.forEach(g => { html += generateGridCard(g); });
+                container.insertAdjacentHTML('beforeend', html);
+            } else {
+                let tbody = container.querySelector('tbody');
+                if (!tbody) {
+                    container.innerHTML = `
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-body-tertiary text-secondary small text-uppercase fw-bold">
+                                        <tr>
+                                            <th class="ps-4 py-3">${LANG.table_game}</th>
+                                            <th class="d-none d-sm-table-cell">${LANG.table_platform}</th>
+                                            <th class="d-none d-lg-table-cell">${LANG.table_status}</th>
+                                            <th class="d-none d-lg-table-cell">${LANG.table_rating}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>`;
+                    tbody = container.querySelector('tbody');
+                }
+                let rows = '';
+                nextBatch.forEach(g => { rows += generateListRow(g); });
+                tbody.insertAdjacentHTML('beforeend', rows);
+            }
+
+            displayedCount += nextBatch.length;
+            if (displayedCount >= processedGamesCache.length) toggleLoader(false);
+        });
     }
 
     function render() {
-        const filtered = getProcessedGames();
+        processedGamesCache = getProcessedGames();
         container.innerHTML = '';
+        displayedCount = 0; // Réinitialiser le compteur d'affichage
 
-        if (filtered.length === 0) {
+        if (processedGamesCache.length === 0) {
             container.innerHTML = `<div class="col-12 text-center py-5 text-muted"><i class="material-icons-outlined icon-xl opacity-25 mb-3">&#xe811;</i><p>${LANG.no_game_found}</p></div>`;
             return;
         }
 
         if (currentView === 'grid') {
-            container.innerHTML = filtered.map(g => generateGridCard(g)).join('');
             btnGrid.classList.add('active', 'btn-light');
             btnGrid.classList.remove('bg-transparent', 'text-secondary');
             btnList.classList.remove('active', 'btn-light');
             btnList.classList.add('bg-transparent', 'text-secondary');
         } else {
-            container.innerHTML = generateListTable(filtered);
             btnList.classList.add('active', 'btn-light');
             btnList.classList.remove('bg-transparent', 'text-secondary');
             btnGrid.classList.remove('active', 'btn-light');
             btnGrid.classList.add('bg-transparent', 'text-secondary');
         }
+
+        loadMoreGames(); // Lancer le premier chargement par lot
     }
+
+    // Initialisation du scroll
+    setupIntersectionObserver();
 
     if(searchInput) {
         [searchInput, filterPlatform, filterStatus, sortSelect].forEach(el => {

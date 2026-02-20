@@ -8,7 +8,7 @@ if (isset($_SESSION['user_id']) && isset($owner['id'])) {
 }
 
 $ownedGamesCount = count(array_filter($games, function($g) {
-    return isset($g['status']) && $g['status'] !== 'wishlist';
+    return isset($g['status']) && $g['status'] !== 'wishlist' && $g['status'] !== 'loaned';
 }));
 ?>
 
@@ -38,6 +38,22 @@ $ownedGamesCount = count(array_filter($games, function($g) {
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-center mb-4 mt-2">
+    <div class="custom-tabs-container shadow-sm border border-opacity-10">
+        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="window.setLibraryFormat('physical')">
+        <label for="btnLibPhys" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
+        </label>
+
+        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="window.setLibraryFormat('digital')">
+        <label for="btnLibDigi" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
+        </label>
+
+        <div class="custom-tab-slider"></div>
     </div>
 </div>
 
@@ -95,6 +111,11 @@ $ownedGamesCount = count(array_filter($games, function($g) {
 </div>
 
 <div id="gamesContainer" class="row g-4"></div>
+<div id="scrollSentinel" class="text-center py-4 my-2">
+    <div class="spinner-border text-primary d-none" role="status" id="scrollLoader">
+        <span class="visually-hidden">Chargement...</span>
+    </div>
+</div>
 
 <script>
     window.publicGamesData = <?= json_encode($games) ?>;

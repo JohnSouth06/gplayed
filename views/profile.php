@@ -52,7 +52,7 @@
                             <div class="mb-4">
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('profile_label_avatar') ?></label>
                                 <input type="file" name="avatar" class="form-control file-upload rounded-3 mb-2">
-                            
+
                             </div>
 
                             <div class="text-end">
@@ -90,15 +90,35 @@
                     </div>
                 </div>
 
+                <!-- STEAM IMPORT -->
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
-                        <h5 class="card-title mb-3 fw-bold">Partager ma collection</h5>
+                        <h5 class="card-title mb-3 fw-bold"><i class="fab fa-steam text-light me-2"></i>Intégration Steam</h5>
+                        <p class="small text-secondary mb-4">
+                            Importez votre bibliothèque pour la première fois ou mettez à jour vos temps de jeu actuels en un clic.
+                        </p>
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            <a href="/steam_login" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">
+                                <i class="fas fa-cloud-download-alt me-2"></i>Importer mes jeux
+                            </a>
+
+                            <a href="/update_steam_playtime" class="btn btn-dark fw-bold rounded-pill px-4 shadow-sm">
+                                <i class="fas fa-stopwatch me-2"></i>Actualiser les temps
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- STEAM IMPORT -->
+                 
+                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
+                    <div class="card-body p-4">
+                        <h5 class="card-title mb-3 fw-bold"><?= __('profile_share_title') ?></h5>
                         <p class="small text-secondary mb-3">
-                            Envoyez ce lien à vos amis pour qu'ils puissent consulter votre ludothèque.
+                            <?= __('profile_share_desc') ?>
                         </p>
 
                         <div class="input-group">
-                            <?php 
+                            <?php
                             $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
                             $host = $_SERVER['HTTP_HOST'];
 
@@ -106,11 +126,11 @@
                             ?>
                             <input type="text" id="shareLinkInput" class="form-control rounded-start-3" value="<?= $shareLink ?>" readonly>
                             <button class="btn btn-primary rounded-end-3" onclick="copyShareLink()">
-                                <i class="material-icons icon-sm align-middle">content_copy</i> Copier
+                                <i class="material-icons icon-sm align-middle">content_copy</i> <?= __('profile_share_copy') ?>
                             </button>
                         </div>
                         <div id="copyFeedback" class="form-text text-success mt-2" style="display:none;">
-                            <i class="fas fa-check-circle me-1"></i> Lien copié dans le presse-papier !
+                            <i class="fas fa-check-circle me-1"></i><?= __('profile_share_link_copied') ?>
                         </div>
                     </div>
                 </div>
@@ -137,4 +157,27 @@
     </div>
 </div>
 
+<?php if (isset($_GET['importing']) && $_GET['importing'] === 'steam'): ?>
+<div class="modal fade" id="steamSyncModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-body p-5 text-center">
+                <h4 class="mb-4 fw-bold text-info">
+                    <i class="fas fa-sync fa-spin me-2"></i>Synchronisation Steam
+                </h4>
+                <p class="text-secondary mb-4" id="steamSyncStatus">Récupération de la liste de vos jeux...</p>
+                
+                <div class="progress mb-3 rounded-pill" style="height: 25px;">
+                    <div id="steamProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+                
+                <div class="alert alert-danger mt-4 mb-0 py-2 small" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Veuillez ne pas fermer ou rafraîchir cette page.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="assets/js/profile.js"></script>
+<?php endif; ?>
