@@ -55,6 +55,47 @@ class AuthController
         }
     }
 
+    public function mobileLogin() {
+        $token = $_GET['token'] ?? '';
+        if ($token) {
+            $decoded = base64_decode($token);
+            if ($decoded) {
+                $parts = explode('|', $decoded);
+                if (count($parts) === 3) {
+                    $userId = $parts[0];
+                    $timestamp = $parts[1];
+                    $signature = $parts[2];
+                    
+                    if (time() - $timestamp <= 300) {
+                        $expectedSignature = hash_hmac('sha256', $userId . '|' . $timestamp, $_ENV['MOBILE_APP_SECRET']);
+                        
+                        if (hash_equals($expectedSignature, $signature)) {
+                            $user = $this->userModel->getById((int)$userId);
+                            
+                            if ($user) {
+                                $_SESSION['user_id'] = $user['id'];
+                                $_SESSION['username'] = $user['username'];
+                                $_SESSION['avatar'] = $user['avatar_url'];
+                                $_SESSION['lang'] = $user['language'] ?? 'fr';
+                                
+                                $_SESSION['toast'] = ['msg' => 'Connexion mobile réussie !', 'type' => 'success'];
+                                
+                                // SUCCÈS : Alerte visuelle avant de charger l'accueil
+                                echo "<script>alert('Jeton valide ! Connexion réussie.'); window.location.href='index.php?action=home';</script>";
+                                exit;
+                            }
+                        } else {
+                            echo "<script>alert('Erreur : La signature de sécurité est invalide.'); window.location.href='index.php?action=login';</script>"; exit;
+                        }
+                    } else {
+                        echo "<script>alert('Erreur : Le jeton a expiré (plus de 5 minutes).'); window.location.href='index.php?action=login';</script>"; exit;
+                    }
+                }
+            }
+        }
+        echo "<script>alert('Erreur : Le jeton est illisible ou manquant.'); window.location.href='index.php?action=login';</script>"; exit;
+    }
+
     // --- INSCRIPTION ---
     public function register()
     {
@@ -135,7 +176,17 @@ class AuthController
 
                 $_SESSION['toast'] = ['msg' => __('toast_welcome') . $user['username'], 'type' => 'success'];
                 $_SESSION['force_loader'] = true;
-                header("Location: /");
+                
+                // --- NOUVEAU : Redirection Mobile ---
+                $userId = $user['id']; 
+                $timestamp = time();
+                $data = $userId . '|' . $timestamp;
+                $signature = hash_hmac('sha256', $data, $_ENV['MOBILE_APP_SECRET']);
+                $token = base64_encode($data . '|' . $signature);
+
+                header("Location: https://www.g-played.com/index.php?action=mobile_login&token=" . urlencode($token));
+                // ------------------------------------
+                
             } else {
                 header("Location: /?error=google_auth_failed");
             }
@@ -150,7 +201,6 @@ class AuthController
 
 // --- DISCORD AUTH ---
     public function loginDiscord() {
-        // Détection automatique du domaine (http ou https)
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
         $redirectUri = $protocol . $_SERVER['HTTP_HOST'] . '/?action=discord_callback';
         
@@ -222,7 +272,17 @@ class AuthController
 
             $_SESSION['toast'] = ['msg' => __('toast_welcome') . $user['username'], 'type' => 'success'];
             $_SESSION['force_loader'] = true;
-            header("Location: /");
+            
+            // --- NOUVEAU : Redirection Mobile ---
+            $userId = $user['id']; 
+            $timestamp = time();
+            $data = $userId . '|' . $timestamp;
+            $signature = hash_hmac('sha256', $data, $_ENV['MOBILE_APP_SECRET']);
+            $token = base64_encode($data . '|' . $signature);
+
+            header("Location: https://www.g-played.com/index.php?action=mobile_login&token=" . urlencode($token));
+            // ------------------------------------
+            
         } else {
             $_SESSION['toast'] = ['msg' => "Erreur connexion Discord", 'type' => 'danger'];
             header("Location: /");

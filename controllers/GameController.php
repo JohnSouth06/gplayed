@@ -152,7 +152,7 @@ class GameController
         exit();
     }
 
-    // --- Delete ---
+    // --- DELETE ---
     public function delete()
     {
         if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) return;
@@ -311,6 +311,253 @@ class GameController
         exit();
     }
 
+    // --- 1IMPORT STEAM ---
+    public function steamLogin()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: /login");
+            exit();
+        }
+
+        $siteUrl = 'http://' . $_SERVER['HTTP_HOST']; 
+        $returnTo = $siteUrl . '/steam_callback';
+
+        $steamLoginUrl = 'https://steamcommunity.com/openid/login' .
+            '?openid.ns=http://specs.openid.net/auth/2.0' .
+            '&openid.mode=checkid_setup' .
+            '&openid.return_to=' . urlencode($returnTo) .
+            '&openid.realm=' . urlencode($siteUrl) .
+            '&openid.identity=http://specs.openid.net/auth/2.0/identifier_select' .
+            '&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select';
+
+        header("Location: " . $steamLoginUrl);
+        exit();
+    }
+
+    public function steamCallback()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: /");
+            exit();
+        }
+
+        if (isset($_GET['openid_mode']) && $_GET['openid_mode'] == 'id_res' && isset($_GET['openid_claimed_id'])) {
+            preg_match('/^https?:\/\/steamcommunity\.com\/openid\/id\/(7[0-9]{15,25}+)$/', $_GET['openid_claimed_id'], $matches);
+            $steamId = $matches[1] ?? null;
+
+            if ($steamId) {
+                // NOUVEAU : On sauvegarde définitivement le Steam ID dans la table users
+                $stmt = $this->db->prepare("UPDATE users SET steam_id = :steamId WHERE id = :userId");
+                $stmt->execute([':steamId' => $steamId, ':userId' => $_SESSION['user_id']]);
+
+                $_SESSION['pending_steam_id'] = $steamId;
+                header("Location: /profile?importing=steam");
+                exit();
+            }
+        }
+        
+        $_SESSION['toast'] = ['msg' => "Erreur ou annulation de la connexion Steam.", 'type' => 'danger'];
+        header("Location: /profile");
+        exit();
+    }
+
+    public function apiGetSteamGames()
+    {
+        header('Content-Type: application/json');
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['pending_steam_id'])) {
+            echo json_encode(['success' => false, 'error' => 'Non autorisé']);
+            exit();
+        }
+
+        $steamId = $_SESSION['pending_steam_id'];
+        $apiKey = $_ENV['STEAM_API_KEY'] ?? '';
+
+        $url = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={$apiKey}&steamid={$steamId}&format=json&include_appinfo=1";
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+        if (!isset($data['response']['games'])) {
+            echo json_encode(['success' => false, 'error' => 'Aucun jeu trouvé ou profil Steam privé.']);
+            exit();
+        }
+
+        $gamesToImport = [];
+
+        $blacklist = ['beta', 'alpha', 'server', 'dedicated server', 'test', 'test server', 'public test', 'demo', 'sdk'];
+
+        foreach ($data['response']['games'] as $steamGame) {
+            $gameName = $steamGame['name'];
+            $shouldIgnore = false;
+
+            foreach ($blacklist as $word) {
+
+                if (preg_match('/\b' . preg_quote($word, '/') . '\b/i', $gameName)) {
+                    $shouldIgnore = true;
+                    break;
+                }
+            }
+
+            if ($shouldIgnore) {
+                continue;
+            }
+
+            if (!$this->gameModel->checkDuplicate($_SESSION['user_id'], null, $gameName, 'PC')) {
+                $gamesToImport[] = $steamGame;
+            }
+        }
+
+        echo json_encode(['success' => true, 'games' => $gamesToImport]);
+        exit();
+    }
+
+    public function apiImportSingleSteamGame()
+    {
+        header('Content-Type: application/json');
+        if (!isset($_SESSION['user_id'])) exit(json_encode(['success' => false]));
+
+        // Récupération des données envoyées par JS
+        $steamGame = json_decode(file_get_contents('php://input'), true);
+        if (!$steamGame || !isset($steamGame['appid'])) exit(json_encode(['success' => false]));
+
+        require_once dirname(__DIR__) . '/models/Playtime.php';
+        $playtimeModel = new Playtime($this->db);
+
+        $title = $steamGame['name'];
+        $playtimeMinutes = $steamGame['playtime_forever'] ?? 0;
+        $lastPlayedTimestamp = $steamGame['rtime_last_played'] ?? 0;
+        $oneYearAgo = time() - (365 * 24 * 60 * 60);
+
+        // Revérification du doublon par sécurité
+        if ($this->gameModel->checkDuplicate($_SESSION['user_id'], null, $title, 'PC')) {
+            echo json_encode(['success' => true]); exit();
+        }
+
+        $status = 'not_started';
+        if ($playtimeMinutes > 0) {
+            $status = 'playing';
+            if ($lastPlayedTimestamp > 0 && $lastPlayedTimestamp < $oneYearAgo) {
+                $status = 'dropped';
+            }
+        }
+
+        $appId = $steamGame['appid'];
+        $imageUrl = "https://cdn.cloudflare.steamstatic.com/steam/apps/{$appId}/header.jpg";
+
+        $gameData = [
+            'title' => $title, 'platform' => 'PC', 'format' => 'digital', 'status' => $status,
+            'release_date' => null, 'metacritic_score' => null, 'user_rating' => null,
+            'comment' => 'Importé depuis Steam', 'image_url' => $imageUrl,
+            'description' => '', 'genres' => '', 'dominant_color' => 'rgb(30, 30, 30)', 'estimated_price' => null
+        ];
+
+        if ($this->gameModel->importEntry($gameData, $_SESSION['user_id'])) {
+            $newGameId = $this->db->lastInsertId();
+            if ($playtimeMinutes > 0 && $newGameId) {
+                $playtimeModel->save($newGameId, round($playtimeMinutes / 60, 1), null);
+            }
+        }
+        echo json_encode(['success' => true]);
+        exit();
+    }
+
+    public function steamImportComplete()
+    {
+        unset($_SESSION['pending_steam_id']);
+        $_SESSION['toast'] = ['msg' => "Importation Steam terminée avec succès !", 'type' => 'success'];
+        echo json_encode(['success' => true]);
+        exit();
+    }
+
+    // --- MISE À JOUR RAPIDE DES TEMPS DE JEU ---
+    public function updateSteamPlaytime()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: /login");
+            exit();
+        }
+
+        // 1. On vérifie si l'utilisateur a déjà lié son compte Steam
+        $stmt = $this->db->prepare("SELECT steam_id FROM users WHERE id = :id");
+        $stmt->execute([':id' => $_SESSION['user_id']]);
+        $user = $stmt->fetch();
+
+        if (!$user || empty($user['steam_id'])) {
+            $_SESSION['toast'] = ['msg' => "Veuillez d'abord lier votre compte en cliquant sur 'Importer mes jeux'.", 'type' => 'warning'];
+            header("Location: /profile");
+            exit();
+        }
+
+        $steamId = $user['steam_id'];
+        $apiKey = $_ENV['STEAM_API_KEY'] ?? '';
+
+        // 2. Appel à l'API Steam (Très rapide, pas d'images à télécharger)
+        $url = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={$apiKey}&steamid={$steamId}&format=json&include_appinfo=1";
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+        if (!isset($data['response']['games'])) {
+            $_SESSION['toast'] = ['msg' => "Erreur de communication avec Steam.", 'type' => 'danger'];
+            header("Location: /profile");
+            exit();
+        }
+
+        require_once dirname(__DIR__) . '/models/Playtime.php';
+        $playtimeModel = new Playtime($this->db);
+        
+        $updatedCount = 0;
+        $oneYearAgo = time() - (365 * 24 * 60 * 60);
+
+        $stmtFindGame = $this->db->prepare("SELECT id, status FROM games WHERE user_id = :uid AND title = :title AND platform = 'PC' LIMIT 1");
+        $stmtUpdateStatus = $this->db->prepare("UPDATE games SET status = :status WHERE id = :id");
+
+        foreach ($data['response']['games'] as $steamGame) {
+            $playtimeMinutes = $steamGame['playtime_forever'] ?? 0;
+            if ($playtimeMinutes == 0) continue; 
+
+            // On cherche le jeu dans la bibliothèque locale de l'utilisateur
+            $stmtFindGame->execute([':uid' => $_SESSION['user_id'], ':title' => $steamGame['name']]);
+            $dbGame = $stmtFindGame->fetch();
+
+            if ($dbGame) {
+                // Mise à jour du temps de jeu
+                $hours = round($playtimeMinutes / 60, 1);
+                $playtimeModel->save($dbGame['id'], $hours, null);
+                $updatedCount++;
+
+                // Ajustement du statut si nécessaire (Non commencé -> En cours, ou Abandonné)
+                $newStatus = $dbGame['status'];
+                $lastPlayed = $steamGame['rtime_last_played'] ?? 0;
+
+                if ($dbGame['status'] === 'not_started') {
+                    $newStatus = 'playing';
+                }
+                if ($lastPlayed > 0 && $lastPlayed < $oneYearAgo && $newStatus === 'playing') {
+                    $newStatus = 'dropped';
+                }
+
+                if ($newStatus !== $dbGame['status']) {
+                    $stmtUpdateStatus->execute([':status' => $newStatus, ':id' => $dbGame['id']]);
+                }
+            }
+        }
+
+        $_SESSION['toast'] = ['msg' => "Temps de jeu actualisés pour $updatedCount jeux !", 'type' => 'success'];
+        header("Location: /profile");
+        exit();
+    }
+    
     // --- IMPORT JSON ---
     public function import()
     {
@@ -347,6 +594,96 @@ class GameController
             $_SESSION['toast'] = ['msg' => "$count jeux importés avec succès !", 'type' => 'success'];
         }
         header("Location: /profile");
+        exit();
+    }
+
+    // --- WHEEL ---
+    public function apiRouletteGames()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Non autorisé']);
+            exit();
+        }
+
+        // On appelle la fonction modifiée (sans limite)
+        $games = $this->gameModel->getGamesByStatusRandom($_SESSION['user_id'], 'not_started');
+        
+        header('Content-Type: application/json');
+        echo json_encode(['games' => $games]);
+        exit();
+    }
+
+    public function apiStartGame()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            exit();
+        }
+
+        // Récupération des données JSON envoyées par fetch()
+        $data = json_decode(file_get_contents('php://input'), true);
+        $gameId = $data['game_id'] ?? null;
+
+        if ($gameId && $this->gameModel->updateGameStatus($gameId, $_SESSION['user_id'], 'playing')) {
+            // On prépare un message de succès pour le rechargement de la page
+            $_SESSION['toast'] = ['msg' => "C'est parti ! Le jeu est maintenant en cours.", 'type' => 'success'];
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Erreur lors de la mise à jour']);
+        }
+        exit();
+    }
+
+    // --- GESTION DES PRÊTS ---
+    public function loaned()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: /");
+            exit();
+        }
+        $games = $this->gameModel->getLoanedGames($_SESSION['user_id']);
+        
+        // Nous allons utiliser une nouvelle vue spécifique pour ça
+        $view = dirname(__DIR__) . '/views/loaned.php';
+        require dirname(__DIR__) . '/views/layout.php';
+    }
+
+    // Traiter le formulaire de prêt
+    public function loan()
+    {
+        if (!isset($_SESSION['user_id'])) return;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->checkCsrf();
+
+            $gameId = $_POST['game_id'] ?? null;
+            $loanedTo = $_POST['loaned_to'] ?? '';
+            $loanedDate = $_POST['loaned_date'] ?? date('Y-m-d');
+
+            if ($gameId && !empty($loanedTo)) {
+                if ($this->gameModel->loanGame($gameId, $_SESSION['user_id'], $loanedTo, $loanedDate)) {
+                    $_SESSION['toast'] = ['msg' => "Le jeu a été marqué comme prêté !", 'type' => 'success'];
+                } else {
+                    $_SESSION['toast'] = ['msg' => "Erreur lors de l'enregistrement du prêt.", 'type' => 'danger'];
+                }
+            }
+        }
+        header("Location: /");
+        exit();
+    }
+
+    // Marquer un jeu comme "Retourné"
+    public function returnGame()
+    {
+        if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) return;
+
+        if ($this->gameModel->returnLoanedGame($_GET['id'], $_SESSION['user_id'])) {
+            $_SESSION['toast'] = ['msg' => "Le jeu est de retour dans votre collection !", 'type' => 'success'];
+        }
+        
+        // On redirige vers la liste des jeux prêtés
+        header("Location: /loaned"); 
         exit();
     }
 

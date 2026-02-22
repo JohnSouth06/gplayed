@@ -94,9 +94,20 @@ if (isset($games) && is_array($games)) {
                 <option value="platform_asc"><?= __('sort_platform') ?></option>
             </select>
 
-            <div class="bg-body rounded-3 shadow-sm border p-1 d-none d-md-flex view-toggle-desktop">
-                <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
-                <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            <div class="view-toggle-tabs shadow-sm border border-opacity-10 d-none d-md-flex">
+                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input" 
+                    onclick="setView('grid')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? '' : 'checked' ?>>
+                <label for="btnGridInput" class="view-tab-label">
+                    <i class="material-icons-outlined icon-md">&#xe9b0;</i>
+                </label>
+
+                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input" 
+                    onclick="setView('list')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? 'checked' : '' ?>>
+                <label for="btnListInput" class="view-tab-label">
+                    <i class="material-icons-outlined icon-md">&#xe8ef;</i>
+                </label>
+
+                <div class="view-tab-slider"></div>
             </div>
         </div>
     </div>
@@ -207,7 +218,9 @@ if (isset($games) && is_array($games)) {
         </div>
     </div>
 </div>
-
+<template id="gridCardTemplate">
+    <?php include 'views/_game_card_template.html'; ?>
+</template>
 <script>
     window.isWishlistPage = true;
     let localGames = <?= json_encode($games) ?>;

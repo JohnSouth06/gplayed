@@ -26,7 +26,6 @@ require_once ROOT_PATH . '/controllers/AuthController.php';
 require_once ROOT_PATH . '/controllers/GameController.php';
 require_once ROOT_PATH . '/controllers/ProgressController.php';
 require_once ROOT_PATH . '/controllers/CommunityController.php';
-require_once ROOT_PATH . '/controllers/SocialController.php';
 require_once ROOT_PATH . '/controllers/TrophyController.php';
 require_once ROOT_PATH . '/config/lang.php';
 
@@ -37,12 +36,12 @@ $authController = new AuthController($db);
 $gameController = new GameController($db);
 $progressController = new ProgressController($db);
 $communityController = new CommunityController($db);
-$socialController = new SocialController($db);
 $trophyController = new TrophyController($db);
 
 $action = $_GET['action'] ?? 'home';
 
 switch ($action) {
+
     // Auth & Profile
     case 'login':
         $authController->login();
@@ -63,7 +62,7 @@ switch ($action) {
         $authController->deleteAccount();
         break;
 
-    //Password/Reset
+    // Password/Reset
     case 'forgot_password':
         $authController->forgotPassword();
         break;
@@ -72,6 +71,22 @@ switch ($action) {
         break;
     case 'do_reset':
         $authController->doReset();
+        break;
+
+    // Google Login
+    case 'login_google':
+        $authController->loginGoogle();
+        break;
+    case 'google_callback':
+        $authController->googleCallback();
+        break;
+
+    // Discord Login    
+    case 'login_discord':
+        $authController->loginDiscord();
+        break;
+    case 'discord_callback':
+        $authController->discordCallback();
         break;
 
     // Games
@@ -89,6 +104,17 @@ switch ($action) {
     case 'wishlist': $gameController->wishlist(); break;
     case 'acquire': $gameController->acquire(); break;
 
+    // --- Prêts (Loans) ---
+    case 'loaned':
+        $gameController->loaned();
+        break;
+    case 'loan':
+        $gameController->loan();
+        break;
+    case 'returnGame':
+        $gameController->returnGame();
+        break;
+        
     // Recherche API
     case 'api_search':
         $gameController->apiSearch();
@@ -100,6 +126,29 @@ switch ($action) {
         break;
     case 'get_igdb_details':
         $gameController->getIgdbDetails();
+        break;
+
+    // Import Steam
+    case 'steam_login':
+    $gameController->steamLogin();
+    break;
+
+    case 'steam_callback':
+    $gameController->steamCallback();
+    break;
+
+    case 'api_steam_games':
+        $gameController->apiGetSteamGames();
+        break;
+    case 'api_steam_import_single':
+        $gameController->apiImportSingleSteamGame();
+        break;
+    case 'api_steam_complete':
+        $gameController->steamImportComplete();
+        break;
+
+    case 'update_steam_playtime':
+        $gameController->updateSteamPlaytime();
         break;
 
     // Import/Export
@@ -121,7 +170,7 @@ switch ($action) {
         $progressController->delete();
         break;
 
-    // --- Social
+    // --- Community
     case 'community':
         $communityController->index();
         break;
@@ -134,24 +183,18 @@ switch ($action) {
         $gameController->share();
         break;
 
-    // Actus
-    case 'feed':
-        $socialController->feed();
-        break;
-    case 'add_comment':
-        $socialController->addComment();
-        break;
-
+    // Legal
     case 'legal':
         $view = 'views/legal.php';
         require ROOT_PATH . '/views/layout.php';
         break;
 
-    // Comments
-    case 'add_comment':
-        if (isset($socialController)) {
-            $socialController->addComment();
-        }
+    // Wheel
+    case 'api_roulette_games':
+        $gameController->apiRouletteGames();
+        break;
+    case 'api_start_game':
+        $gameController->apiStartGame();
         break;
 
     // Trophy
@@ -174,25 +217,26 @@ switch ($action) {
         $trophyController->apiDelete();
         break;
 
-    // Générateur de fichier de langue JS
     case 'js_lang':
         header('Content-Type: application/javascript');
-        // On filtre uniquement les clés commençant par 'js_' pour la sécurité et la performance
+
         $jsTranslations = [];
         if (isset($GLOBALS['translations'])) {
             foreach ($GLOBALS['translations'] as $key => $value) {
+                // 1. On transfert TOUTES les clés telles quelles (pour status_playing, etc.)
+                $jsTranslations[$key] = $value;
+
+                // 2. Rétrocompatibilité : on crée un double sans le "js_" pour vos autres fichiers JS
                 if (strpos($key, 'js_') === 0) {
-                    // On enlève le préfixe 'js_' pour avoir des clés propres en JS (ex: 'js_btn_edit' devient 'btn_edit')
                     $cleanKey = substr($key, 3);
                     $jsTranslations[$cleanKey] = $value;
                 }
             }
         }
-        // On affiche le code JS
+
         echo 'const LANG = ' . json_encode($jsTranslations) . ';';
         exit;
 
-        // Default
     case 'home':
     default:
         $gameController->index();

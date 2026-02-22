@@ -2,32 +2,25 @@
 .game-card-modern {
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 24px;
-    /* Coins très arrondis modernes */
     background-color: var(--bs-body-bg);
-    /* S'adapte au thème Light/Dark */
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    /* Animation fluide */
     height: 100%;
     display: flex;
     flex-direction: column;
     position: relative;
-    /* Ombre douce par défaut */
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
 }
 
-/* Animation au survol : on lève la carte */
 .game-card-modern:hover {
     transform: translateY(-8px) scale(1.01);
     z-index: 10;
-    /* L'ombre colorée sera ajoutée dynamiquement en JS */
 }
 
 /* --- IMAGE DU HAUT --- */
 .card-cover-container {
     position: relative;
     padding-top: 120%;
-    /* Format un peu plus haut que 16/9 pour l'élégance */
     overflow: hidden;
     background-color: var(--bs-body-tertiary);
 }
@@ -40,7 +33,6 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.8s ease;
-    /* Zoom très lent et doux */
 }
 
 .game-card-modern:hover .card-cover-img {
@@ -56,7 +48,22 @@
     background-color: rgba(255, 255, 255, 0.85);
     color: #111;
     font-weight: 700;
-    font-size: 0.7rem;
+    font-size: 0.7rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    border-radius: 30px;
+    padding: 6px 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.status-badge-list {
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #ffffff;
+    font-weight: 700 !important;
+    font-size: 0.7rem !important;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
@@ -67,9 +74,9 @@
 
 /* Adaptation badge en dark mode */
 [data-bs-theme="dark"] .status-badge-float {
-    background-color: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* --- CONTENU DU BAS --- */
@@ -322,6 +329,62 @@
     --bs-nav-tabs-border-width: 0 !important;
 }
 
+/* --- LIBRARY TOGGLE SWITCH --- */
+.custom-tabs-container {
+    display: flex;
+    position: relative;
+    background-color: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.03));
+    border-radius: 50px;
+    padding: 6px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.custom-tab-input {
+    display: none;
+}
+
+.custom-tab-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 15px;
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--bs-secondary);
+    cursor: pointer;
+    z-index: 2; 
+    transition: color 0.3s ease;
+}
+
+.custom-tab-input:checked + .custom-tab-label {
+    color: var(--bs-body-bg);
+}
+
+.custom-tab-slider {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: calc(50% - 6px);
+    height: calc(100% - 12px);
+    background-color: var(--bs-primary);
+    border-radius: 50px;
+    transition: transform 0.4s cubic-bezier(0.68, -0.15, 0.265, 1.25); 
+    z-index: 1;
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+#btnLibPhys:checked ~ .custom-tab-slider {
+    transform: translateX(0);
+}
+
+#btnLibDigi:checked ~ .custom-tab-slider {
+    transform: translateX(100%);
+}
+
 @keyframes pulse-red {
     0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
     70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
@@ -333,6 +396,24 @@
     background-color: #dc3545 !important; /* Rouge Bootstrap */
     color: white !important;
     border: none !important;
+}
+
+/* JAQUETTE JEUX DIGITAUX */
+.card-cover-container.ratio-digital {
+    padding-top: 0 !important; 
+
+    aspect-ratio: 460 / 215; 
+
+    height: auto; 
+}
+
+.card-cover-container.ratio-digital .card-cover-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 /* --- FILTRES MOBILES (Scroll horizontal uniquement sur mobile) --- */
@@ -377,19 +458,56 @@
         text-align: left; /* <--- CHANGEMENT ICI : Force l'alignement à gauche */
     }
 
-    /* Le conteneur des boutons vue (Grille/Liste) s'étire aussi */
-    .filters-scroll-container .view-toggle-desktop {
-        flex: 1 1 0; 
+    /* --- UNIFORMISATION VIEW TOGGLE (GRID/LIST) --- */
+    .view-toggle-tabs {
         display: flex;
-        justify-content: center; /* Les boutons restent centrés dans leur bloc */
-        width: 100%;
+        position: relative;
+        background-color: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.03));
+        border-radius: 50px;
+        padding: 4px; /* Un peu plus compact que le switch principal */
+        width: 100px;
+        height: 42px;
     }
-    
-    .filters-scroll-container .view-toggle-desktop .btn {
-        flex: 1; 
+
+    .view-tab-input {
+        display: none;
+    }
+
+    .view-tab-label {
+        flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
+        margin: 0;
+        cursor: pointer;
+        z-index: 2;
+        color: var(--bs-secondary);
+        transition: color 0.3s ease;
+    }
+
+    .view-tab-input:checked + .view-tab-label {
+        color: var(--bs-body-bg) !important;
+    }
+
+    .view-tab-slider {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: calc(50% - 4px);
+        height: calc(100% - 8px);
+        background-color: var(--bs-primary);
+        border-radius: 50px;
+        transition: transform 0.4s cubic-bezier(0.68, -0.15, 0.265, 1.25);
+        z-index: 1;
+    }
+
+    /* Animation du slider selon l'input coché */
+    #btnGridInput:checked ~ .view-tab-slider {
+        transform: translateX(0);
+    }
+
+    #btnListInput:checked ~ .view-tab-slider {
+        transform: translateX(100%);
     }
 }
 

@@ -1,36 +1,6 @@
 <link rel="stylesheet" href="assets/css/dashboard.css">
 
 <?php
-// 1. Initialisation des compteurs
-$totalGames = 0;
-$finishedCount = 0;
-$playingCount = 0;
-
-// 2. Boucle unique pour traiter les jeux (Compteurs + Traduction)
-if (isset($games) && is_array($games)) {
-    foreach ($games as &$g) { // Le '&' est important si on modifie les genres
-        
-        // --- Partie Traduction (Si vous l'avez ajoutée) ---
-        if (!empty($g['genres']) && function_exists('translate_genres')) {
-            $g['genres'] = translate_genres($g['genres']);
-        }
-        
-        // --- Partie Compteurs (Votre code) ---
-        if (isset($g['status']) && $g['status'] !== 'wishlist') {
-            $totalGames++; 
-
-            if ($g['status'] == 'finished' || $g['status'] == 'completed') {
-                $finishedCount++;
-            }
-            if ($g['status'] == 'playing') {
-                $playingCount++;
-            }
-        }
-    }
-    unset($g); // Toujours unset après un passage par référence
-}
-
-// 3. Récupération de l'utilisateur et du lien de partage
 $username = $_SESSION['username'] ?? 'Gamer';
 $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[SCRIPT_NAME]?action=share&user=" . $username;
 ?>
@@ -44,7 +14,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <i class="material-icons stat-icon text-warning-emphasis">&#xea28;</i>
             <div class="stat-content">
                 <span class="stat-label"><?= __('dashboard_total') ?></span>
-                <span class="stat-value text-warning-emphasis animate-counter" data-target="<?= $totalGames ?>">0</span>                
+                <span id="statTotal" class="stat-value text-warning-emphasis animate-counter" data-target="<?= $totalGames ?>">0</span>                
             </div>
         </div>
 
@@ -52,7 +22,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <i class="material-icons stat-icon text-info">&#xe037;</i>
             <div class="stat-content">
                 <span class="stat-label"><?= __('dashboard_playing') ?></span>
-                <span class="stat-value text-info animate-counter" data-target="<?= $playingCount ?>">0</span>
+                <span id="statPlaying" class="stat-value text-info animate-counter" data-target="<?= $playingCount ?>">0</span>
             </div>
         </div>
 
@@ -60,7 +30,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <i class="material-icons stat-icon text-primary">&#xe5ca;</i>
             <div class="stat-content">
                 <span class="stat-label"><?= __('dashboard_finished') ?></span>
-                <span class="stat-value text-primary animate-counter" data-target="<?= $finishedCount ?>">0</span>
+                <span id="statFinished" class="stat-value text-primary animate-counter" data-target="<?= $finishedCount ?>">0</span>
             </div>
         </div>
     </div>
@@ -132,6 +102,23 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
     </div>
 </div>
 
+<div class="d-flex justify-content-center mb-4 mt-2">
+    <div class="custom-tabs-container shadow-sm border border-opacity-10">
+        
+        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
+        <label for="btnLibPhys" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
+        </label>
+
+        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
+        <label for="btnLibDigi" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
+        </label>
+
+        <div class="custom-tab-slider"></div>
+    </div>
+</div>
+
 <div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
     <div class="input-group rounded-pill overflow-hidden border border-opacity-10 bg shadow-sm w-100 w-xxl-50">
@@ -159,6 +146,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <option value="completed"><?= __('status_completed') ?></option>
                 <option value="wishlist"><?= __('status_wishlist') ?></option>
                 <option value="dropped"><?= __('status_dropped') ?></option>
+                <option value="loaned"><?= __('status_loaned') ?></option>
             </select>
 
             <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
@@ -168,9 +156,20 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <option value="platform_asc"><?= __('sort_platform') ?></option>
             </select>
 
-            <div class="bg-body rounded-3 shadow-sm border p-1 d-none d-md-flex view-toggle-desktop">
-                <button class="btn btn-sm btn-light rounded-2 active border-0" id="btnGrid" onclick="setView('grid')"><i class="material-icons-outlined icon-md">&#xe9b0;</i></button>
-                <button class="btn btn-sm btn-light rounded-2 border-0" id="btnList" onclick="setView('list')"><i class="material-icons-outlined icon-md">&#xe8ef;</i></button>
+            <div class="view-toggle-tabs shadow-sm border border-opacity-10 d-none d-md-flex">
+                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input" 
+                    onclick="setView('grid')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? '' : 'checked' ?>>
+                <label for="btnGridInput" class="view-tab-label">
+                    <i class="material-icons-outlined icon-md">&#xe9b0;</i>
+                </label>
+
+                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input" 
+                    onclick="setView('list')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? 'checked' : '' ?>>
+                <label for="btnListInput" class="view-tab-label">
+                    <i class="material-icons-outlined icon-md">&#xe8ef;</i>
+                </label>
+
+                <div class="view-tab-slider"></div>
             </div>
         </div>
     </div>
@@ -267,21 +266,13 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                                 <option value="finished"><?= __('status_finished') ?></option>
                                                 <option value="completed"><?= __('status_completed') ?></option>
                                                 <option value="dropped"><?= __('status_dropped') ?></option>
+                                                <option value="loaned"><?= __('status_loaned') ?></option>
                                                 <option value="wishlist"><?= __('status_wishlist') ?></option>
                                             </select>
                                         </div>
                                     </div>
                                     <div class="row g-2 mb-3">
-                                        <div class="col-12">
-                                            <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_format_label') ?></label>
-                                            <div class="bg-body-transparent p-1 rounded-3 d-flex gap-1">
-                                                <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" checked>
-                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2 py-2" for="fmtPhysical"><i class="material-icons-outlined icon-sm me-1">&#xe1a1;</i> <?= __('modal_format_physical') ?></label>
-                                                <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital">
-                                                <label class="btn btn-sm btn-outline-primary border-0 flex-grow-1 rounded-2 py-2" for="fmtDigital"><i class="material-icons-outlined icon-sm me-1">&#xe3dd;</i> <?= __('modal_format_digital') ?></label>
-                                                
-                                            </div>
-                                        </div>
+                                            <input type="hidden" name="format" id="gameFormatHidden" value="physical">
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_rating_label') ?></label>
                                             <input type="number" name="user_rating" id="gameRating" class="form-control rounded-3" max="10">
@@ -361,6 +352,42 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
     </div>
 </div>
 
+<div class="modal fade" id="loanModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <form action="/loan" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="game_id" id="loanGameId">
+                
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fs-5 fw-bold"><?= __('loaned_title') ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <p class="text-secondary small mb-4"><?= __('loaned_desc2') ?> <strong id="loanGameTitle" class="text-body"></strong>. <?= __('loaned_masked_game') ?></p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary"><?= __('loaned_to') ?></label>
+                        <input type="text" name="loaned_to" class="form-control rounded-3" required placeholder="<?= __('loaned_name_placeholder') ?>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary"><?= __('loaned_date') ?></label>
+                        <input type="date" name="loaned_date" class="form-control rounded-3" required value="<?= date('Y-m-d') ?>">
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-top-0">
+                    <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4 text-dark"><?= __('loaned_confirm_return') ?></button>
+                    <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal"><?= __('modal_btn_cancel') ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<template id="gridCardTemplate">
+    <?php include 'views/_game_card_template.html'; ?>
+</template>
 <script>
     window.isDashboard = true;
     let localGames = <?= json_encode($games) ?>;
