@@ -93,13 +93,7 @@ class Game
             }
         }
         elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($imagePath);
-            if ($downloaded) {
-                $imagePath = $downloaded;
-                $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
-            } else {
-                $dominantColor = $this->getAverageColor($imagePath);
-            }
+            $dominantColor = $this->getAverageColor($imagePath);
         }
         elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
             $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
@@ -228,15 +222,8 @@ class Game
             $img = str_replace(' ', '%20', $img); 
         }
 
-        if ($img && filter_var($img, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($img);
-            if ($downloaded) $img = $downloaded;
-        }
-
         $dominantColor = $game['dominant_color'] ?? null;
-        
-        // --- LA CORRECTION EST ICI ---
-        // Si le JSON contient l'ancienne couleur buggée, on la supprime pour FORCER le script à la recalculer avec le nouveau système !
+
         if ($dominantColor === 'rgb(30, 30, 30)') {
             $dominantColor = null;
         }
@@ -266,60 +253,6 @@ class Game
         $stmt->bindParam(':price', $game['estimated_price']);
 
         return $stmt->execute();
-    }
-
-    // --- NOUVELLE FONCTION: cURL en RAM (Bypass Steam) ---
-    private function downloadImage($url)
-    {
-        $uploadDir = dirname(__DIR__) . '/uploads/games/';
-
-        if (!file_exists($uploadDir)) {
-            @mkdir($uploadDir, 0777, true);
-        }
-
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-
-        $data = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode !== 200 || empty($data)) {
-            return null;
-        }
-
-        $srcImage = @imagecreatefromstring($data);
-        if (!$srcImage) {
-            return null;
-        }
-
-        $fileName = uniqid() . "_rawg.jpg";
-        $targetPath = $uploadDir . $fileName;
-
-        $width = imagesx($srcImage);
-        $height = imagesy($srcImage);
-        $maxWidth = 800;
-
-        if ($width > $maxWidth) {
-            $newWidth = $maxWidth;
-            $newHeight = (int) floor($height * ($maxWidth / $width));
-
-            $dstImage = imagecreatetruecolor($newWidth, $newHeight);
-            imagefill($dstImage, 0, 0, imagecolorallocate($dstImage, 255, 255, 255));
-            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-            $saved = imagejpeg($dstImage, $targetPath, 85);
-            imagedestroy($dstImage);
-        } else {
-            $saved = imagejpeg($srcImage, $targetPath, 85);
-        }
-
-        imagedestroy($srcImage);
-        return $saved ? 'uploads/games/' . $fileName : null;
     }
 
     // --- NOUVELLE FONCTION : Lecture locale ou distante sans échec ---
