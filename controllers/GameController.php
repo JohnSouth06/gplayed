@@ -15,7 +15,164 @@ class GameController
         $this->userModel = new User($db);
     }
 
-    // --- Sécurité CSRF ---
+    // ==========================================
+    //            ROUTES API (MOBILE)
+    // ==========================================
+
+    private function apiResponse($success, $message, $data = [], $httpCode = 200) {
+        header("Access-Control-Allow-Origin: *");
+        header('Content-Type: application/json');
+        http_response_code($httpCode);
+        echo json_encode(array_merge(['success' => $success, 'message' => $message], $data));
+        exit();
+    }
+
+    public function apiGetGames($userId)
+    {
+        $games = $this->gameModel->getAll($userId);
+        if ($games !== false) {
+            $this->apiResponse(true, 'Collection récupérée avec succès.', ['data' => $games]);
+        } else {
+            $this->apiResponse(false, 'Erreur lors de la récupération des jeux.', [], 500);
+        }
+    }
+
+    public function apiSearchIgdb($userId, $query)
+    {
+        if (strlen(trim($query)) < 2) {
+            $this->apiResponse(false, 'La recherche doit contenir au moins 2 caractères.', ['data' => []]);
+        }
+
+        $body = 'search "' . str_replace('"', '', $query) . '"; fields name, cover.url, first_release_date; limit 15;';
+        $results = $this->callIgdb('games', $body);
+        
+        $formatted = [];
+        if ($results && is_array($results)) {
+            foreach ($results as $game) {
+                $img = isset($game['cover']['url']) ? 'https:' . str_replace('t_thumb', 't_cover_big', $game['cover']['url']) : '';
+                $date = isset($game['first_release_date']) ? date('Y', $game['first_release_date']) : '';
+                
+                $formatted[] = [
+                    'id' => $game['id'],
+                    'name' => $game['name'],
+                    'released' => $date,
+                    'background_image' => $img
+                ];
+            }
+        }
+
+        $this->apiResponse(true, 'Recherche IGDB terminée.', ['data' => $formatted]);
+    }
+
+    // --- SAUVEGARDER/AJOUTER UN JEU (CORRIGÉ) ---
+    public function apiSaveGame($userId)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (empty($input['title']) || empty($input['status'])) {
+            $this->apiResponse(false, 'Le titre et le statut sont obligatoires.');
+        }
+
+        $gameData = [
+            'game_id' => '',
+            'rawg_id' => $input['rawg_id'] ?? null, 
+            'title' => $input['title'],
+            'status' => $input['status'], 
+            'format' => $input['format'] ?? 'physical',
+            'platform' => $input['platform'] ?? 'PC',
+            'platform_custom' => $input['platform_custom'] ?? '',
+            'user_rating' => $input['user_rating'] ?? null,
+            'comment' => $input['comment'] ?? '',
+            'image_url_hidden' => $input['background_image'] ?? ''
+        ];
+
+        // Vérification des doublons
+        $platformToCheck = ($gameData['platform'] === 'Multiplateforme' && !empty($gameData['platform_custom'])) 
+                            ? $gameData['platform_custom'] 
+                            : $gameData['platform'];
+
+        if ($this->gameModel->checkDuplicate($userId, $gameData['rawg_id'], $gameData['title'], $platformToCheck)) {
+            $this->apiResponse(false, 'Ce jeu existe déjà dans votre collection sur cette plateforme.');
+        }
+
+        if ($this->gameModel->save($gameData, [], $userId)) {
+            $this->apiResponse(true, 'Le jeu a bien été sauvegardé !');
+        } else {
+            $this->apiResponse(false, "Erreur lors de l'enregistrement en base de données.", [], 500);
+        }
+    }
+
+    // --- METTRE À JOUR UN JEU (NOUVEAU) ---
+    public function apiUpdateGame($userId)
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        // On accepte "id" (venant du JSON mobile)
+        $gameId = $input['id'] ?? null;
+
+        if (empty($gameId)) {
+            $this->apiResponse(false, 'L\'ID du jeu est obligatoire pour la mise à jour.', [], 400);
+        }
+
+        // 1. On récupère le jeu existant pour ne pas écraser bêtement les données manquantes
+        $existingGame = $this->gameModel->getOne($gameId, $userId);
+        if (!$existingGame) {
+            $this->apiResponse(false, 'Jeu introuvable dans votre collection.', [], 404);
+        }
+
+        // 2. On fusionne les anciennes données avec les nouvelles envoyées par le mobile
+        $gameData = [
+            'game_id' => $gameId, // Obligatoire pour que Game.php lance un UPDATE
+            'rawg_id' => $existingGame['rawg_id'],
+            'title' => $input['title'] ?? $existingGame['title'],
+            'status' => $input['status'] ?? $existingGame['status'],
+            'platform' => $input['platform'] ?? $existingGame['platform'],
+            'format' => $input['format'] ?? $existingGame['format'],
+            'release_date' => $input['release_date'] ?? $existingGame['release_date'],
+            'metacritic' => $input['metacritic_score'] ?? $existingGame['metacritic_score'],
+            'user_rating' => $input['user_rating'] ?? $existingGame['user_rating'],
+            'comment' => $input['comment'] ?? $existingGame['comment'],
+            'description' => $input['description'] ?? $existingGame['description'],
+            'genres' => $input['genres'] ?? $existingGame['genres'],
+            'estimated_price' => $input['estimated_price'] ?? $existingGame['estimated_price'],
+            'image_url_hidden' => $existingGame['image_url'] // On garde l'image actuelle
+        ];
+
+        // Gérer le cas du multiplateforme
+        if (isset($input['platform_custom']) && $input['platform'] === 'Multiplateforme') {
+            $gameData['platform_custom'] = $input['platform_custom'];
+        }
+
+        // 3. Sauvegarde
+        if ($this->gameModel->save($gameData, [], $userId)) {
+            $this->apiResponse(true, 'Le jeu a bien été mis à jour !');
+        } else {
+            $this->apiResponse(false, 'Erreur lors de la mise à jour en base de données.', [], 500);
+        }
+    }
+
+    // --- NOUVEAU : SUPPRIMER UN JEU ---
+    public function apiDeleteGame($userId)
+    {
+        // On récupère l'ID passé dans l'URL (ex: ?action=api_delete_game&id=5)
+        $gameId = $_GET['id'] ?? null;
+
+        if (!$gameId) {
+            $this->apiResponse(false, 'L\'ID du jeu à supprimer est manquant.', [], 400);
+        }
+
+        // On utilise la méthode de suppression existante de ton modèle
+        if ($this->gameModel->delete($gameId, $userId)) {
+            $this->apiResponse(true, 'Le jeu a été retiré de votre collection.');
+        } else {
+            $this->apiResponse(false, 'Erreur lors de la suppression du jeu.', [], 500);
+        }
+    }
+
+    // ==========================================
+    //           FIN ROUTES API (MOBILE)
+    // ==========================================
+
     private function checkCsrf()
     {
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {

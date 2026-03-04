@@ -28,6 +28,84 @@ class AuthController
         }
     }
 
+    // ==========================================
+    //            ROUTES API (MOBILE)
+    // ==========================================
+
+    private function sendJsonResponse($success, $message, $data = []) {
+
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header('Content-Type: application/json');
+        
+        echo json_encode(array_merge([
+            'success' => $success,
+            'message' => $message
+        ], $data));
+        exit();
+    }
+
+    public function apiLogin()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+  
+        $username = trim($input['username'] ?? '');
+        $password = trim($input['password'] ?? '');
+
+        if (empty($username) || empty($password)) {
+            $this->sendJsonResponse(false, 'Veuillez remplir tous les champs.');
+        }
+
+        $user = $this->userModel->login($username, $password);
+
+        if ($user) {
+
+            $token = bin2hex(random_bytes(32));
+
+            $this->userModel->saveApiToken($user['id'], $token);
+
+            $this->sendJsonResponse(true, 'Connexion réussie', [
+                'token' => $token,
+                'user' => [
+                    'id' => $user['id'],
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'avatar' => $user['avatar_url']
+                ]
+            ]);
+        } else {
+            $this->sendJsonResponse(false, 'Pseudo ou mot de passe incorrect.');
+        }
+    }
+
+    public function apiRegister()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        $username = trim($input['username'] ?? '');
+        $email = trim($input['email'] ?? '');
+        $password = trim($input['password'] ?? '');
+
+        if (empty($username) || empty($email) || empty($password)) {
+            $this->sendJsonResponse(false, 'Veuillez remplir tous les champs.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->sendJsonResponse(false, 'Format d\'email invalide.');
+        }
+
+        if ($this->userModel->emailExists($email)) {
+            $this->sendJsonResponse(false, 'Cet email est déjà utilisé.');
+        }
+
+        if ($this->userModel->register($username, $email, $password)) {
+
+            $this->sendJsonResponse(true, 'Inscription réussie. Vous pouvez maintenant vous connecter.');
+        } else {
+            $this->sendJsonResponse(false, 'Erreur lors de l\'inscription.');
+        }
+    }
+
     // --- CONNEXION ---
     public function login()
     {

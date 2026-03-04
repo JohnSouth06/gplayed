@@ -9,6 +9,26 @@ class User
         $this->conn = $db;
     }
 
+    // --- API TOKEN METHODS ---
+    public function saveApiToken($userId, $token)
+    {
+        $query = "UPDATE " . $this->table . " SET api_token = :token WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        $stmt->bindParam(':id', $userId);
+        return $stmt->execute();
+    }
+
+    public function getUserByToken($token)
+    {
+        $query = "SELECT id, username, email, avatar_url FROM " . $this->table . " WHERE api_token = :token";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    // --- FIN API TOKEN METHODS ---
+
     public function isPasswordStrong($password)
     {
         $regex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{10,}$/';
