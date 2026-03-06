@@ -93,13 +93,7 @@ class Game
             }
         }
         elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($imagePath);
-            if ($downloaded) {
-                $imagePath = $downloaded;
-                $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
-            } else {
-                $dominantColor = $this->getAverageColor($imagePath);
-            }
+            $dominantColor = $this->getAverageColor($imagePath);
         }
         elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
             $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
@@ -228,15 +222,8 @@ class Game
             $img = str_replace(' ', '%20', $img); 
         }
 
-        if ($img && filter_var($img, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($img);
-            if ($downloaded) $img = $downloaded;
-        }
-
         $dominantColor = $game['dominant_color'] ?? null;
-        
-        // --- LA CORRECTION EST ICI ---
-        // Si le JSON contient l'ancienne couleur buggée, on la supprime pour FORCER le script à la recalculer avec le nouveau système !
+
         if ($dominantColor === 'rgb(30, 30, 30)') {
             $dominantColor = null;
         }
