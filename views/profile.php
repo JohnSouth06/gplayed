@@ -31,6 +31,7 @@
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('auth_user') ?? 'Nom d\'utilisateur' ?></label>
                                 <input type="text" name="username" class="form-control rounded-3" value="<?= htmlspecialchars($user['username']) ?>" required>
                             </div>
+
                             <div class="mb-3">
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('auth_mail') ?></label>
                                 <input type="email" name="email" class="form-control rounded-3" value="<?= htmlspecialchars($user['email']) ?>" required>
@@ -49,10 +50,14 @@
                                 </select>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label small text-muted text-uppercase fw-bold">ID PSN (PlayStation)</label>
+                                <input type="text" name="psn_id" class="form-control rounded-3" value="<?= htmlspecialchars($user['psn_id'] ?? '') ?>" placeholder="Votre pseudo PSN public">
+                            </div>
+
                             <div class="mb-4">
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('profile_label_avatar') ?></label>
                                 <input type="file" name="avatar" class="form-control file-upload rounded-3 mb-2">
-
                             </div>
 
                             <div class="text-end">
@@ -90,6 +95,24 @@
                     </div>
                 </div>
 
+                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
+                    <div class="card-body p-4">
+                        <h5 class="card-title mb-3 fw-bold"><i class="fab fa-playstation text-info me-2"></i>Synchronisation PSN</h5>
+                        <p class="small text-secondary mb-4">
+                            Synchronisez vos trophées. Assurez-vous d'avoir renseigné votre <strong>ID PSN</strong> dans vos paramètres ci-dessus et que vos trophées sont configurés sur "Public" sur votre console.
+                        </p>
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            <button id="btn-sync-psn" class="btn btn-info text-white fw-bold rounded-pill px-4 shadow-sm">
+                                <span class="btn-text"><i class="fas fa-sync me-2"></i>Synchroniser mes trophées</span>
+                                <span class="btn-loader" style="display: none;">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Recherche en cours...
+                                </span>
+                            </button>
+                        </div>
+                        <div id="psn-sync-message" class="text-center mt-3 fw-bold"></div>
+                    </div>
+                </div>
+
                 <!-- STEAM IMPORT -->
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
@@ -109,7 +132,7 @@
                     </div>
                 </div>
                 <!-- STEAM IMPORT -->
-                 
+
                 <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
                         <h5 class="card-title mb-3 fw-bold"><?= __('profile_share_title') ?></h5>
@@ -158,26 +181,38 @@
 </div>
 
 <?php if (isset($_GET['importing']) && $_GET['importing'] === 'steam'): ?>
-<div class="modal fade" id="steamSyncModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
-            <div class="modal-body p-5 text-center">
-                <h4 class="mb-4 fw-bold text-info">
-                    <i class="fas fa-sync fa-spin me-2"></i><?= __('steam_sync') ?>
-                </h4>
-                <p class="text-secondary mb-4" id="steamSyncStatus"><?= __('steam_sync_in_progress') ?></p>
-                
-                <div class="progress mb-3 rounded-pill" style="height: 25px;">
-                    <div id="steamProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                </div>
-                
-                <div class="alert alert-danger mt-4 mb-0 py-2 small" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i><?= __('steam_warning_close') ?>
+    <div class="modal fade" id="steamSyncModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-body p-5 text-center">
+                    <h4 class="mb-4 fw-bold text-info">
+                        <i class="fas fa-sync fa-spin me-2"></i><?= __('steam_sync') ?>
+                    </h4>
+                    <p class="text-secondary mb-4" id="steamSyncStatus"><?= __('steam_sync_in_progress') ?></p>
+
+                    <div class="progress mb-3 rounded-pill" style="height: 25px;">
+                        <div id="steamProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+
+                    <div class="alert alert-danger mt-4 mb-0 py-2 small" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i><?= __('steam_warning_close') ?>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+<?php endif; ?> <style>
+    /* Petite animation CSS pour le spinner */
+    .spinner {
+        animation: spin 1s linear infinite;
+        vertical-align: middle;
+        margin-right: 5px;
+    }
 
+    @keyframes spin {
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
 <script src="assets/js/profile.js"></script>
-<?php endif; ?>
