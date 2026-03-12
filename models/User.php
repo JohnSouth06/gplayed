@@ -83,12 +83,12 @@ class User
 
         $randomPass = bin2hex(random_bytes(8)) . 'A1!';
         $passHash = password_hash($randomPass, PASSWORD_DEFAULT);
-        
-        $defaultAvatar = 'uploads/avatars/default.png'; 
+
+        $defaultAvatar = 'uploads/avatars/default.png';
 
         $query = "INSERT INTO " . $this->table . " (username, email, password, google_id, language, avatar_url) VALUES (:username, :email, :pass, :gid, 'fr', :avatar)";
         $stmt = $this->conn->prepare($query);
-        
+
         if ($stmt->execute([
             ':username' => $name,
             ':email' => $email,
@@ -184,7 +184,7 @@ class User
             if ($stmt->fetch()) {
                 return "username_exists";
             }
-            
+
             $fields[] = "username = :username";
             $params[':username'] = $username;
         }
@@ -306,7 +306,7 @@ class User
 
     public function follow($followerId, $followedId)
     {
-        if ($followerId == $followedId) return false; 
+        if ($followerId == $followedId) return false;
         $query = "INSERT IGNORE INTO user_follows (follower_id, followed_id) VALUES (:follower, :followed)";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':follower', $followerId);
@@ -332,7 +332,26 @@ class User
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-public function loginOrRegisterDiscord($discordUser)
+    // --- PSN METHODS ---
+    public function setPsnId($userId, $psnId)
+    {
+        $query = "UPDATE " . $this->table . " SET psn_id = :psn_id WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':psn_id', $psnId);
+        $stmt->bindParam(':id', $userId);
+        return $stmt->execute();
+    }
+
+    public function getPsnId($userId)
+    {
+        $query = "SELECT psn_id FROM " . $this->table . " WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $userId);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+
+    public function loginOrRegisterDiscord($discordUser)
     {
         $discordId = $discordUser['id'];
         $email = $discordUser['email'];

@@ -386,7 +386,12 @@ function getNeonColor(rgbString, opacity = 1, platform = '') {
 
 function generateGridCard(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
-    const img = g.image_url ? g.image_url : '';
+    let img = g.image_url ? g.image_url : '';
+    if (img.startsWith('//')) {
+        img = 'https:' + img;
+    } else if (img && !img.startsWith('http') && !img.startsWith('/')) {
+        img = '/' + img;
+    }
 
     // --- Appel avec la plateforme ajoutée ---
     const shadowColor = getNeonColor(g.dominant_color, 0.4, g.platform);
@@ -457,6 +462,8 @@ function generateGridCard(g) {
         </a>`;
     }
 
+    
+
     const templateNode = document.getElementById('gridCardTemplate');
     if (!templateNode) return '';
     let templateHtml = templateNode.innerHTML;
@@ -471,6 +478,7 @@ function generateGridCard(g) {
         .replaceAll('{title}', g.title)
         .replaceAll('{ratingHtml}', ratingHtml)
         .replaceAll('{metaHtml}', metaHtml)
+        .replaceAll('{trophiesHtml}', trophiesHtml)
         .replaceAll('{genres}', g.genres || '')
         .replaceAll('{loanInfoHtml}', loanInfoHtml)
         .replaceAll('{actionsHtml}', actionsHtml);
@@ -479,8 +487,15 @@ function generateGridCard(g) {
 function generateListRow(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
 
-    const img = g.image_url ?
-        `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
+    let finalImg = g.image_url ? g.image_url : '';
+    if (finalImg.startsWith('//')) {
+        finalImg = 'https:' + finalImg;
+    } else if (finalImg && !finalImg.startsWith('http') && !finalImg.startsWith('/')) {
+        finalImg = '/' + finalImg;
+    }
+
+    const img = finalImg ?
+        `<img src="${finalImg}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
         `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
 
     const price = g.estimated_price > 0 ? `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
@@ -626,7 +641,14 @@ function openModal(g = null) {
     const prev = document.getElementById('previewImg');
     const holder = document.getElementById('uploadPlaceholder');
     if (prev && holder) {
-        if (g && g.image_url) { prev.src = g.image_url; prev.classList.remove('d-none'); holder.classList.add('d-none'); }
+        if (g && g.image_url) { 
+        let prevImgUrl = g.image_url;
+        if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+        else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+        prev.src = prevImgUrl; 
+        prev.classList.remove('d-none'); 
+        holder.classList.add('d-none'); 
+    }
         else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
     }
 

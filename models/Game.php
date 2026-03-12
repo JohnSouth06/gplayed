@@ -93,13 +93,7 @@ class Game
             }
         }
         elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($imagePath);
-            if ($downloaded) {
-                $imagePath = $downloaded;
-                $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
-            } else {
-                $dominantColor = $this->getAverageColor($imagePath);
-            }
+            $dominantColor = $this->getAverageColor($imagePath);
         }
         elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
             $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
@@ -214,6 +208,29 @@ class Game
         return $stmt->execute();
     }
 
+    public function findPlayStationGameByTitle($userId, $psnTitle)
+    {
+        // On cherche un jeu PlayStation appartenant à l'utilisateur
+        // L'utilisation de LIKE permet une correspondance partielle
+        $query = "SELECT id, title FROM " . $this->table . " 
+                  WHERE user_id = :uid 
+                  AND (platform LIKE '%PS%' OR platform LIKE '%PlayStation%')
+                  AND LOWER(title) LIKE LOWER(:title) 
+                  LIMIT 1";
+                  
+        $stmt = $this->conn->prepare($query);
+        
+        // On nettoie un peu le titre (on enlève les ™ et © si présents pour faciliter la recherche)
+        $cleanTitle = str_replace(['™', '©', '®'], '', $psnTitle);
+        $searchTerm = "%" . trim($cleanTitle) . "%";
+        
+        $stmt->bindParam(':uid', $userId);
+        $stmt->bindParam(':title', $searchTerm);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     // --- IMPORT JSON ---
     public function importEntry($game, $userId)
     {
@@ -228,15 +245,8 @@ class Game
             $img = str_replace(' ', '%20', $img); 
         }
 
-        if ($img && filter_var($img, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($img);
-            if ($downloaded) $img = $downloaded;
-        }
-
         $dominantColor = $game['dominant_color'] ?? null;
-        
-        // --- LA CORRECTION EST ICI ---
-        // Si le JSON contient l'ancienne couleur buggée, on la supprime pour FORCER le script à la recalculer avec le nouveau système !
+
         if ($dominantColor === 'rgb(30, 30, 30)') {
             $dominantColor = null;
         }

@@ -99,6 +99,27 @@ $borderColor = getNeonColorPHP($domColor, 0.5);
                 <span class="meta-tag bg-body-secondary border-0"><?= $formatIcon ?></span>
             </div>
             
+            <?php if (isset($g['trophies_summary']) && $g['trophies_summary']['total'] > 0): 
+                $t = $g['trophies_summary'];
+                $percent = round(($t['obtained'] / $t['total']) * 100);
+            ?>
+            <div class="trophies-summary mt-2 mb-3 p-2 rounded-3 bg-body-tertiary border" style="border-color: rgba(0,0,0,0.05);">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-bold text-muted" style="font-size: 0.70rem; letter-spacing: 0.5px;">PROGRESSION</span>
+                    <span class="small fw-bold" style="font-size: 0.8rem;"><?= $percent ?>%</span>
+                </div>
+                <div class="progress mb-2" style="height: 4px; background-color: rgba(0,0,0,0.1);">
+                    <div class="progress-bar" role="progressbar" style="width: <?= $percent ?>%; background-color: <?= $percent == 100 ? '#0070D2' : '#6c757d'; ?>;"></div>
+                </div>
+                <div class="d-flex justify-content-between text-body-secondary fw-bold" style="font-size: 0.85rem;">
+                    <span title="Platine" class="<?= $t['plat'] > 0 ? 'text-dark dark-mode-white' : 'opacity-50' ?>"><img src="assets/images/platinum.png" width="16" class="me-1 align-text-bottom"><?= $t['plat'] ?></span>
+                    <span title="Or" class="<?= $t['gold'] > 0 ? 'text-dark dark-mode-white' : 'opacity-50' ?>"><img src="assets/images/gold.png" width="16" class="me-1 align-text-bottom"><?= $t['gold'] ?></span>
+                    <span title="Argent" class="<?= $t['silver'] > 0 ? 'text-dark dark-mode-white' : 'opacity-50' ?>"><img src="assets/images/silver.png" width="16" class="me-1 align-text-bottom"><?= $t['silver'] ?></span>
+                    <span title="Bronze" class="<?= $t['bronze'] > 0 ? 'text-dark dark-mode-white' : 'opacity-50' ?>"><img src="assets/images/bronze.png" width="16" class="me-1 align-text-bottom"><?= $t['bronze'] ?></span>
+                </div>
+            </div>
+            <?php endif; ?>
+            
             <div class="mt-auto bg-body rounded-3 p-2 border border-warning border-opacity-25 mb-3">
                 <div class="small text-muted mb-1 text-truncate" title="<?= htmlspecialchars($g['loaned_to']) ?>">
                     <i class="material-icons-outlined icon-sm align-middle me-1 text-warning">&#xe7fd;</i><?= __('loaned_to') ?? 'À :' ?> <strong class="text-body"><?= htmlspecialchars($g['loaned_to']) ?></strong>

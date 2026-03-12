@@ -128,6 +128,74 @@ switch ($action) {
         $gameController->getIgdbDetails();
         break;
 
+    // --- SYNCHRONISATION PSN ---
+    case 'api_psn_sync':
+        $userId = $currentUser['id'];
+        
+        // Optionnel : Récupérer le vrai PSN ID de l'utilisateur (si vous avez créé la colonne)
+        // Pour l'instant, on utilise "me" car c'est votre propre token sur le VPS
+        $psnId = "me"; 
+
+        // 1. Appel de votre micro-service VPS
+        $vpsIp = "http://87.106.8.127:3000"; 
+        $url = $vpsIp . "/api/psn/trophies/" . urlencode($psnId);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || !$response) {
+            sendJson(false, 'Erreur de communication avec le serveur PSN relai.');
+        }
+
+        $data = json_decode($response, true);
+        if (!$data || !$data['success']) {
+            sendJson(false, 'Erreur API PSN: ' . ($data['message'] ?? 'Inconnue'));
+        }
+
+        // 2. Traitement des données reçues
+        require_once ROOT_PATH . '/models/Trophy.php';
+        require_once ROOT_PATH . '/models/Game.php';
+        
+        $trophyModel = new Trophy($db);
+        $gameModel = new Game($db);
+
+        $syncedGames = 0;
+        $syncedTrophies = 0;
+
+        foreach ($data['games'] as $psnGame) {
+            // On cherche le jeu dans la bibliothèque de l'utilisateur
+            $localGame = $gameModel->findPlayStationGameByTitle($userId, $psnGame['titleName']);
+            
+            if ($localGame) {
+                $gameId = $localGame['id'];
+                $syncedGames++;
+                
+                // On boucle sur les trophées du jeu
+                if (isset($psnGame['earnedTrophies']) && is_array($psnGame['earnedTrophies'])) {
+                    foreach ($psnGame['earnedTrophies'] as $trophy) {
+                        // Les trophées cachés non obtenus n'ont parfois pas de nom exposé par l'API
+                        $title = $trophy['trophyName'] ?? 'Trophée masqué';
+                        $type = strtolower($trophy['trophyType'] ?? 'bronze'); 
+                        $isObtained = !empty($trophy['earned']);
+
+                        $trophyModel->syncPsnTrophy($gameId, $title, $type, $isObtained);
+                        $syncedTrophies++;
+                    }
+                }
+            }
+        }
+
+        sendJson(true, 'Synchronisation terminée avec succès', [
+            'games_synced' => $syncedGames,
+            'trophies_processed' => $syncedTrophies
+        ]);
+        break;
+
     // Import Steam
     case 'steam_login':
     $gameController->steamLogin();

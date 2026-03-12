@@ -31,6 +31,7 @@ class AuthController
     // ==========================================
     //            ROUTES API (MOBILE)
     // ==========================================
+    
 
     private function sendJsonResponse($success, $message, $data = []) {
 
@@ -78,6 +79,86 @@ class AuthController
         }
     }
 
+    public function apiForgotPassword()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $email = $input['email'] ?? '';
+        $redirectUrl = $input['redirect_url'] ?? '';
+
+        if (empty($email)) {
+            $this->sendJsonResponse(false, 'Email requis.');
+        }
+
+        // On utilise la bonne fonction de User.php
+        $userExists = $this->userModel->emailExists($email);
+        if (!$userExists) {
+            // On renvoie "true" par sécurité pour ne pas indiquer si un email existe ou non
+            $this->sendJsonResponse(true, 'Si cet email correspond à un compte, un lien a été envoyé.');
+        }
+
+        $token = bin2hex(random_bytes(32));
+        
+        // On utilise la bonne fonction de User.php
+        $this->userModel->setResetToken($email, $token); 
+
+        try {
+            $mail = new PHPMailer(true);
+
+            // Configuration SMTP Ionos
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.ionos.fr';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['MAIL_USER_ID']; 
+            $mail->Password   = $_ENV['MAIL_PASSWORD_ID'];            
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = 587;
+            $mail->CharSet    = 'UTF-8';
+
+            // Lien de réinitialisation (Web ou Mobile)
+            if (!empty($redirectUrl)) {
+                // On prépare l'URL de l'app avec le token
+                $targetAppUrl = $redirectUrl . "?token=" . $token;
+                // On crée un lien HTTPS qui va rediriger vers l'app
+                $resetLink = "https://www.g-played.com/api/index.php?action=app_bounce&target=" . urlencode($targetAppUrl);
+            } else {
+                $resetLink = "https://www.g-played.com/?action=reset_password&token=" . $token;
+            }
+            
+            $mail->setFrom('info@g-played.com', 'GPlayed Support');
+            $mail->addAddress($email);
+            $mail->isHTML(true);
+            $mail->Subject = 'Réinitialisation de votre mot de passe - G-Played';
+            $mail->Body    = "Cliquez sur ce lien pour réinitialiser votre mot de passe : <a href='$resetLink'>$resetLink</a>";
+
+            $mail->send();
+            $this->sendJsonResponse(true, 'Lien de réinitialisation envoyé par email.');
+        } catch (Exception $e) {
+            $this->sendJsonResponse(false, 'Erreur lors de l\'envoi de l\'email.');
+        }
+    }
+
+    public function apiResetPassword()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $token = $input['token'] ?? '';
+        $newPassword = $input['new_password'] ?? '';
+
+        if (empty($token) || empty($newPassword)) {
+            $this->sendJsonResponse(false, 'Données manquantes.');
+        }
+
+        // On réutilise la fonction du modèle existant (comme sur le Web)
+        $res = $this->userModel->resetPassword($token, $newPassword);
+
+        if ($res === "weak_password") {
+            $this->sendJsonResponse(false, 'Le mot de passe est trop faible. Utilisez au moins 8 caractères.');
+        } elseif ($res) {
+            $this->sendJsonResponse(true, 'Mot de passe modifié avec succès ! Vous pouvez maintenant vous connecter.');
+        } else {
+            $this->sendJsonResponse(false, 'Ce lien est invalide ou a expiré.');
+        }
+    }
+
     public function apiRegister()
     {
         $input = json_decode(file_get_contents('php://input'), true);
@@ -104,6 +185,52 @@ class AuthController
         } else {
             $this->sendJsonResponse(false, 'Erreur lors de l\'inscription.');
         }
+    }
+
+    // ==========================================
+    // MÉTHODE DE VÉRIFICATION API POUR L'APP MOBILE
+    // ==========================================
+    public function apiMobileVerify() {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $token = $input['token'] ?? '';
+        
+        if ($token) {
+            $decoded = base64_decode($token);
+            if ($decoded) {
+                $parts = explode('|', $decoded);
+                if (count($parts) === 3) {
+                    $userId = $parts[0];
+                    $timestamp = $parts[1];
+                    $signature = $parts[2];
+                    
+                    // Vérifie que le token a été généré il y a moins de 5 minutes
+                    if (time() - $timestamp <= 300) {
+                        $expectedSignature = hash_hmac('sha256', $userId . '|' . $timestamp, $_ENV['MOBILE_APP_SECRET']);
+                        
+                        if (hash_equals($expectedSignature, $signature)) {
+                            $user = $this->userModel->getById((int)$userId);
+                            
+                            if ($user) {
+                                // On génère un vrai jeton API permanent pour l'application mobile
+                                $apiToken = bin2hex(random_bytes(32));
+                                $this->userModel->saveApiToken($user['id'], $apiToken);
+                                
+                                $this->sendJsonResponse(true, 'Connexion réussie', [
+                                    'token' => $apiToken,
+                                    'user' => [
+                                        'id' => $user['id'],
+                                        'username' => $user['username'],
+                                        'email' => $user['email'],
+                                        'avatar' => $user['avatar_url']
+                                    ]
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $this->sendJsonResponse(false, 'Jeton de sécurité invalide ou expiré.');
     }
 
     // --- CONNEXION ---
@@ -220,6 +347,11 @@ class AuthController
     }
 
     public function loginGoogle() {
+        // Capture de l'URL de redirection mobile si elle existe
+        if (isset($_GET['app_redirect'])) {
+            $_SESSION['app_redirect'] = $_GET['app_redirect'];
+        }
+
         $client = $this->getGoogleClient();
         header('Location: ' . $client->createAuthUrl());
         exit();
@@ -246,7 +378,6 @@ class AuthController
             $user = $this->userModel->loginOrRegisterGoogle($google_account_info);
 
             if ($user) {
-
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['avatar'] = $user['avatar_url'];
@@ -255,30 +386,41 @@ class AuthController
                 $_SESSION['toast'] = ['msg' => __('toast_welcome') . $user['username'], 'type' => 'success'];
                 $_SESSION['force_loader'] = true;
                 
-                // --- NOUVEAU : Redirection Mobile ---
+                // --- Redirection Web ou Mobile ---
                 $userId = $user['id']; 
                 $timestamp = time();
                 $data = $userId . '|' . $timestamp;
                 $signature = hash_hmac('sha256', $data, $_ENV['MOBILE_APP_SECRET']);
                 $token = base64_encode($data . '|' . $signature);
 
+                if (!empty($_SESSION['app_redirect'])) {
+                    $redirectUrl = $_SESSION['app_redirect'];
+                    $redirectUrl .= (strpos($redirectUrl, '?') !== false ? '&' : '?') . "token=" . urlencode($token);
+                    unset($_SESSION['app_redirect']);
+                    header("Location: " . $redirectUrl);
+                    exit();
+                }
+
                 header("Location: https://www.g-played.com/index.php?action=mobile_login&token=" . urlencode($token));
-                // ------------------------------------
                 
             } else {
                 header("Location: /?error=google_auth_failed");
             }
 
         } catch (Exception $e) {
-
             $_SESSION['toast'] = ['msg' => "Erreur de connexion Google", 'type' => 'danger'];
             header("Location: /");
         }
         exit();
     }
 
-// --- DISCORD AUTH ---
+    // --- DISCORD AUTH ---
     public function loginDiscord() {
+        // Capture de l'URL de redirection mobile si elle existe
+        if (isset($_GET['app_redirect'])) {
+            $_SESSION['app_redirect'] = $_GET['app_redirect'];
+        }
+
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
         $redirectUri = $protocol . $_SERVER['HTTP_HOST'] . '/?action=discord_callback';
         
@@ -351,15 +493,22 @@ class AuthController
             $_SESSION['toast'] = ['msg' => __('toast_welcome') . $user['username'], 'type' => 'success'];
             $_SESSION['force_loader'] = true;
             
-            // --- NOUVEAU : Redirection Mobile ---
+            // --- Redirection Web ou Mobile ---
             $userId = $user['id']; 
             $timestamp = time();
             $data = $userId . '|' . $timestamp;
             $signature = hash_hmac('sha256', $data, $_ENV['MOBILE_APP_SECRET']);
             $token = base64_encode($data . '|' . $signature);
 
+            if (!empty($_SESSION['app_redirect'])) {
+                $redirectUrl = $_SESSION['app_redirect'];
+                $redirectUrl .= (strpos($redirectUrl, '?') !== false ? '&' : '?') . "token=" . urlencode($token);
+                unset($_SESSION['app_redirect']);
+                header("Location: " . $redirectUrl);
+                exit();
+            }
+
             header("Location: https://www.g-played.com/index.php?action=mobile_login&token=" . urlencode($token));
-            // ------------------------------------
             
         } else {
             $_SESSION['toast'] = ['msg' => "Erreur connexion Discord", 'type' => 'danger'];
