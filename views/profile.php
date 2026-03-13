@@ -91,7 +91,7 @@
                 </div>
 
                 <!-- PSN SYNC -->
-                <<?php
+                <?php
                     // Calcul du temps restant pour la synchronisation PSN
                     $lastSync = !empty($user['last_psn_sync']) ? strtotime($user['last_psn_sync']) : 0;
                     $diff = time() - $lastSync;
@@ -102,10 +102,13 @@
 
                     <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
-                        <h5 class="card-title mb-3 fw-bold"><i class="fab fa-playstation text-primary me-2"></i>Synchronisation PSN</h5>
+                        <h5 class="card-title mb-3 fw-bold"><i class="fab fa-playstation text-primary me-2"></i><?= __('psn_sync_title') ?></h5>
+                        <p class="small text-secondary mb-4">
+                            <?= __('psn_sync_desc') ?>
+                        </p>
 
                         <div class="mb-3">
-                            <label class="form-label small text-muted text-uppercase fw-bold">Votre ID PSN</label>
+                            <label class="form-label small text-muted text-uppercase fw-bold"><?= __('psn_sync_id') ?></label>
                             <div class="input-group">
                                 <input type="text" id="psn_id_sync_input" class="form-control"
                                     value="<?= htmlspecialchars($user['psn_id'] ?? '') ?>"
@@ -114,14 +117,14 @@
                                 <button id="btn-sync-psn" class="btn btn-primary px-4 shadow-sm fw-bold"
                                     <?= $isSyncDisabled ? 'disabled' : '' ?>
                                     data-remaining="<?= $remainingSeconds ?>">
-                                    <i class="fas fa-sync me-2"></i>Synchroniser
+                                    <i class="fas fa-sync me-2"></i><?= __('psn_sync_btn') ?>
                                 </button>
                             </div>
                         </div>
 
                         <div id="psn-sync-message" class="text-center mt-3 fw-bold" style="<?= $isSyncDisabled ? 'color: orange;' : '' ?>">
                             <?php if ($isSyncDisabled): ?>
-                                <i class="fas fa-clock me-2"></i>Prochaine synchronisation possible dans : <span id="psn-countdown">--:--</span>
+                                <i class="fas fa-clock me-2"></i><?= __('psn_sync_cooldown') ?> <span id="psn-countdown">--:--</span>
                             <?php endif; ?>
                         </div>
                     </div>

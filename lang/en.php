@@ -392,6 +392,9 @@ return [
 
     // PSN
     'psn_sync_title' => 'PSN Synchronization',
+    'psn_sync_desc' => 'You must <b>imperatively</b> have set the privacy of your PlayStation Network activities to "Everyone" for synchronization to work correctly. Connect to your PSN account via the secure link below: <a href="https://id.sonyentertainmentnetwork.com/id/management_ca/" target="_blank">Playstation Network</a>',    'psn_sync_id' => 'Your PSN ID',
+    'psn_sync_btn' => 'Synchronize',
+    'psn_sync_cooldown' => 'Next synchronization possible in :',
     'psn_sync_status' => 'Connecting to PlayStation services...',
     'psn_sync_in_progress' => 'Synchronization in progress...',
     'psn_warning_close' => '⚠️ Warning: Do not close this window until the process is complete.',

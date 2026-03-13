@@ -392,6 +392,10 @@ return [
 
     // PSN
     'psn_sync_title' => 'Synchronisation PSN',
+    'psn_sync_desc' => 'Vous devez <b>impérativement</b> avoir défini la confidentialité de vos activités Playstation Network sur "Tout le monde" afin que la synchronisation fonctionne correctement. Connectez-vous à votre compte PSN via le lien sécurisé suivant : <a href="https://id.sonyentertainmentnetwork.com/id/management_ca/" target="_blank">Playstation Network</a>',
+    'psn_sync_id' => 'Votre identifiant PSN',
+    'psn_sync_btn' => 'Synchroniser',
+    'psn_sync_cooldown' => 'Prochaine synchronisation possible dans :',
     'psn_sync_status' => 'Connexion aux services PlayStation en cours...',
     'psn_sync_in_progress' => 'Synchronisation en cours...',
     'psn_warning_close' => '⚠️ Attention : Merci de ne pas fermer cette fenêtre durant l\'opération.',
