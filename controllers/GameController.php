@@ -16,10 +16,11 @@ class GameController
     }
 
     // ==========================================
-    //            ROUTES API (MOBILE)
+    //            API (MOBILE)
     // ==========================================
 
-    private function apiResponse($success, $message, $data = [], $httpCode = 200) {
+    private function apiResponse($success, $message, $data = [], $httpCode = 200)
+    {
         header("Access-Control-Allow-Origin: *");
         header('Content-Type: application/json');
         http_response_code($httpCode);
@@ -43,20 +44,38 @@ class GameController
             $this->apiResponse(false, 'La recherche doit contenir au moins 2 caractères.', ['data' => []]);
         }
 
-        $body = 'search "' . str_replace('"', '', $query) . '"; fields name, cover.url, first_release_date; limit 15;';
+        // 1. AJOUT DE "platforms.name" dans la requête IGDB
+        $body = 'search "' . str_replace('"', '', $query) . '"; fields name, cover.url, first_release_date, platforms.name; limit 15;';
         $results = $this->callIgdb('games', $body);
-        
+
+        // 1. AJOUT DE "total_rating" dans la requête IGDB
+        $body = 'search "' . str_replace('"', '', $query) . '"; fields name, cover.url, first_release_date, platforms.name, total_rating; limit 15;';
+        $results = $this->callIgdb('games', $body);
+
         $formatted = [];
         if ($results && is_array($results)) {
             foreach ($results as $game) {
                 $img = isset($game['cover']['url']) ? 'https:' . str_replace('t_thumb', 't_cover_big', $game['cover']['url']) : '';
                 $date = isset($game['first_release_date']) ? date('Y', $game['first_release_date']) : '';
-                
+
+                // 2. EXTRACTION DES PLATEFORMES
+                $platforms = [];
+                if (isset($game['platforms']) && is_array($game['platforms'])) {
+                    foreach ($game['platforms'] as $plat) {
+                        if (isset($plat['name'])) {
+                            $platforms[] = $plat['name'];
+                        }
+                    }
+                }
+
+                // 3. ENVOI DES PLATEFORMES AU MOBILE
                 $formatted[] = [
                     'id' => $game['id'],
                     'name' => $game['name'],
                     'released' => $date,
-                    'background_image' => $img
+                    'background_image' => $img,
+                    'platforms' => $platforms,
+                    'metacritic' => isset($game['total_rating']) ? round($game['total_rating']) : null
                 ];
             }
         }
@@ -75,21 +94,22 @@ class GameController
 
         $gameData = [
             'game_id' => '',
-            'rawg_id' => $input['rawg_id'] ?? null, 
+            'rawg_id' => $input['rawg_id'] ?? null,
             'title' => $input['title'],
-            'status' => $input['status'], 
+            'status' => $input['status'],
             'format' => $input['format'] ?? 'physical',
             'platform' => $input['platform'] ?? 'PC',
             'platform_custom' => $input['platform_custom'] ?? '',
             'user_rating' => $input['user_rating'] ?? null,
             'comment' => $input['comment'] ?? '',
-            'image_url_hidden' => $input['background_image'] ?? ''
+            'image_url_hidden' => $input['background_image'] ?? '',
+            'metacritic' => $input['metacritic'] ?? null
         ];
 
         // Vérification des doublons
-        $platformToCheck = ($gameData['platform'] === 'Multiplateforme' && !empty($gameData['platform_custom'])) 
-                            ? $gameData['platform_custom'] 
-                            : $gameData['platform'];
+        $platformToCheck = ($gameData['platform'] === 'Multiplateforme' && !empty($gameData['platform_custom']))
+            ? $gameData['platform_custom']
+            : $gameData['platform'];
 
         if ($this->gameModel->checkDuplicate($userId, $gameData['rawg_id'], $gameData['title'], $platformToCheck)) {
             $this->apiResponse(false, 'Ce jeu existe déjà dans votre collection sur cette plateforme.');
@@ -143,7 +163,28 @@ class GameController
             $gameData['platform_custom'] = $input['platform_custom'];
         }
 
-        // 3. Sauvegarde
+        // Gérer le cas du multiplateforme
+        if (isset($input['platform_custom']) && $input['platform'] === 'Multiplateforme') {
+            $gameData['platform_custom'] = $input['platform_custom'];
+        }
+
+        // --- SAUVEGARDE DU TEMPS DE JEU (PLAYTIME) ---
+        if (isset($input['playtime'])) {
+            require_once dirname(__DIR__) . '/models/Playtime.php';
+            $playtimeModel = new Playtime($this->db);
+
+            // On récupère le playtime existant pour ne pas écraser accidentellement le time_100
+            $existingPlaytime = $playtimeModel->getByGameId($gameId);
+            $time100 = $existingPlaytime ? $existingPlaytime['time_100'] : null;
+
+            // NOUVEAU : On remplace l'éventuelle virgule par un point pour PHP
+            $cleanPlaytime = str_replace(',', '.', $input['playtime']);
+
+            // On sauvegarde la nouvelle valeur
+            $playtimeModel->save($gameId, floatval($cleanPlaytime), $time100);
+        }
+
+        // 3. Sauvegarde principale
         if ($this->gameModel->save($gameData, [], $userId)) {
             $this->apiResponse(true, 'Le jeu a bien été mis à jour !');
         } else {
@@ -169,8 +210,42 @@ class GameController
         }
     }
 
+    public function apiExportJson($userId)
+    {
+        $games = $this->gameModel->getAll($userId);
+
+        $exportData = array_map(function ($game) {
+            unset($game['user_id']);
+            unset($game['id']);
+            return $game;
+        }, $games);
+
+        // Renvoie directement le JSON pur sans forcer le téléchargement au navigateur
+        header('Content-Type: application/json');
+        echo json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    public function apiImportJson($userId)
+    {
+        $jsonContent = file_get_contents('php://input');
+        $games = json_decode($jsonContent, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($games)) {
+            $this->apiResponse(false, 'Fichier JSON invalide', [], 400);
+        }
+
+        $count = 0;
+        foreach ($games as $gameData) {
+            if ($this->gameModel->importEntry($gameData, $userId)) {
+                $count++;
+            }
+        }
+        $this->apiResponse(true, "$count jeux importés avec succès !", ['count' => $count]);
+    }
+
     // ==========================================
-    //           FIN ROUTES API (MOBILE)
+    //           API (MOBILE)
     // ==========================================
 
     private function checkCsrf()
@@ -187,7 +262,11 @@ class GameController
             require dirname(__DIR__) . '/views/layout.php';
             return;
         }
+
         $games = $this->gameModel->getAll($_SESSION['user_id']);
+
+        $this->injectTrophiesSummary($games);
+
         $view = dirname(__DIR__) . '/views/dashboard.php';
         require dirname(__DIR__) . '/views/layout.php';
     }
@@ -212,6 +291,8 @@ class GameController
         } else {
             $games = $this->gameModel->searchGames($_SESSION['user_id'], $term);
         }
+
+        $this->injectTrophiesSummary($games);
 
         // 4. Renvoi de la réponse en JSON
         header('Content-Type: application/json');
@@ -240,7 +321,7 @@ class GameController
         }
         // On récupère uniquement les jeux en wishlist
         $games = $this->gameModel->getWishlist($_SESSION['user_id']);
-        
+
         // On charge une nouvelle vue spécifique
         $view = dirname(__DIR__) . '/views/wishlist.php';
         require dirname(__DIR__) . '/views/layout.php';
@@ -256,19 +337,19 @@ class GameController
         } else {
             $_SESSION['toast'] = ['msg' => "Erreur lors de l'acquisition.", 'type' => 'danger'];
         }
-        
+
         // On reste sur la wishlist pour voir le jeu disparaître (ou on redirige vers l'accueil si on préfère)
-        header("Location: /wishlist"); 
+        header("Location: /wishlist");
         exit();
     }
 
-        // --- Save (Ajout/Modif) ---
-        public function save()
-        {
+    // --- Save (Ajout/Modif) ---
+    public function save()
+    {
         if (!isset($_SESSION['user_id'])) return;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->checkCsrf(); 
+            $this->checkCsrf();
 
             // 1. Définir si c'est un nouveau jeu
             $isNewGame = empty($_POST['game_id']);
@@ -284,7 +365,7 @@ class GameController
 
                 if ($this->gameModel->checkDuplicate($_SESSION['user_id'], $rawgId, $title, $platform)) {
                     $_SESSION['toast'] = ['msg' => "Ce jeu existe déjà dans votre collection !", 'type' => 'warning'];
-                    header("Location: /"); 
+                    header("Location: /");
                     exit();
                 }
             }
@@ -383,7 +464,7 @@ class GameController
     {
         $token = $this->getIgdbToken();
         if (!$token) return null;
-        
+
         $clientId = $_ENV['IGDB_CLIENT_ID'] ?? 'VOTRE_CLIENT_ID';
 
         $ch = curl_init('https://api.igdb.com/v4/' . $endpoint);
@@ -411,13 +492,13 @@ class GameController
 
         $body = 'search "' . str_replace('"', '', $query) . '"; fields name, cover.url, first_release_date; limit 10;';
         $results = $this->callIgdb('games', $body);
-        
+
         $formatted = [];
         if ($results && is_array($results)) {
             foreach ($results as $game) {
                 $img = isset($game['cover']['url']) ? 'https:' . str_replace('t_thumb', 't_cover_big', $game['cover']['url']) : '';
                 $date = isset($game['first_release_date']) ? date('Y', $game['first_release_date']) : '';
-                
+
                 $formatted[] = [
                     'id' => $game['id'],
                     'name' => $game['name'],
@@ -438,7 +519,7 @@ class GameController
 
         $id = intval($_GET['id']);
         $body = "fields name, cover.url, first_release_date, total_rating, summary, genres.name, platforms.name; where id = {$id};";
-        
+
         $results = $this->callIgdb('games', $body);
         $data = ($results && isset($results[0])) ? $results[0] : null;
 
@@ -449,7 +530,7 @@ class GameController
             }
 
             $img = isset($data['cover']['url']) ? 'https:' . str_replace('t_thumb', 't_720p', $data['cover']['url']) : '';
-            
+
             $response = [
                 'name' => $data['name'],
                 'released' => isset($data['first_release_date']) ? date('Y-m-d', $data['first_release_date']) : '',
@@ -476,7 +557,7 @@ class GameController
             exit();
         }
 
-        $siteUrl = 'http://' . $_SERVER['HTTP_HOST']; 
+        $siteUrl = 'http://' . $_SERVER['HTTP_HOST'];
         $returnTo = $siteUrl . '/steam_callback';
 
         $steamLoginUrl = 'https://steamcommunity.com/openid/login' .
@@ -512,7 +593,7 @@ class GameController
                 exit();
             }
         }
-        
+
         $_SESSION['toast'] = ['msg' => "Erreur ou annulation de la connexion Steam.", 'type' => 'danger'];
         header("Location: /profile");
         exit();
@@ -530,7 +611,7 @@ class GameController
         $apiKey = $_ENV['STEAM_API_KEY'] ?? '';
 
         $url = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={$apiKey}&steamid={$steamId}&format=json&include_appinfo=1";
-        
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -592,7 +673,8 @@ class GameController
 
         // Revérification du doublon par sécurité
         if ($this->gameModel->checkDuplicate($_SESSION['user_id'], null, $title, 'PC')) {
-            echo json_encode(['success' => true]); exit();
+            echo json_encode(['success' => true]);
+            exit();
         }
 
         $status = 'not_started';
@@ -607,10 +689,19 @@ class GameController
         $imageUrl = "https://cdn.cloudflare.steamstatic.com/steam/apps/{$appId}/header.jpg";
 
         $gameData = [
-            'title' => $title, 'platform' => 'PC', 'format' => 'digital', 'status' => $status,
-            'release_date' => null, 'metacritic_score' => null, 'user_rating' => null,
-            'comment' => 'Importé depuis Steam', 'image_url' => $imageUrl,
-            'description' => '', 'genres' => '', 'dominant_color' => 'rgb(30, 30, 30)', 'estimated_price' => null
+            'title' => $title,
+            'platform' => 'PC',
+            'format' => 'digital',
+            'status' => $status,
+            'release_date' => null,
+            'metacritic_score' => null,
+            'user_rating' => null,
+            'comment' => 'Importé depuis Steam',
+            'image_url' => $imageUrl,
+            'description' => '',
+            'genres' => '',
+            'dominant_color' => 'rgb(30, 30, 30)',
+            'estimated_price' => null
         ];
 
         if ($this->gameModel->importEntry($gameData, $_SESSION['user_id'])) {
@@ -655,7 +746,7 @@ class GameController
 
         // 2. Appel à l'API Steam (Très rapide, pas d'images à télécharger)
         $url = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={$apiKey}&steamid={$steamId}&format=json&include_appinfo=1";
-        
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -672,7 +763,7 @@ class GameController
 
         require_once dirname(__DIR__) . '/models/Playtime.php';
         $playtimeModel = new Playtime($this->db);
-        
+
         $updatedCount = 0;
         $oneYearAgo = time() - (365 * 24 * 60 * 60);
 
@@ -681,7 +772,7 @@ class GameController
 
         foreach ($data['response']['games'] as $steamGame) {
             $playtimeMinutes = $steamGame['playtime_forever'] ?? 0;
-            if ($playtimeMinutes == 0) continue; 
+            if ($playtimeMinutes == 0) continue;
 
             // On cherche le jeu dans la bibliothèque locale de l'utilisateur
             $stmtFindGame->execute([':uid' => $_SESSION['user_id'], ':title' => $steamGame['name']]);
@@ -714,7 +805,119 @@ class GameController
         header("Location: /profile");
         exit();
     }
-    
+
+    // --- SYNCHRONISATION PSN ---
+    public function executePsnSync($userId, $psnId)
+    {
+        $vpsIp = "http://87.106.8.127:3000";
+        $url = $vpsIp . "/api/psn/trophies/" . urlencode($psnId);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60); // On augmente le timeout pour les gros volumes
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || !$response) return false;
+
+        $data = json_decode($response, true);
+    if (!$data || !$data['success']) return false;
+
+    require_once dirname(__DIR__) . '/models/Trophy.php';
+    $trophyModel = new Trophy($this->db);
+
+    $stats = ['games' => 0, 'trophies' => 0];
+
+    foreach ($data['games'] as $psnGame) {
+        $localGame = $this->gameModel->findPlayStationGameByTitle($userId, $psnGame['titleName']);
+        
+        if ($localGame) {
+            if (isset($localGame['status']) && $localGame['status'] === 'completed') continue;
+
+            $gameId = $localGame['id'];
+            $stats['games']++;
+            
+            if (isset($psnGame['earnedTrophies']) && is_array($psnGame['earnedTrophies'])) {
+                foreach ($psnGame['earnedTrophies'] as $trophy) {
+                    $title = $trophy['trophyName'] ?? 'Trophée Inconnu';
+                    $type = strtolower($trophy['trophyType'] ?? 'bronze'); 
+                    $isObtained = !empty($trophy['earned']);
+                    
+                    $rawDate = $trophy['earnedDateTime'] ?? $trophy['earnedDate'] ?? $trophy['date'] ?? null;
+                    $earnedAt = null;
+
+                    if ($rawDate && is_string($rawDate)) {
+                        $parsed = strtotime($rawDate);
+                        if ($parsed) {
+                            $earnedAt = date('Y-m-d H:i:s', $parsed);
+                        }
+                    }
+
+                    if ($isObtained && !isset($GLOBALS['debug_trophy_logged'])) {
+                        file_put_contents(dirname(__DIR__) . '/api/cron_psn.log', "DEBUG EARNED TROPHY: " . json_encode($trophy) . "\n", FILE_APPEND);
+                        $GLOBALS['debug_trophy_logged'] = true; // Empêche de spammer le fichier log
+                    }
+
+                    $trophyModel->syncPsnTrophy($gameId, $title, $type, $isObtained, $earnedAt);
+                    $stats['trophies']++;
+                }
+            }
+        }
+    }
+    return $stats;
+    }
+
+    public function apiPsnSync()
+    {
+        header('Content-Type: application/json');
+        if (!isset($_SESSION['user_id'])) exit(json_encode(['success' => false, 'message' => 'Non autorisé']));
+
+        $userId = $_SESSION['user_id'];
+
+        // Récupération du PSN ID envoyé par le bouton de synchro
+        $data = json_decode(file_get_contents('php://input'), true);
+        $psnId = trim($data['psn_id'] ?? '');
+
+        if (empty($psnId)) {
+            exit(json_encode(['success' => false, 'message' => 'Veuillez saisir un ID PSN.']));
+        }
+
+        // 1. Sauvegarder l'ID PSN immédiatement
+        $this->userModel->setPsnId($userId, $psnId);
+
+        // 2. Vérifier la limite d'une heure
+        $user = $this->userModel->getById($userId);
+        if ($user['last_psn_sync']) {
+            $lastSync = new DateTime($user['last_psn_sync']);
+            $now = new DateTime();
+            $diff = $now->getTimestamp() - $lastSync->getTimestamp();
+
+            if ($diff < 3600) {
+                $remaining = 60 - floor($diff / 60);
+                exit(json_encode(['success' => false, 'message' => "Veuillez attendre $remaining minutes avant la prochaine synchronisation."]));
+            }
+        }
+
+        // 3. Lancer la synchronisation (méthode executePsnSync créée précédemment)
+        $result = $this->executePsnSync($userId, $psnId);
+
+        if ($result) {
+            $this->userModel->updateLastPsnSync($userId);
+            echo json_encode([
+                'success' => true,
+                'games_synced' => $result['games'],
+                'trophies_processed' => $result['trophies']
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Erreur lors de la synchronisation.']);
+        }
+        exit();
+    }
+
+
+
     // --- IMPORT JSON ---
     public function import()
     {
@@ -765,7 +968,7 @@ class GameController
 
         // On appelle la fonction modifiée (sans limite)
         $games = $this->gameModel->getGamesByStatusRandom($_SESSION['user_id'], 'not_started');
-        
+
         header('Content-Type: application/json');
         echo json_encode(['games' => $games]);
         exit();
@@ -800,7 +1003,7 @@ class GameController
             exit();
         }
         $games = $this->gameModel->getLoanedGames($_SESSION['user_id']);
-        
+
         // Nous allons utiliser une nouvelle vue spécifique pour ça
         $view = dirname(__DIR__) . '/views/loaned.php';
         require dirname(__DIR__) . '/views/layout.php';
@@ -838,11 +1041,12 @@ class GameController
         if ($this->gameModel->returnLoanedGame($_GET['id'], $_SESSION['user_id'])) {
             $_SESSION['toast'] = ['msg' => "Le jeu est de retour dans votre collection !", 'type' => 'success'];
         }
-        
+
         // On redirige vers la liste des jeux prêtés
-        header("Location: /loaned"); 
+        header("Location: /loaned");
         exit();
     }
+
 
     // --- VUE PARTAGÉE (PROFIL PUBLIC) ---
     public function share()
@@ -852,7 +1056,7 @@ class GameController
         // 1. Priorité à l'ID (ce que votre lien de partage utilise)
         if (isset($_GET['id'])) {
             $targetUser = $this->userModel->getById($_GET['id']);
-        } 
+        }
         // 2. Fallback sur le pseudo (si vous voulez des liens du type ?user=John)
         elseif (isset($_GET['user'])) {
             $targetUser = $this->userModel->getIdByUsername($_GET['user']);
@@ -866,7 +1070,9 @@ class GameController
 
         // Récupération des jeux de cet utilisateur
         $games = $this->gameModel->getAll($targetUser['id']);
-        
+
+        $this->injectTrophiesSummary($games);
+
         // On définit $owner pour que la vue puisse afficher les infos du profil
         $owner = $targetUser;
 
@@ -875,5 +1081,24 @@ class GameController
 
         $view = dirname(__DIR__) . '/views/public_collection.php';
         require dirname(__DIR__) . '/views/layout.php';
+    }
+
+    // --- NOUVEAU : Fonction utilitaire pour injecter les trophées ---
+    private function injectTrophiesSummary(&$games)
+    {
+        if (empty($games)) return;
+
+        require_once dirname(__DIR__) . '/models/Trophy.php';
+        $trophyModel = new Trophy($this->db);
+
+        foreach ($games as &$game) {
+            // On ne cherche les trophées que pour les plateformes PlayStation
+            if (stripos($game['platform'], 'PS') !== false || stripos($game['platform'], 'PlayStation') !== false) {
+                $summary = $trophyModel->getSummaryByGame($game['id']);
+                if ($summary) {
+                    $game['trophies_summary'] = $summary;
+                }
+            }
+        }
     }
 }

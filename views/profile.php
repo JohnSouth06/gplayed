@@ -31,6 +31,7 @@
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('auth_user') ?? 'Nom d\'utilisateur' ?></label>
                                 <input type="text" name="username" class="form-control rounded-3" value="<?= htmlspecialchars($user['username']) ?>" required>
                             </div>
+
                             <div class="mb-3">
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('auth_mail') ?></label>
                                 <input type="email" name="email" class="form-control rounded-3" value="<?= htmlspecialchars($user['email']) ?>" required>
@@ -52,7 +53,6 @@
                             <div class="mb-4">
                                 <label class="form-label small text-muted text-uppercase fw-bold"><?= __('profile_label_avatar') ?></label>
                                 <input type="file" name="avatar" class="form-control file-upload rounded-3 mb-2">
-
                             </div>
 
                             <div class="text-end">
@@ -90,89 +90,150 @@
                     </div>
                 </div>
 
-                <!-- STEAM IMPORT -->
-                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
+                <!-- PSN SYNC -->
+                <?php
+                    // Calcul du temps restant pour la synchronisation PSN
+                    $lastSync = !empty($user['last_psn_sync']) ? strtotime($user['last_psn_sync']) : 0;
+                    $diff = time() - $lastSync;
+                    $cooldown = 3600; // 1 heure en secondes
+                    $isSyncDisabled = ($diff < $cooldown);
+                    $remainingSeconds = $isSyncDisabled ? ($cooldown - $diff) : 0;
+                    ?>
+
+                    <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
                     <div class="card-body p-4">
-                        <h5 class="card-title mb-3 fw-bold"><i class="fab fa-steam text-light me-2"></i><?= __('steam_import_title') ?></h5>
+                        <h5 class="card-title mb-3 fw-bold"><i class="fab fa-playstation text-primary me-2"></i><?= __('psn_sync_title') ?></h5>
                         <p class="small text-secondary mb-4">
-                            <?= __('steam_import_desc') ?>
-                        </p>
-                        <div class="d-flex justify-content-center gap-3 flex-wrap">
-                            <a href="/steam_login" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">
-                                <i class="fas fa-cloud-download-alt me-2"></i><?= __('steam_import_btn') ?>
-                            </a>
-
-                            <a href="/update_steam_playtime" class="btn btn-dark fw-bold rounded-pill px-4 shadow-sm">
-                                <i class="fas fa-stopwatch me-2"></i><?= __('steam_update_btn') ?>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <!-- STEAM IMPORT -->
-                 
-                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
-                    <div class="card-body p-4">
-                        <h5 class="card-title mb-3 fw-bold"><?= __('profile_share_title') ?></h5>
-                        <p class="small text-secondary mb-3">
-                            <?= __('profile_share_desc') ?>
+                            <?= __('psn_sync_desc') ?>
                         </p>
 
-                        <div class="input-group">
-                            <?php
-                            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-                            $host = $_SERVER['HTTP_HOST'];
-
-                            $shareLink = "$protocol://$host/index.php?action=share&id=" . $_SESSION['user_id'];
-                            ?>
-                            <input type="text" id="shareLinkInput" class="form-control rounded-start-3" value="<?= $shareLink ?>" readonly>
-                            <button class="btn btn-primary rounded-end-3" onclick="copyShareLink()">
-                                <i class="material-icons icon-sm align-middle">content_copy</i> <?= __('profile_share_copy') ?>
-                            </button>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted text-uppercase fw-bold"><?= __('psn_sync_id') ?></label>
+                            <div class="input-group">
+                                <input type="text" id="psn_id_sync_input" class="form-control"
+                                    value="<?= htmlspecialchars($user['psn_id'] ?? '') ?>"
+                                    placeholder="Pseudo PSN"
+                                    <?= $isSyncDisabled ? 'disabled' : '' ?>>
+                                <button id="btn-sync-psn" class="btn btn-primary px-4 shadow-sm fw-bold"
+                                    <?= $isSyncDisabled ? 'disabled' : '' ?>
+                                    data-remaining="<?= $remainingSeconds ?>">
+                                    <i class="fas fa-sync me-2"></i><?= __('psn_sync_btn') ?>
+                                </button>
+                            </div>
                         </div>
-                        <div id="copyFeedback" class="form-text text-success mt-2" style="display:none;">
-                            <i class="fas fa-check-circle me-1"></i><?= __('profile_share_link_copied') ?>
+
+                        <div id="psn-sync-message" class="text-center mt-3 fw-bold" style="<?= $isSyncDisabled ? 'color: orange;' : '' ?>">
+                            <?php if ($isSyncDisabled): ?>
+                                <i class="fas fa-clock me-2"></i><?= __('psn_sync_cooldown') ?> <span id="psn-countdown">--:--</span>
+                            <?php endif; ?>
                         </div>
                     </div>
+            </div>
+
+            <!-- STEAM IMPORT -->
+            <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-3 fw-bold"><i class="fab fa-steam text-light me-2"></i><?= __('steam_import_title') ?></h5>
+                    <p class="small text-secondary mb-4">
+                        <?= __('steam_import_desc') ?>
+                    </p>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="/steam_login" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">
+                            <i class="fas fa-cloud-download-alt me-2"></i><?= __('steam_import_btn') ?>
+                        </a>
+
+                        <a href="/update_steam_playtime" class="btn btn-dark fw-bold rounded-pill px-4 shadow-sm">
+                            <i class="fas fa-stopwatch me-2"></i><?= __('steam_update_btn') ?>
+                        </a>
+                    </div>
                 </div>
+            </div>
+            <!-- STEAM IMPORT -->
 
-                <div class="card shadow-sm border-0 border-start border-danger border-4 rounded-4 bg-body">
-                    <div class="card-body p-4">
-                        <h6 class="text-danger fw-bold mb-2">
-                            <i class="material-icons icon-md me-2 align-middle">warning</i><?= __('profile_danger_title') ?>
-                        </h6>
-                        <p class="small text-secondary mb-3"><?= __('profile_danger_text') ?></p>
+            <div class="card shadow-sm border-0 mb-4 rounded-4 bg-body">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-3 fw-bold"><?= __('profile_share_title') ?></h5>
+                    <p class="small text-secondary mb-3">
+                        <?= __('profile_share_desc') ?>
+                    </p>
 
-                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="if(confirm('<?= __('profile_delete_confirm') ?>')) document.getElementById('deleteForm').submit();">
-                            <?= __('profile_btn_delete_account') ?>
+                    <div class="input-group">
+                        <?php
+                        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+                        $host = $_SERVER['HTTP_HOST'];
+
+                        $shareLink = "$protocol://$host/index.php?action=share&id=" . $_SESSION['user_id'];
+                        ?>
+                        <input type="text" id="shareLinkInput" class="form-control rounded-start-3" value="<?= $shareLink ?>" readonly>
+                        <button class="btn btn-primary rounded-end-3" onclick="copyShareLink()">
+                            <i class="material-icons icon-sm align-middle">content_copy</i> <?= __('profile_share_copy') ?>
                         </button>
-
-                        <form id="deleteForm" action="/delete_account" method="POST" class="d-none">
-                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                            <input type="hidden" name="confirm_delete" value="yes">
-                        </form>
                     </div>
+                    <div id="copyFeedback" class="form-text text-success mt-2" style="display:none;">
+                        <i class="fas fa-check-circle me-1"></i><?= __('profile_share_link_copied') ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 border-start border-danger border-4 rounded-4 bg-body">
+                <div class="card-body p-4">
+                    <h6 class="text-danger fw-bold mb-2">
+                        <i class="material-icons icon-md me-2 align-middle">warning</i><?= __('profile_danger_title') ?>
+                    </h6>
+                    <p class="small text-secondary mb-3"><?= __('profile_danger_text') ?></p>
+
+                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="if(confirm('<?= __('profile_delete_confirm') ?>')) document.getElementById('deleteForm').submit();">
+                        <?= __('profile_btn_delete_account') ?>
+                    </button>
+
+                    <form id="deleteForm" action="/delete_account" method="POST" class="d-none">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <input type="hidden" name="confirm_delete" value="yes">
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+</div>
 
 <?php if (isset($_GET['importing']) && $_GET['importing'] === 'steam'): ?>
-<div class="modal fade" id="steamSyncModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="steamSyncModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-body p-5 text-center">
+                    <h4 class="mb-4 fw-bold text-info">
+                        <i class="fas fa-sync fa-spin me-2"></i><?= __('steam_sync') ?>
+                    </h4>
+                    <p class="text-secondary mb-4" id="steamSyncStatus"><?= __('steam_sync_in_progress') ?></p>
+
+                    <div class="progress mb-3 rounded-pill" style="height: 25px;">
+                        <div id="steamProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+
+                    <div class="alert alert-danger mt-4 mb-0 py-2 small" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i><?= __('steam_warning_close') ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+<div class="modal fade" id="psnSyncModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <div class="modal-body p-5 text-center">
-                <h4 class="mb-4 fw-bold text-info">
-                    <i class="fas fa-sync fa-spin me-2"></i><?= __('steam_sync') ?>
+                <h4 class="mb-4 fw-bold text-primary">
+                    <i class="fas fa-sync fa-spin me-2"></i><?= __('psn_sync_title') ?>
                 </h4>
-                <p class="text-secondary mb-4" id="steamSyncStatus"><?= __('steam_sync_in_progress') ?></p>
-                
+                <p class="text-secondary mb-4" id="psnSyncStatus"><?= __('psn_sync_status') ?></p>
+
                 <div class="progress mb-3 rounded-pill" style="height: 25px;">
-                    <div id="steamProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    <div id="psnProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary fw-bold" role="progressbar" style="width: 100%;"><?= __('psn_sync_in_progress') ?></div>
                 </div>
-                
+
                 <div class="alert alert-danger mt-4 mb-0 py-2 small" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i><?= __('steam_warning_close') ?>
+                    <i class="fas fa-exclamation-triangle me-2"></i><?= __('psn_warning_close') ?>
                 </div>
             </div>
         </div>
@@ -180,4 +241,3 @@
 </div>
 
 <script src="assets/js/profile.js"></script>
-<?php endif; ?>

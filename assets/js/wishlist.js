@@ -42,10 +42,14 @@ function editGame(game) {
     const hiddenImg = document.getElementById('gameImageHidden');
 
     if (game.image_url) {
-        previewImg.src = game.image_url;
+        let prevImgUrl = game.image_url;
+        if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+        else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+        
+        previewImg.src = prevImgUrl;
         previewImg.classList.remove('d-none');
         uploadPlaceholder.classList.add('d-none');
-        hiddenImg.value = game.image_url;
+        hiddenImg.value = game.image_url; 
     }
 
     const deleteLink = document.getElementById('deleteLink');
@@ -82,7 +86,12 @@ window.edit = function(id) {
 
 window.generateGridCard = function(g) {
     const s = statusConfig['wishlist'] || statusConfig['playing']; 
-    const img = g.image_url ? g.image_url : '';
+    let img = g.image_url ? g.image_url : '';
+    if (img.startsWith('//')) {
+        img = 'https:' + img;
+    } else if (img && !img.startsWith('http') && !img.startsWith('/')) {
+        img = '/' + img;
+    }
 
     // --- Gestion du Format (Physique/Digital) comme sur le Dashboard ---
     const formatIcon = (g.format === 'physical')
@@ -168,8 +177,15 @@ window.generateGridCard = function(g) {
 };
 
 window.generateListRow = function(g) {
-    const img = g.image_url ?
-        `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
+    let finalImg = g.image_url ? g.image_url : '';
+    if (finalImg.startsWith('//')) {
+        finalImg = 'https:' + finalImg;
+    } else if (finalImg && !finalImg.startsWith('http') && !finalImg.startsWith('/')) {
+        finalImg = '/' + finalImg;
+    }
+
+    const img = finalImg ?
+        `<img src="${finalImg}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
         `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
 
 
