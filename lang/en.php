@@ -381,12 +381,20 @@ return [
     'profile_share_desc' => 'Send this link to your friends so they can view your game library.',
     'profile_share_copy' => 'Copy',
     'profile_share_link_copied' => 'Link copied to clipboard!',
+    'profile_label_psn' => 'ID PSN (PlayStation)',
+    'profile_placeholder_psn' => 'Your public PSN username',
 
     // Import / Export
     'profile_data_title' => 'My Data',
     'profile_export_btn' => 'Export Collection (JSON)',
     'profile_import_btn' => 'Import JSON File',
     'profile_import_help' => 'Allows you to restore a backup.',
+
+    // PSN
+    'psn_sync_title' => 'PSN Synchronization',
+    'psn_sync_status' => 'Connecting to PlayStation services...',
+    'psn_sync_in_progress' => 'Synchronization in progress...',
+    'psn_warning_close' => '⚠️ Warning: Do not close this window until the process is complete.',
 
     // Danger Zone
     'profile_danger_title' => 'Danger Zone',
