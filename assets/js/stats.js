@@ -14,22 +14,57 @@ document.addEventListener('DOMContentLoaded', () => {
 function calculateKPIs() {
     const total = window.localGames.length;
     if(total === 0) return;
-    
-    document.getElementById('kpiTotal').innerText = total;
-    
-    const finished = window.localGames.filter(g => ['finished', 'completed'].includes(g.status)).length;
-    document.getElementById('kpiCompletion').innerText = Math.round((finished / total) * 100) + '%';
-    
-    const ratedGames = window.localGames.filter(g => g.user_rating > 0);
-    if(ratedGames.length > 0) {
-        const sum = ratedGames.reduce((acc, g) => acc + parseInt(g.user_rating), 0);
-        document.getElementById('kpiRating').innerText = (sum / ratedGames.length).toFixed(1);
-    } else {
-        document.getElementById('kpiRating').innerText = '-';
+
+    // Fonction sécurisée pour lire le prix
+    const getPrice = (price) => {
+        if (!price) return 0;
+        const parsed = parseFloat(String(price).replace(',', '.'));
+        return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // 1. Valeur Totale (Physique)
+    const physicalGames = window.localGames.filter(g => g.format === 'physical' && getPrice(g.estimated_price) > 0);
+    const kpiAvgPriceEl = document.getElementById('kpiAvgPrice');
+    if(kpiAvgPriceEl) {
+        if(physicalGames.length > 0) {
+            const sum = physicalGames.reduce((acc, g) => acc + getPrice(g.estimated_price), 0);
+            kpiAvgPriceEl.innerText = sum.toFixed(2) + '€';
+        } else {
+            kpiAvgPriceEl.innerText = '-';
+        }
     }
     
-    const physical = window.localGames.filter(g => g.format === 'physical').length;
-    document.getElementById('kpiPhysical').innerText = Math.round((physical / total) * 100) + '%';
+    // 2. Total des jeux
+    const kpiTotalEl = document.getElementById('kpiTotal');
+    if(kpiTotalEl) {
+        kpiTotalEl.innerText = total;
+    }
+    
+    // 3. Taux de complétion
+    const kpiCompletionEl = document.getElementById('kpiCompletion');
+    if(kpiCompletionEl) {
+        const finished = window.localGames.filter(g => ['finished', 'completed'].includes(g.status)).length;
+        kpiCompletionEl.innerText = Math.round((finished / total) * 100) + '%';
+    }
+    
+    // 4. Note Moyenne
+    const kpiRatingEl = document.getElementById('kpiRating');
+    if(kpiRatingEl) {
+        const ratedGames = window.localGames.filter(g => g.user_rating > 0);
+        if(ratedGames.length > 0) {
+            const sumRating = ratedGames.reduce((acc, g) => acc + parseInt(g.user_rating), 0);
+            kpiRatingEl.innerText = (sumRating / ratedGames.length).toFixed(1);
+        } else {
+            kpiRatingEl.innerText = '-';
+        }
+    }
+    
+    // 5. Ratio de jeux physiques
+    const kpiPhysicalEl = document.getElementById('kpiPhysical');
+    if(kpiPhysicalEl) {
+        const physical = window.localGames.filter(g => g.format === 'physical').length;
+        kpiPhysicalEl.innerText = Math.round((physical / total) * 100) + '%';
+    }
 }
 
 const commonOptions = {

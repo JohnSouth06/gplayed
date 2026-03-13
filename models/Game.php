@@ -16,12 +16,12 @@ class Game
                   LEFT JOIN playtime p ON g.id = p.game_id 
                   WHERE g.user_id = :user_id 
                   ORDER BY g.created_at DESC";
-                  
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC); 
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getSelectableGames($userId)
@@ -30,7 +30,7 @@ class Game
                   WHERE user_id = :user_id 
                   AND status NOT IN ('wishlist', 'loaned') 
                   ORDER BY title ASC";
-                  
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
@@ -42,13 +42,13 @@ class Game
         $query = "SELECT * FROM " . $this->table . " 
                   WHERE user_id = :user_id AND status = 'loaned' 
                   ORDER BY loaned_date DESC";
-                  
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
         $stmt->execute();
         return $stmt->fetchAll();
     }
-    
+
     public function getOne($id, $userId)
     {
         $query = "SELECT * FROM " . $this->table . " WHERE id = :id AND user_id = :user_id LIMIT 1";
@@ -78,7 +78,7 @@ class Game
 
     public function save($data, $file, $userId)
     {
-        $rawgId = $data['rawg_id'] ?? null; 
+        $rawgId = $data['rawg_id'] ?? null;
         $imagePath = $data['image_url_hidden'] ?? '';
         $dominantColor = null;
 
@@ -91,22 +91,14 @@ class Game
                 $imagePath = $uploaded;
                 $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
             }
-        }
-        elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($imagePath);
-            if ($downloaded) {
-                $imagePath = $downloaded;
-                $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
-            } else {
-                $dominantColor = $this->getAverageColor($imagePath);
-            }
-        }
-        elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
+        } elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
+            $dominantColor = $this->getAverageColor($imagePath);
+        } elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
             $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
         }
 
         $finalPlatform = ($data['platform'] === 'Multiplateforme' && !empty($data['platform_custom'])) ? $data['platform_custom'] : $data['platform'];
-        
+
         if (empty($dominantColor)) {
             $dominantColor = $this->getFallbackColor($finalPlatform);
         }
@@ -122,7 +114,7 @@ class Game
             title=:title, platform=:platform, format=:format, status=:status, release_date=:date, 
             metacritic_score=:meta, user_rating=:rating, comment=:comment, 
             description=:desc, genres=:genres, dominant_color=:color, estimated_price=:price,
-            rawg_id=:rawg_id"; 
+            rawg_id=:rawg_id";
 
             if ($imagePath) $query .= ", image_url=:img";
             $query .= " WHERE id=:id AND user_id=:uid";
@@ -133,7 +125,7 @@ class Game
         } else {
             $query = "INSERT INTO " . $this->table . " 
             (user_id, title, platform, format, status, release_date, metacritic_score, user_rating, comment, image_url, description, genres, dominant_color, estimated_price, rawg_id) 
-            VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price, :rawg_id)"; 
+            VALUES (:uid, :title, :platform, :format, :status, :date, :meta, :rating, :comment, :img, :desc, :genres, :color, :price, :rawg_id)";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':img', $imagePath);
         }
@@ -214,6 +206,125 @@ class Game
         return $stmt->execute();
     }
 
+    public function findPlayStationGameByTitle($userId, $psnTitle)
+    {
+        // 1. On récupère TOUS les jeux PlayStation du joueur
+        $query = "SELECT id, title, status FROM " . $this->table . " 
+                  WHERE user_id = :uid 
+                  AND (platform LIKE '%PS%' OR platform LIKE '%PlayStation%')";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':uid', $userId);
+        $stmt->execute();
+        $localGames = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($localGames)) return false;
+
+        // 2. On "nettoie" le titre provenant de Sony
+        $cleanPsn = $this->normalizeGameTitle($psnTitle);
+
+        // Parfois Sony affiche "Titre : Sous-titre", on garde aussi la version courte pour tester
+        $psnParts = explode(':', $psnTitle);
+        $cleanPsnShort = $this->normalizeGameTitle($psnParts[0]);
+
+        $bestMatch = null;
+        $highestSimilarity = 0;
+
+        foreach ($localGames as $game) {
+            $cleanLocal = $this->normalizeGameTitle($game['title']);
+
+            if (empty($cleanLocal)) continue;
+
+            // CAS A : Correspondance Parfaite (ex: "thewitcher3" == "thewitcher3")
+            if ($cleanLocal === $cleanPsn || $cleanLocal === $cleanPsnShort) {
+                return $game;
+            }
+
+            // CAS B : Inclusion (ex: "horizonzerodawn" est contenu dans "horizonzerodawncompleteedition")
+            if (strpos($cleanPsn, $cleanLocal) !== false || strpos($cleanLocal, $cleanPsn) !== false) {
+                return $game;
+            }
+
+            // CAS C : Similarité proche (Pour les légères fautes de frappe de quelques lettres, on tolère ~15% d'erreur)
+            similar_text($cleanPsn, $cleanLocal, $percent);
+            if ($percent > $highestSimilarity && $percent > 85) {
+                $highestSimilarity = $percent;
+                $bestMatch = $game;
+            }
+        }
+
+        return $bestMatch;
+    }
+
+    private function normalizeGameTitle($title)
+    {
+        $title = mb_strtolower(trim($title), 'UTF-8');
+
+        // Retrait des symboles de marques
+        $title = str_replace(['™', '©', '®'], '', $title);
+
+        // Liste des mots-clés superflus souvent ajoutés par le PSN
+        $stopwords = [
+            'standard',
+            'deluxe',
+            'ultimate',
+            'complete',
+            'game of the year',
+            'goty',
+            'director\'s cut',
+            'directors cut',
+            'remastered',
+            'remaster',
+            'digital',
+            'edition',
+            'edición',
+            'ps4',
+            'ps5',
+            'playstation 4',
+            'playstation 5',
+            'vr',
+            'bundle',
+            'version'
+        ];
+
+        // On retire ces mots s'ils sont entourés d'espaces (pour éviter de couper d'autres mots)
+        foreach ($stopwords as $word) {
+            $title = preg_replace('/\b' . preg_quote($word, '/') . '\b/i', '', $title);
+        }
+
+        // Remplacement des accents par leurs lettres classiques
+        $unwanted_array = [
+            'é' => 'e',
+            'è' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'à' => 'a',
+            'á' => 'a',
+            'â' => 'a',
+            'ä' => 'a',
+            'ì' => 'i',
+            'í' => 'i',
+            'î' => 'i',
+            'ï' => 'i',
+            'ò' => 'o',
+            'ó' => 'o',
+            'ô' => 'o',
+            'ö' => 'o',
+            'ù' => 'u',
+            'ú' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
+            'ñ' => 'n',
+            'ç' => 'c'
+        ];
+        $title = strtr($title, $unwanted_array);
+
+        // On supprime TOUTE la ponctuation, les espaces, et les traits d'unions restants
+        // On ne garde strictement que les lettres et les chiffres (ex: "spider-man" devient "spiderman")
+        $title = preg_replace('/[^a-z0-9]/', '', $title);
+
+        return $title;
+    }
+
     // --- IMPORT JSON ---
     public function importEntry($game, $userId)
     {
@@ -225,27 +336,20 @@ class Game
 
         $img = $game['image_url'] ?? '';
         if (!empty($img)) {
-            $img = str_replace(' ', '%20', $img); 
-        }
-
-        if ($img && filter_var($img, FILTER_VALIDATE_URL)) {
-            $downloaded = $this->downloadImage($img);
-            if ($downloaded) $img = $downloaded;
+            $img = str_replace(' ', '%20', $img);
         }
 
         $dominantColor = $game['dominant_color'] ?? null;
-        
-        // --- LA CORRECTION EST ICI ---
-        // Si le JSON contient l'ancienne couleur buggée, on la supprime pour FORCER le script à la recalculer avec le nouveau système !
+
         if ($dominantColor === 'rgb(30, 30, 30)') {
             $dominantColor = null;
         }
-        
+
         if (empty($dominantColor) && !empty($img)) {
             $pathForColor = filter_var($img, FILTER_VALIDATE_URL) ? $img : dirname(__DIR__) . '/' . $img;
             $dominantColor = $this->getAverageColor($pathForColor);
         }
-        
+
         if (empty($dominantColor)) {
             $dominantColor = $this->getFallbackColor($game['platform'] ?? '');
         }
@@ -278,7 +382,7 @@ class Game
         }
 
         $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -338,7 +442,7 @@ class Game
             curl_setopt($ch, CURLOPT_TIMEOUT, 10);
             $data = curl_exec($ch);
             curl_close($ch);
-            
+
             if ($data) {
                 $img = @imagecreatefromstring($data);
             }
@@ -369,12 +473,12 @@ class Game
 
     private function getFallbackColor($platform)
     {
-        if (stripos($platform, 'PS') !== false || stripos($platform, 'PlayStation') !== false) return 'rgb(0, 112, 210)'; 
-        if (stripos($platform, 'Xbox') !== false) return 'rgb(16, 124, 16)'; 
-        if (stripos($platform, 'Switch') !== false || stripos($platform, 'Nintendo') !== false) return 'rgb(228, 0, 15)'; 
-        if (stripos($platform, 'PC') !== false || stripos($platform, 'Steam') !== false) return 'rgb(102, 192, 244)'; 
-        
-        return 'rgb(100, 100, 100)'; 
+        if (stripos($platform, 'PS') !== false || stripos($platform, 'PlayStation') !== false) return 'rgb(0, 112, 210)';
+        if (stripos($platform, 'Xbox') !== false) return 'rgb(16, 124, 16)';
+        if (stripos($platform, 'Switch') !== false || stripos($platform, 'Nintendo') !== false) return 'rgb(228, 0, 15)';
+        if (stripos($platform, 'PC') !== false || stripos($platform, 'Steam') !== false) return 'rgb(102, 192, 244)';
+
+        return 'rgb(100, 100, 100)';
     }
 
     private function uploadImage($file)
@@ -443,28 +547,34 @@ class Game
     public function loanGame($id, $userId, $loanedTo, $loanedDate)
     {
         $query = "UPDATE " . $this->table . " 
-                  SET status = 'loaned', loaned_to = :loaned_to, loaned_date = :loaned_date 
-                  WHERE id = :id AND user_id = :user_id";
-                  
+                SET previous_status = status, 
+                    status = 'loaned', 
+                    loaned_to = :loaned_to, 
+                    loaned_date = :loaned_date 
+                WHERE id = :id AND user_id = :user_id";
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->bindParam(':user_id', $userId);
         $stmt->bindParam(':loaned_to', $loanedTo);
         $stmt->bindParam(':loaned_date', $loanedDate);
-        
+
         return $stmt->execute();
     }
 
     public function returnLoanedGame($id, $userId)
     {
         $query = "UPDATE " . $this->table . " 
-                  SET status = 'not_started', loaned_to = NULL, loaned_date = NULL 
-                  WHERE id = :id AND user_id = :user_id";
-                  
+                SET status = COALESCE(previous_status, 'not_started'), 
+                    loaned_to = NULL, 
+                    loaned_date = NULL,
+                    previous_status = NULL 
+                WHERE id = :id AND user_id = :user_id";
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->bindParam(':user_id', $userId);
-        
+
         return $stmt->execute();
     }
 
@@ -473,12 +583,12 @@ class Game
         $query = "SELECT id, title, image_url, dominant_color FROM " . $this->table . " 
                   WHERE user_id = :user_id AND status = :status 
                   ORDER BY RAND()";
-                  
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
         $stmt->bindParam(':status', $status);
         $stmt->execute();
-        
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

@@ -175,7 +175,7 @@ return [
     'js_google_guide' => ' guide',
     'js_search_solution' => 'Search solution',
     'js_error_loading' => 'Loading error.',
-    'js_alert_duplicate' => '⚠️ Warning: You already have "{name}" in your collection!\n(Registered platform: {platform})',
+    'js_alert_duplicate' => 'Warning: You already have "{name}" in your collection!\n(Registered platform: {platform})',
     'js_error_import' => 'Error importing game data.',
 
     // Wishlist
@@ -240,6 +240,7 @@ return [
     'stats_chart_format' => 'Physical vs Digital',
     'stats_chart_platform' => 'Top Platforms',
     'stats_chart_genre' => 'Top Genres',
+    'stats_kpi_avg_price' => 'Total Value (Physical)',
 
     // Community
     'community_title' => 'Community',
@@ -381,12 +382,23 @@ return [
     'profile_share_desc' => 'Send this link to your friends so they can view your game library.',
     'profile_share_copy' => 'Copy',
     'profile_share_link_copied' => 'Link copied to clipboard!',
+    'profile_label_psn' => 'ID PSN (PlayStation)',
+    'profile_placeholder_psn' => 'Your public PSN username',
 
     // Import / Export
     'profile_data_title' => 'My Data',
     'profile_export_btn' => 'Export Collection (JSON)',
     'profile_import_btn' => 'Import JSON File',
     'profile_import_help' => 'Allows you to restore a backup.',
+
+    // PSN
+    'psn_sync_title' => 'PSN Synchronization',
+    'psn_sync_desc' => 'You must <b>imperatively</b> have set the privacy of your PlayStation Network activities to "Everyone" for synchronization to work correctly. Connect to your PSN account via the secure link below: <a href="https://id.sonyentertainmentnetwork.com/id/management_ca/" target="_blank">Playstation Network</a>',    'psn_sync_id' => 'Your PSN ID',
+    'psn_sync_btn' => 'Synchronize',
+    'psn_sync_cooldown' => 'Next synchronization possible in :',
+    'psn_sync_status' => 'Connecting to PlayStation services...',
+    'psn_sync_in_progress' => 'Synchronization in progress...',
+    'psn_warning_close' => '⚠️ Warning: Do not close this window until the process is complete.',
 
     // Danger Zone
     'profile_danger_title' => 'Danger Zone',

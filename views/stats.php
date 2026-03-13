@@ -23,10 +23,11 @@
     </div>
     <div class="col-6 col-md-3">
         <div class="p-3 bg-body rounded-4 shadow-sm h-100 border-start border-4 border-info">
-            <div class="text-secondary small fw-bold text-uppercase"><?= __('stats_kpi_physical') ?></div>
-            <div class="fs-2 fw-bold" id="kpiPhysical">0%</div>
+            <div class="text-secondary small fw-bold text-uppercase"><?= __('stats_kpi_avg_price') ?></div>
+            <div class="fs-2 fw-bold" id="kpiAvgPrice">0€</div>
         </div>
     </div>
+
 </div>
 
 <div class="row g-4 mb-4">
@@ -56,11 +57,11 @@
     </div>
     <div class="col-md-12 col-xl-4">
         <div class="card border-0 shadow-sm rounded-4 h-100 bg-body">
-             <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                 <h6 class="fw-bold mb-0"><?= __('stats_chart_platform') ?></h6>
             </div>
             <div class="card-body p-4">
-                 <div style="height: 300px;">
+                <div style="height: 300px;">
                     <canvas id="platformChart"></canvas>
                 </div>
             </div>
