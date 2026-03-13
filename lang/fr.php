@@ -377,6 +377,8 @@ return [
     'profile_placeholder_pass' => 'Laisser vide si inchangé',
     'profile_label_avatar' => 'Avatar (URL ou Upload)',
     'profile_btn_update' => 'Mettre à jour',
+    'profile_label_psn' => 'ID PSN (PlayStation)',
+    'profile_placeholder_psn' => 'Votre pseudo PSN public',
     
     // Import / Export
     'profile_data_title' => 'Mes Données',
@@ -388,6 +390,11 @@ return [
     'profile_share_copy' => 'Copier',
     'profile_share_link_copied' => 'Lien copié dans le presse-papier !',
 
+    // PSN
+    'psn_sync_title' => 'Synchronisation PSN',
+    'psn_sync_status' => 'Connexion aux services PlayStation en cours...',
+    'psn_sync_in_progress' => 'Synchronisation en cours...',
+    'psn_warning_close' => '⚠️ Attention : Merci de ne pas fermer cette fenêtre durant l\'opération.',
 
     // Zone de danger
     'profile_danger_title' => 'Zone de danger',

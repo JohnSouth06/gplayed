@@ -97,6 +97,15 @@ $borderColor = getNeonColorPHP($domColor, 0.5);
             <div class="meta-badges mb-2">
                 <span class="meta-tag"><?= $platIconHtml ?><?= htmlspecialchars($g['platform']) ?></span>
                 <span class="meta-tag bg-body-secondary border-0"><?= $formatIcon ?></span>
+                
+                <?php if (isset($g['trophies_summary']) && $g['trophies_summary']['total'] > 0): 
+                    $t = $g['trophies_summary'];
+                    $percent = round(($t['obtained'] / $t['total']) * 100);
+                ?>
+                    <span class="meta-tag text-warning bg-warning-subtle border-warning-subtle" title="Progression des trophées PSN">
+                        <i class="material-icons-outlined icon-sm me-1">&#xea23;</i><?= $percent ?>%
+                    </span>
+                <?php endif; ?>
             </div>
             
             <div class="mt-auto bg-body rounded-3 p-2 border border-warning border-opacity-25 mb-3">

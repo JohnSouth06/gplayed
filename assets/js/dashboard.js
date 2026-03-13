@@ -71,6 +71,29 @@ document.addEventListener('DOMContentLoaded', () => {
         modal = new bootstrap.Modal(modalElement);
     }
 
+    const filterConfig = [
+        { id: 'filterPlatform', key: 'gplayed_platform_filter' },
+        { id: 'filterStatus', key: 'gplayed_status_filter' },
+        { id: 'sortSelect', key: 'gplayed_sort_type' }
+    ];
+
+    filterConfig.forEach(filter => {
+        const el = document.getElementById(filter.id);
+        if (el) {
+            // Restaurer la valeur depuis le localStorage au chargement
+            const savedValue = localStorage.getItem(filter.key);
+            if (savedValue) {
+                el.value = savedValue;
+            }
+
+            // Sauvegarder la nouvelle valeur à chaque changement et mettre à jour la vue
+            el.addEventListener('change', () => {
+                localStorage.setItem(filter.key, el.value);
+                updateView();
+            });
+        }
+    });
+
     initViewButtons();
     setupIntersectionObserver();
 
@@ -386,7 +409,12 @@ function getNeonColor(rgbString, opacity = 1, platform = '') {
 
 function generateGridCard(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
-    const img = g.image_url ? g.image_url : '';
+    let img = g.image_url ? g.image_url : '';
+    if (img.startsWith('//')) {
+        img = 'https:' + img;
+    } else if (img && !img.startsWith('http') && !img.startsWith('/')) {
+        img = '/' + img;
+    }
 
     // --- Appel avec la plateforme ajoutée ---
     const shadowColor = getNeonColor(g.dominant_color, 0.4, g.platform);
@@ -457,6 +485,23 @@ function generateGridCard(g) {
         </a>`;
     }
 
+    // ==========================================
+    // GÉNÉRATION DU BLOC DES TROPHÉES
+    // ==========================================
+    let trophiesHtml = '';
+    if (g.trophies_summary && g.trophies_summary.total > 0) {
+        const t = g.trophies_summary;
+        const percent = Math.round((t.obtained / t.total) * 100);
+
+        // On ajoute un petit badge discret directement dans la zone metaHtml
+        // L'icône &#xea23; correspond à la coupe de trophée dans Material Icons
+        metaHtml += `<span class="meta-tag text-warning bg-warning-subtle border-warning-subtle" title="Progression des trophées PSN">
+            <i class="material-icons-outlined icon-sm me-1">&#xea23;</i>${percent}%
+        </span>`;
+    }
+
+
+
     const templateNode = document.getElementById('gridCardTemplate');
     if (!templateNode) return '';
     let templateHtml = templateNode.innerHTML;
@@ -471,6 +516,7 @@ function generateGridCard(g) {
         .replaceAll('{title}', g.title)
         .replaceAll('{ratingHtml}', ratingHtml)
         .replaceAll('{metaHtml}', metaHtml)
+        .replaceAll('{trophiesHtml}', trophiesHtml)
         .replaceAll('{genres}', g.genres || '')
         .replaceAll('{loanInfoHtml}', loanInfoHtml)
         .replaceAll('{actionsHtml}', actionsHtml);
@@ -479,8 +525,15 @@ function generateGridCard(g) {
 function generateListRow(g) {
     const s = statusConfig[g.status] || statusConfig['playing'];
 
-    const img = g.image_url ?
-        `<img src="${g.image_url}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
+    let finalImg = g.image_url ? g.image_url : '';
+    if (finalImg.startsWith('//')) {
+        finalImg = 'https:' + finalImg;
+    } else if (finalImg && !finalImg.startsWith('http') && !finalImg.startsWith('/')) {
+        finalImg = '/' + finalImg;
+    }
+
+    const img = finalImg ?
+        `<img src="${finalImg}" class="rounded-3 shadow-sm object-fit-cover" style="width:48px;height:48px;">` :
         `<div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px"><i class="material-icons-outlined text-secondary icon-md">&#xea5b;</i></div>`;
 
     const price = g.estimated_price > 0 ? `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
@@ -626,7 +679,14 @@ function openModal(g = null) {
     const prev = document.getElementById('previewImg');
     const holder = document.getElementById('uploadPlaceholder');
     if (prev && holder) {
-        if (g && g.image_url) { prev.src = g.image_url; prev.classList.remove('d-none'); holder.classList.add('d-none'); }
+        if (g && g.image_url) {
+            let prevImgUrl = g.image_url;
+            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+            prev.src = prevImgUrl;
+            prev.classList.remove('d-none');
+            holder.classList.add('d-none');
+        }
         else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
     }
 
@@ -686,7 +746,89 @@ function openLoanModal(gameId, gameTitle) {
     loanModal.show();
 }
 
-async function loadTrophies(gameId) { const list = document.getElementById('trophiesList'); if (!list) return; list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>'; try { const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`); const data = await res.json(); const pct = data.progress.percent; const bar = document.getElementById('trophyProgressBar'); const txt = document.getElementById('trophyProgressText'); if (bar) bar.style.width = pct + '%'; if (txt) txt.innerText = pct + '%'; list.innerHTML = ''; if (data.trophies.length === 0) { list.innerHTML = `<div class="text-center text-muted small py-3">${LANG.no_trophies}</div>`; return; } data.trophies.forEach(t => { const colorClass = `trophy-${t.type}`; const icon = t.type === 'platinum' ? '<img src="../assets/images/platinum.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'gold' ? '<img src="../assets/images/gold.png" class="trophy-icon d-table-cell me-2">' : (t.type === 'silver' ? '<img src="../assets/images/silver.png" class="trophy-icon d-table-cell me-2">' : '<img src="../assets/images/bronze.png" class="trophy-icon d-table-cell me-2">')); const isObtained = t.is_obtained == 1; const gameTitleEl = document.getElementById('gameTitle'); const gameTitle = gameTitleEl ? gameTitleEl.value : ''; const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title + (typeof LANG !== 'undefined' ? LANG.google_guide : ''))}`; list.innerHTML += `<div class="d-flex align-items-center p-2 mb-2 bg-body-tertiary rounded trophy-item ${colorClass}"><div class="trophy-icon fs-5">${icon}</div><div class="flex-grow-1 ms-2" style="cursor:pointer" onclick="toggleTrophy(${t.id})"><div class="fw-bold small ${isObtained ? 'text-decoration-line-through text-muted' : ''}">${t.title}</div></div><div class="d-flex gap-2"><a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="Chercher une solution"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a><button class="btn btn-sm btn-link text-danger p-0" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button></div></div>`; }); } catch (e) { list.innerHTML = LANG.error_loading; } }
+async function loadTrophies(gameId) {
+    const list = document.getElementById('trophiesList');
+    if (!list) return;
+
+    list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+
+    try {
+        const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`);
+        const data = await res.json();
+        const pct = data.progress.percent;
+
+        const bar = document.getElementById('trophyProgressBar');
+        const txt = document.getElementById('trophyProgressText');
+        if (bar) bar.style.width = pct + '%';
+        if (txt) txt.innerText = pct + '%';
+
+        if (data.trophies.length === 0) {
+            list.innerHTML = `<div class="text-center text-muted small py-3">${typeof LANG !== 'undefined' ? LANG.no_trophies : 'Aucun trophée'}</div>`;
+            return;
+        }
+
+        // ==========================================
+        // TRI INTELLIGENT DES TROPHÉES
+        // ==========================================
+        data.trophies.sort((a, b) => {
+            // 1. Les trophées NON obtenus (0) apparaissent avant les obtenus (1)
+            if (a.is_obtained != b.is_obtained) {
+                return a.is_obtained - b.is_obtained;
+            }
+            // 2. Ensuite, on trie par importance (Platine, Or, Argent, Bronze)
+            const typeOrder = { 'platinum': 1, 'gold': 2, 'silver': 3, 'bronze': 4 };
+            return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
+        });
+
+        // On vérifie si c'est un jeu PlayStation
+        const platformEl = document.getElementById('gamePlatform');
+        const isPlayStation = platformEl && (platformEl.value.includes('PS') || platformEl.value.includes('PlayStation'));
+
+        let htmlContent = '';
+        data.trophies.forEach(t => {
+            const colorClass = `trophy-${t.type}`;
+
+            // Assignation de la bonne image selon le type
+            let iconImg = 'bronze.png';
+            if (t.type === 'platinum') iconImg = 'platinum.png';
+            if (t.type === 'gold') iconImg = 'gold.png';
+            if (t.type === 'silver') iconImg = 'silver.png';
+            const icon = `<img src="../assets/images/${iconImg}" class="trophy-icon d-table-cell me-2 align-top">`;
+
+            const isObtained = t.is_obtained == 1;
+            const gameTitleEl = document.getElementById('gameTitle');
+            const gameTitle = gameTitleEl ? gameTitleEl.value : '';
+            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title)}`;
+
+            // Design selon l'obtention (barré et semi-transparent si déjà obtenu)
+            const titleStyle = isObtained ? 'text-decoration-line-through text-muted opacity-50' : 'text-body';
+            const bgClass = isObtained ? 'bg-body-tertiary opacity-50' : 'bg-body border border-secondary border-opacity-10 shadow-sm';
+
+            // Boutons : On cache la corbeille pour les jeux PSN pour éviter de supprimer un trophée officiel
+            let actionButtons = `<a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="Chercher une solution"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a>`;
+            if (!isPlayStation) {
+                actionButtons += `<button class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button>`;
+            }
+
+            htmlContent += `
+            <div class="d-flex align-items-center p-2 mb-2 rounded trophy-item ${colorClass} ${bgClass}">
+                <div class="trophy-icon fs-5">${icon}</div>
+                <div class="flex-grow-1 ms-2" style="${!isPlayStation ? 'cursor:pointer' : ''}" onclick="${!isPlayStation ? `toggleTrophy(${t.id})` : ''}">
+                    <div class="fw-bold small ${titleStyle}">${t.title}</div>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    ${actionButtons}
+                </div>
+            </div>`;
+        });
+
+        list.innerHTML = htmlContent;
+
+    } catch (e) {
+        list.innerHTML = `<div class="text-danger small text-center">${typeof LANG !== 'undefined' ? LANG.error_loading : 'Erreur de chargement'}</div>`;
+    }
+}
+
 async function addTrophy() { const gameIdEl = document.getElementById('gameId'); if (!gameIdEl) return; const gameId = gameIdEl.value; if (!gameId) { alert(LANG.alert_save_first); return; } const titleEl = document.getElementById('newTrophyTitle'); const typeEl = document.getElementById('newTrophyType'); const title = titleEl ? titleEl.value : ''; const type = typeEl ? typeEl.value : ''; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('/?action=api_add_trophy', { method: 'POST', body: formData }); if (titleEl) titleEl.value = ''; loadTrophies(gameId); }
 async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }
 async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }

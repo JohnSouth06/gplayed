@@ -101,8 +101,12 @@ switch ($action) {
         break;
 
     // Wishlist
-    case 'wishlist': $gameController->wishlist(); break;
-    case 'acquire': $gameController->acquire(); break;
+    case 'wishlist':
+        $gameController->wishlist();
+        break;
+    case 'acquire':
+        $gameController->acquire();
+        break;
 
     // --- Prêts (Loans) ---
     case 'loaned':
@@ -114,7 +118,7 @@ switch ($action) {
     case 'returnGame':
         $gameController->returnGame();
         break;
-        
+
     // Recherche API
     case 'api_search':
         $gameController->apiSearch();
@@ -128,14 +132,20 @@ switch ($action) {
         $gameController->getIgdbDetails();
         break;
 
+    // Import PSN trophies
+    case 'api_psn_sync':
+        $gameController->apiPsnSync();
+        break;
+
+
     // Import Steam
     case 'steam_login':
-    $gameController->steamLogin();
-    break;
+        $gameController->steamLogin();
+        break;
 
     case 'steam_callback':
-    $gameController->steamCallback();
-    break;
+        $gameController->steamCallback();
+        break;
 
     case 'api_steam_games':
         $gameController->apiGetSteamGames();
