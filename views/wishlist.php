@@ -27,6 +27,24 @@ if (isset($games) && is_array($games)) {
 </div>
 </div>
 
+<div class="d-flex justify-content-center mb-4 mt-2">
+    <div class="custom-tabs-container shadow-sm border border-opacity-10">
+        
+        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
+        <label for="btnLibPhys" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
+        </label>
+
+        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
+        <label for="btnLibDigi" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
+        </label>
+
+        <div class="custom-tab-slider"></div>
+    </div>
+</div>
+
+
 <div class="card bg-body-primaary border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
     <div class="card-header accordion-trigger bg-transparent border-0 p-3 p-md-4 d-flex justify-content-between align-items-center <?= isset($_GET['open_add']) ? '' : 'collapsed' ?>"
         data-bs-toggle="collapse" data-bs-target="#addGameSection" aria-expanded="<?= isset($_GET['open_add']) ? 'true' : 'false' ?>">
@@ -65,6 +83,7 @@ if (isset($games) && is_array($games)) {
         </div>
     </div>
 </div>
+
 
 <div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
@@ -134,8 +153,6 @@ if (isset($games) && is_array($games)) {
                 
                 <input type="hidden" name="status" value="wishlist" id="gameStatus">
                 <input type="hidden" name="release_date" id="gameDate"> <div class="d-none">
-                    <input type="radio" id="fmtPhysical" name="format" value="physical" checked>
-                    <input type="radio" id="fmtDigital" name="format" value="digital">
                     <div id="modalTabs"></div>
                     <div id="multiPlatformContainer"><div id="platformInputsList"></div><input id="gamePlatformCustom"></div>
                     <input id="gameMeta"><input id="gameRating"><input id="gameDesc">
@@ -191,6 +208,17 @@ if (isset($games) && is_array($games)) {
                                 <div class="col-6">
                                     <label class="form-label small fw-bold mb-1 text-secondary"><?= __('wishlist_release_date') ?></label>
                                     <input type="date" id="gameDateVisual" class="form-control rounded-3" onchange="document.getElementById('gameDate').value = this.value">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold mb-2 text-secondary">Format</label>
+                                <div class="btn-group w-100 shadow-sm" role="group">
+                                    <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" autocomplete="off" checked>
+                                    <label class="btn btn-outline-secondary" for="fmtPhysical"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?></label>
+
+                                    <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital" autocomplete="off">
+                                    <label class="btn btn-outline-secondary" for="fmtDigital"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?></label>
                                 </div>
                             </div>
 

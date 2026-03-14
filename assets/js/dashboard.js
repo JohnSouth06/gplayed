@@ -92,15 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
     filterConfig.forEach(filter => {
         const el = document.getElementById(filter.id);
         if (el) {
-            // Restaurer la valeur depuis le localStorage au chargement
-            const savedValue = localStorage.getItem(filter.key);
-            if (savedValue) {
-                el.value = savedValue;
+            if (el.type !== 'hidden') {
+                const savedValue = localStorage.getItem(filter.key);
+                if (savedValue) {
+                    el.value = savedValue;
+                }
             }
 
-            // Sauvegarder la nouvelle valeur à chaque changement et mettre à jour la vue
             el.addEventListener('change', () => {
-                localStorage.setItem(filter.key, el.value);
+                if (el.type !== 'hidden') {
+                    localStorage.setItem(filter.key, el.value);
+                }
                 updateView();
             });
         }
@@ -497,22 +499,6 @@ function generateGridCard(g) {
         </a>`;
     }
 
-    // ==========================================
-    // GÉNÉRATION DU BLOC DES TROPHÉES
-    // ==========================================
-    let trophiesHtml = '';
-    if (g.trophies_summary && g.trophies_summary.total > 0) {
-        const t = g.trophies_summary;
-        const percent = Math.round((t.obtained / t.total) * 100);
-
-        // On ajoute un petit badge discret directement dans la zone metaHtml
-        // L'icône &#xea23; correspond à la coupe de trophée dans Material Icons
-        metaHtml += `<span class="meta-tag text-warning bg-warning-subtle border-warning-subtle" title="Progression des trophées PSN">
-            <i class="material-icons-outlined icon-sm me-1">&#xea23;</i>${percent}%
-        </span>`;
-    }
-
-
 
     const templateNode = document.getElementById('gridCardTemplate');
     if (!templateNode) return '';
@@ -528,7 +514,7 @@ function generateGridCard(g) {
         .replaceAll('{title}', g.title)
         .replaceAll('{ratingHtml}', ratingHtml)
         .replaceAll('{metaHtml}', metaHtml)
-        .replaceAll('{trophiesHtml}', trophiesHtml)
+        .replaceAll('{trophiesHtml}', '')
         .replaceAll('{genres}', translateGenres(g.genres))
         .replaceAll('{loanInfoHtml}', loanInfoHtml)
         .replaceAll('{actionsHtml}', actionsHtml);
@@ -727,9 +713,19 @@ function openModal(g = null) {
 
     checkPsnVisibility();
 
+    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
     const fmtDigital = document.getElementById('fmtDigital');
     const fmtPhysical = document.getElementById('fmtPhysical');
-    document.getElementById('gameFormatHidden').value = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
+    
+    if (fmtDigital && fmtPhysical) {
+        if (formatToSet === 'digital') {
+            fmtDigital.checked = true;
+            fmtPhysical.checked = false;
+        } else {
+            fmtPhysical.checked = true;
+            fmtDigital.checked = false;
+        }
+    }
 
     const isWishlistPage = window.location.pathname.includes('wishlist');
     safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));

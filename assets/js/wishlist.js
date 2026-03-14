@@ -20,6 +20,20 @@ function openModal() {
     const statusField = document.getElementById('gameStatus');
     if (statusField) statusField.value = 'wishlist';
 
+    if (typeof currentLibraryFormat !== 'undefined') {
+        const fmtPhys = document.getElementById('fmtPhysical');
+        const fmtDigi = document.getElementById('fmtDigital');
+        if (fmtPhys && fmtDigi) {
+            if (currentLibraryFormat === 'digital') {
+                fmtDigi.checked = true;
+                fmtPhys.checked = false;
+            } else {
+                fmtPhys.checked = true;
+                fmtDigi.checked = false;
+            }
+        }
+    }
+
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
 
@@ -36,6 +50,18 @@ function editGame(game) {
     document.getElementById('gameDate').value = game.release_date || '';
     const dateVisual = document.getElementById('gameDateVisual');
     if (dateVisual) dateVisual.value = game.release_date || '';
+
+    const fmtPhys = document.getElementById('fmtPhysical');
+    const fmtDigi = document.getElementById('fmtDigital');
+    if (fmtPhys && fmtDigi) {
+        if (game.format === 'digital') {
+            fmtDigi.checked = true;
+            fmtPhys.checked = false;
+        } else {
+            fmtPhys.checked = true;
+            fmtDigi.checked = false;
+        }
+    }
 
     const previewImg = document.getElementById('previewImg');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -164,7 +190,7 @@ window.generateGridCard = function(g) {
                 <div class="meta-badges mb-0">
                     ${metaHtml}
                 </div>
-                <div class="small text-muted text-truncate mt-2">${g.genres || ''}</div>
+                <div class="small text-muted text-truncate mt-2">${translateGenres(g.genres)}</div>
             </div>
 
             <div class="card-overlay-actions">
@@ -207,7 +233,7 @@ window.generateListRow = function(g) {
                 ${img}
                 <div>
                     <div class="fw-bold text-body">${g.title}</div>
-                    <div class="small text-secondary">${g.genres || ''}</div>
+                    <div class="small text-secondary">${translateGenres(g.genres)}</div>
                 </div>
             </div>
         </td>

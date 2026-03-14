@@ -265,8 +265,6 @@ class GameController
 
         $games = $this->gameModel->getAll($_SESSION['user_id']);
 
-        $this->injectTrophiesSummary($games);
-
         $view = dirname(__DIR__) . '/views/dashboard.php';
         require dirname(__DIR__) . '/views/layout.php';
     }
@@ -291,8 +289,6 @@ class GameController
         } else {
             $games = $this->gameModel->searchGames($_SESSION['user_id'], $term);
         }
-
-        $this->injectTrophiesSummary($games);
 
         // 4. Renvoi de la réponse en JSON
         header('Content-Type: application/json');

@@ -36,6 +36,23 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
     </div>
 </div>
 
+<div class="d-flex justify-content-center mb-4 mt-2">
+    <div class="custom-tabs-container shadow-sm border border-opacity-10">
+        
+        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
+        <label for="btnLibPhys" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
+        </label>
+
+        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
+        <label for="btnLibDigi" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
+        </label>
+
+        <div class="custom-tab-slider"></div>
+    </div>
+</div>
+
 <div class="card bg-body-primaary border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
 
     <div class="card-header accordion-trigger bg-transparent border-0 p-3 p-md-4 d-flex justify-content-between align-items-center <?= isset($_GET['open_add']) ? '' : 'collapsed' ?>"
@@ -99,23 +116,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <div id="rawgResults" class="d-flex gap-2 overflow-auto pb-2"></div>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="d-flex justify-content-center mb-4 mt-2">
-    <div class="custom-tabs-container shadow-sm border border-opacity-10">
-        
-        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
-        <label for="btnLibPhys" class="custom-tab-label">
-            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
-        </label>
-
-        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
-        <label for="btnLibDigi" class="custom-tab-label">
-            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
-        </label>
-
-        <div class="custom-tab-slider"></div>
     </div>
 </div>
 
@@ -202,9 +202,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                         <li class="nav-item">
                             <a class="nav-link active" data-bs-toggle="tab" href="#tab-info"><?= __('modal_tab_info') ?></a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#tab-trophies"><?= __('modal_tab_trophies') ?></a>
-                        </li>
                     </ul>
                 </div>
                 <div class="modal-body">
@@ -271,8 +268,17 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                             </select>
                                         </div>
                                     </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-2 text-secondary">Format</label>
+                                        <div class="btn-group w-100 shadow-sm" role="group">
+                                            <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" autocomplete="off" checked>
+                                            <label class="btn btn-outline-secondary" for="fmtPhysical"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?></label>
+
+                                            <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital" autocomplete="off">
+                                            <label class="btn btn-outline-secondary" for="fmtDigital"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?></label>
+                                        </div>
+                                    </div>
                                     <div class="row g-2 mb-3">
-                                            <input type="hidden" name="format" id="gameFormatHidden" value="physical">
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_rating_label') ?></label>
                                             <input type="number" name="user_rating" id="gameRating" class="form-control rounded-3" max="10">
@@ -304,42 +310,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                             </div>
                             <input type="hidden" name="release_date" id="gameDate">
                             <input type="hidden" name="description" id="gameDesc">
-                        </div>
-
-                        <div class="tab-pane fade" id="tab-trophies">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0 fw-bold"><?= __('modal_trophies_list') ?></h6>
-                                <div class="progress flex-grow-1 mx-3" style="height: 10px;">
-                                    <div id="trophyProgressBar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
-                                </div>
-                                <span id="trophyProgressText" class="small fw-bold">0%</span>
-                            </div>
-                            <div class="input-group mb-3">
-
-                                <select id="newTrophyType" name="trophyType" class="d-none">
-                                    <option value="bronze" selected><?= __('trophy_bronze') ?></option>
-                                    <option value="silver"><?= __('trophy_silver') ?></option>
-                                    <option value="gold"><?= __('trophy_gold') ?></option>
-                                    <option value="platinum"><?= __('trophy_platinum') ?></option>
-                                </select>
-
-                                <button class="form-select text-start d-flex align-items-center rounded-start" type="button" id="trophyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 140px; cursor: pointer;"> 
-                                    <span class="d-flex align-items-center w-100 overflow-hidden">
-                                        <img src="./assets/images/bronze.png" class="trophy-icon me-2" alt="">
-                                        <span class="text-truncate"><?= __('trophy_bronze') ?></span>
-                                    </span>
-                                </button>
-                                
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" data-value="bronze"><img src="./assets/images/bronze.png" class="trophy-icon me-2"> <?= __('trophy_bronze') ?></a></li>
-                                    <li><a class="dropdown-item" href="#" data-value="silver"><img src="./assets/images/silver.png" class="trophy-icon me-2"> <?= __('trophy_silver') ?></a></li>
-                                    <li><a class="dropdown-item" href="#" data-value="gold"><img src="./assets/images/gold.png" class="trophy-icon me-2"> <?= __('trophy_gold') ?></a></li>
-                                    <li><a class="dropdown-item" href="#" data-value="platinum"><img src="./assets/images/platinum.png" class="trophy-icon me-2"> <?= __('trophy_platinum') ?></a></li>
-                                </ul>
-                                <input type="text" id="newTrophyTitle" class="form-control" placeholder="<?= __('modal_trophy_name_placeholder') ?>">
-                                <button type="button" class="btn btn-primary" onclick="addTrophy()"><i class="material-icons-outlined icon-sm">&#xe145;</i></button>
-                            </div>
-                            <div id="trophiesList" class="overflow-y-auto" style="max-height: 350px;"></div>
                         </div>
                     </div>
                 </div>
