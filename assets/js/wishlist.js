@@ -7,6 +7,9 @@ function openModal() {
 
     const previewImg = document.getElementById('previewImg');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+
+    const dateCol = document.getElementById('releaseDateCol');
+    if (dateCol) dateCol.classList.add('d-none');
     
     if (previewImg && uploadPlaceholder) {
         previewImg.src = '';
@@ -19,6 +22,20 @@ function openModal() {
 
     const statusField = document.getElementById('gameStatus');
     if (statusField) statusField.value = 'wishlist';
+
+    if (typeof currentLibraryFormat !== 'undefined') {
+        const fmtPhys = document.getElementById('fmtPhysical');
+        const fmtDigi = document.getElementById('fmtDigital');
+        if (fmtPhys && fmtDigi) {
+            if (currentLibraryFormat === 'digital') {
+                fmtDigi.checked = true;
+                fmtPhys.checked = false;
+            } else {
+                fmtPhys.checked = true;
+                fmtDigi.checked = false;
+            }
+        }
+    }
 
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
@@ -35,7 +52,27 @@ function editGame(game) {
     
     document.getElementById('gameDate').value = game.release_date || '';
     const dateVisual = document.getElementById('gameDateVisual');
-    if (dateVisual) dateVisual.value = game.release_date || '';
+    const dateCol = document.getElementById('releaseDateCol');
+
+    if (game.release_date) {
+        if (dateVisual) dateVisual.value = game.release_date;
+        if (dateCol) dateCol.classList.remove('d-none');
+    } else {
+        if (dateVisual) dateVisual.value = '';
+        if (dateCol) dateCol.classList.add('d-none'); 
+    }
+
+    const fmtPhys = document.getElementById('fmtPhysical');
+    const fmtDigi = document.getElementById('fmtDigital');
+    if (fmtPhys && fmtDigi) {
+        if (game.format === 'digital') {
+            fmtDigi.checked = true;
+            fmtPhys.checked = false;
+        } else {
+            fmtPhys.checked = true;
+            fmtDigi.checked = false;
+        }
+    }
 
     const previewImg = document.getElementById('previewImg');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -105,6 +142,13 @@ window.generateGridCard = function(g) {
     let metaHtml = '';
     let platIconHtml = '';
 
+    let releaseDateHtml = '';
+    if (g.release_date) {
+        const d = new Date(g.release_date);
+        const formattedDate = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        releaseDateHtml = `<div class="small text-primary fw-bold mt-2"><i class="material-icons-outlined icon-sm align-middle me-1">&#xeb9b;</i><?= __('modal_title_placeholder') ?> : ${formattedDate}</div>`;
+    }
+
     // Icône Plateforme
     if (g.platform && g.platform.includes(',')) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
@@ -164,7 +208,8 @@ window.generateGridCard = function(g) {
                 <div class="meta-badges mb-0">
                     ${metaHtml}
                 </div>
-                <div class="small text-muted text-truncate mt-2">${g.genres || ''}</div>
+                ${releaseDateHtml}
+                <div class="small text-muted text-truncate mt-2">${translateGenres(g.genres)}</div>
             </div>
 
             <div class="card-overlay-actions">
@@ -198,6 +243,12 @@ window.generateListRow = function(g) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe338;</i>';
     }
 
+    let releaseDateHtml = '';
+    if (g.release_date) {
+        const d = new Date(g.release_date);
+        releaseDateHtml = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2"><i class="material-icons-outlined icon-sm align-middle me-1">&#xeb9b;</i>${d.toLocaleDateString('fr-FR')}</span>`;
+    }
+
     const acquireBtn = `<a href="/?action=acquire&id=${g.id}" class="btn-icon-action text-success" title="${LANG.btn_acquire}" onclick="return confirm('${LANG.confirm_acquire}')"><i class="material-icons-outlined icon-md">&#xe8cc;</i></a>`;
 
     return `
@@ -206,8 +257,8 @@ window.generateListRow = function(g) {
             <div class="d-flex align-items-center gap-3">
                 ${img}
                 <div>
-                    <div class="fw-bold text-body">${g.title}</div>
-                    <div class="small text-secondary">${g.genres || ''}</div>
+                    <div class="fw-bold text-body">${g.title} ${releaseDateHtml}</div>
+                    <div class="small text-secondary">${translateGenres(g.genres)}</div>
                 </div>
             </div>
         </td>
