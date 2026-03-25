@@ -123,29 +123,64 @@ class GameController
     }
 
     // --- METTRE À JOUR UN JEU (NOUVEAU) ---
+    // --- METTRE À JOUR UN JEU (CORRIGÉ POUR LES PRÊTS) ---
     public function apiUpdateGame($userId)
     {
         $input = json_decode(file_get_contents('php://input'), true);
 
-        // On accepte "id" (venant du JSON mobile)
+        // 1. Définition du $gameId (Corrigé: déplacé avant la vérification)
         $gameId = $input['id'] ?? null;
 
         if (empty($gameId)) {
             $this->apiResponse(false, 'L\'ID du jeu est obligatoire pour la mise à jour.', [], 400);
         }
 
-        // 1. On récupère le jeu existant pour ne pas écraser bêtement les données manquantes
         $existingGame = $this->gameModel->getOne($gameId, $userId);
         if (!$existingGame) {
             $this->apiResponse(false, 'Jeu introuvable dans votre collection.', [], 404);
         }
 
-        // 2. On fusionne les anciennes données avec les nouvelles envoyées par le mobile
+        $newStatus = $input['status'] ?? $existingGame['status'];
+
+        // SCÉNARIO 1 : L'utilisateur RETOURNE un jeu (Mobile: modale "Retourner")
+        // L'API intercepte le changement de statut pour restaurer le "previous_status"
+        if ($existingGame['status'] === 'loaned' && $newStatus !== 'loaned') {
+            if ($this->gameModel->returnLoanedGame($gameId, $userId)) {
+                $this->apiResponse(true, 'Le jeu est de retour dans votre collection !');
+            } else {
+                $this->apiResponse(false, 'Erreur lors du retour du jeu.', [], 500);
+            }
+        }
+
+        // SCÉNARIO 2 : L'utilisateur PRÊTE un jeu ou MODIFIE les infos d'un prêt
+        if ($newStatus === 'loaned') {
+            $loanedTo = $input['loaned_to'] ?? $existingGame['loaned_to'] ?? '';
+            $loanedDate = $input['loaned_date'] ?? $existingGame['loaned_date'] ?? date('Y-m-d');
+
+            if ($existingGame['status'] !== 'loaned') {
+                // Action : Nouveau prêt (depuis HomeScreen)
+                if ($this->gameModel->loanGame($gameId, $userId, $loanedTo, $loanedDate)) {
+                    $this->apiResponse(true, 'Le jeu a bien été prêté !');
+                } else {
+                    $this->apiResponse(false, 'Erreur lors de l\'enregistrement du prêt.', [], 500);
+                }
+            } else {
+                // Action : Modification d'un prêt existant (depuis LoanedScreen)
+                $this->gameModel->updateLoan($gameId, $userId, $loanedTo, $loanedDate);
+
+                // Si la requête ne contient que les infos de prêt, on arrête l'API ici
+                if (!isset($input['title']) && !isset($input['comment'])) {
+                    $this->apiResponse(true, 'Les informations du prêt ont été mises à jour.');
+                }
+            }
+        }
+
+        // SCÉNARIO 3 : Sauvegarde standard des autres champs (titre, plateforme, commentaire...)
         $gameData = [
-            'game_id' => $gameId, // Obligatoire pour que Game.php lance un UPDATE
+            'game_id' => $gameId,
             'rawg_id' => $existingGame['rawg_id'],
             'title' => $input['title'] ?? $existingGame['title'],
-            'status' => $input['status'] ?? $existingGame['status'],
+            'status' => $newStatus,
             'platform' => $input['platform'] ?? $existingGame['platform'],
             'format' => $input['format'] ?? $existingGame['format'],
             'release_date' => $input['release_date'] ?? $existingGame['release_date'],
@@ -159,12 +194,7 @@ class GameController
         ];
 
         // Gérer le cas du multiplateforme
-        if (isset($input['platform_custom']) && $input['platform'] === 'Multiplateforme') {
-            $gameData['platform_custom'] = $input['platform_custom'];
-        }
-
-        // Gérer le cas du multiplateforme
-        if (isset($input['platform_custom']) && $input['platform'] === 'Multiplateforme') {
+        if (isset($input['platform_custom']) && ($input['platform'] ?? $existingGame['platform']) === 'Multiplateforme') {
             $gameData['platform_custom'] = $input['platform_custom'];
         }
 
@@ -173,14 +203,10 @@ class GameController
             require_once dirname(__DIR__) . '/models/Playtime.php';
             $playtimeModel = new Playtime($this->db);
 
-            // On récupère le playtime existant pour ne pas écraser accidentellement le time_100
             $existingPlaytime = $playtimeModel->getByGameId($gameId);
             $time100 = $existingPlaytime ? $existingPlaytime['time_100'] : null;
 
-            // NOUVEAU : On remplace l'éventuelle virgule par un point pour PHP
             $cleanPlaytime = str_replace(',', '.', $input['playtime']);
-
-            // On sauvegarde la nouvelle valeur
             $playtimeModel->save($gameId, floatval($cleanPlaytime), $time100);
         }
 
@@ -265,8 +291,6 @@ class GameController
 
         $games = $this->gameModel->getAll($_SESSION['user_id']);
 
-        $this->injectTrophiesSummary($games);
-
         $view = dirname(__DIR__) . '/views/dashboard.php';
         require dirname(__DIR__) . '/views/layout.php';
     }
@@ -291,8 +315,6 @@ class GameController
         } else {
             $games = $this->gameModel->searchGames($_SESSION['user_id'], $term);
         }
-
-        $this->injectTrophiesSummary($games);
 
         // 4. Renvoi de la réponse en JSON
         header('Content-Type: application/json');
@@ -823,50 +845,50 @@ class GameController
         if ($httpCode !== 200 || !$response) return false;
 
         $data = json_decode($response, true);
-    if (!$data || !$data['success']) return false;
+        if (!$data || !$data['success']) return false;
 
-    require_once dirname(__DIR__) . '/models/Trophy.php';
-    $trophyModel = new Trophy($this->db);
+        require_once dirname(__DIR__) . '/models/Trophy.php';
+        $trophyModel = new Trophy($this->db);
 
-    $stats = ['games' => 0, 'trophies' => 0];
+        $stats = ['games' => 0, 'trophies' => 0];
 
-    foreach ($data['games'] as $psnGame) {
-        $localGame = $this->gameModel->findPlayStationGameByTitle($userId, $psnGame['titleName']);
-        
-        if ($localGame) {
-            if (isset($localGame['status']) && $localGame['status'] === 'completed') continue;
+        foreach ($data['games'] as $psnGame) {
+            $localGame = $this->gameModel->findPlayStationGameByTitle($userId, $psnGame['titleName']);
 
-            $gameId = $localGame['id'];
-            $stats['games']++;
-            
-            if (isset($psnGame['earnedTrophies']) && is_array($psnGame['earnedTrophies'])) {
-                foreach ($psnGame['earnedTrophies'] as $trophy) {
-                    $title = $trophy['trophyName'] ?? 'Trophée Inconnu';
-                    $type = strtolower($trophy['trophyType'] ?? 'bronze'); 
-                    $isObtained = !empty($trophy['earned']);
-                    
-                    $rawDate = $trophy['earnedDateTime'] ?? $trophy['earnedDate'] ?? $trophy['date'] ?? null;
-                    $earnedAt = null;
+            if ($localGame) {
+                if (isset($localGame['status']) && $localGame['status'] === 'completed') continue;
 
-                    if ($rawDate && is_string($rawDate)) {
-                        $parsed = strtotime($rawDate);
-                        if ($parsed) {
-                            $earnedAt = date('Y-m-d H:i:s', $parsed);
+                $gameId = $localGame['id'];
+                $stats['games']++;
+
+                if (isset($psnGame['earnedTrophies']) && is_array($psnGame['earnedTrophies'])) {
+                    foreach ($psnGame['earnedTrophies'] as $trophy) {
+                        $title = $trophy['trophyName'] ?? 'Trophée Inconnu';
+                        $type = strtolower($trophy['trophyType'] ?? 'bronze');
+                        $isObtained = !empty($trophy['earned']);
+
+                        $rawDate = $trophy['earnedDateTime'] ?? $trophy['earnedDate'] ?? $trophy['date'] ?? null;
+                        $earnedAt = null;
+
+                        if ($rawDate && is_string($rawDate)) {
+                            $parsed = strtotime($rawDate);
+                            if ($parsed) {
+                                $earnedAt = date('Y-m-d H:i:s', $parsed);
+                            }
                         }
-                    }
 
-                    if ($isObtained && !isset($GLOBALS['debug_trophy_logged'])) {
-                        file_put_contents(dirname(__DIR__) . '/api/cron_psn.log', "DEBUG EARNED TROPHY: " . json_encode($trophy) . "\n", FILE_APPEND);
-                        $GLOBALS['debug_trophy_logged'] = true; // Empêche de spammer le fichier log
-                    }
+                        if ($isObtained && !isset($GLOBALS['debug_trophy_logged'])) {
+                            file_put_contents(dirname(__DIR__) . '/api/cron_psn.log', "DEBUG EARNED TROPHY: " . json_encode($trophy) . "\n", FILE_APPEND);
+                            $GLOBALS['debug_trophy_logged'] = true; // Empêche de spammer le fichier log
+                        }
 
-                    $trophyModel->syncPsnTrophy($gameId, $title, $type, $isObtained, $earnedAt);
-                    $stats['trophies']++;
+                        $trophyModel->syncPsnTrophy($gameId, $title, $type, $isObtained, $earnedAt);
+                        $stats['trophies']++;
+                    }
                 }
             }
         }
-    }
-    return $stats;
+        return $stats;
     }
 
     public function apiPsnSync()

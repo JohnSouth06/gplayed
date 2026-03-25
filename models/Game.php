@@ -546,9 +546,10 @@ class Game
 
     public function loanGame($id, $userId, $loanedTo, $loanedDate)
     {
+        // CORRECTION : On sauvegarde l'ancien statut et on passe le nouveau en 'loaned'
         $query = "UPDATE " . $this->table . " 
-                SET previous_status = status, 
-                    status = 'loaned', 
+                SET previous_status = status,
+                    status = 'loaned',
                     loaned_to = :loaned_to, 
                     loaned_date = :loaned_date 
                 WHERE id = :id AND user_id = :user_id";
