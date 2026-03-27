@@ -36,20 +36,15 @@ class ProgressController
         $history = $this->progressModel->getAllByUser($_SESSION['user_id']);
         $games = $this->gameModel->getSelectableGames($_SESSION['user_id']);
 
-
-        $trophyModel = new Trophy($this->db);
-        $trophies = $trophyModel->getRecentTrophiesByUser($_SESSION['user_id']);
-
         $totalHours = 0;
         $timeline = [];
 
-        // 1. Formatage des sessions
         foreach ($history as $h) {
             $totalHours += $h['duration_minutes'];
             $timeline[] = [
                 'type'           => 'session',
-                'date_display'   => $h['log_date'],   // Date pour l'affichage (YYYY-MM-DD)
-                'sort_date'      => $h['created_at'], // Timestamp précis pour le tri
+                'date_display'   => $h['log_date'],
+                'sort_date'      => $h['created_at'],
                 'game_title'     => $h['game_title'],
                 'game_image'     => $h['game_image'],
                 'duration'       => $h['duration_minutes'],
@@ -59,27 +54,6 @@ class ProgressController
             ];
         }
         $totalHours = round($totalHours / 60, 1);
-
-        // 2. Formatage des trophées
-        foreach ($trophies as $t) {
-            $timeline[] = [
-                'type'         => 'trophy',
-                'date_display' => $t['earned_date'] ?? $t['created_at'] ?? 'Date inconnue',
-                'sort_date'    => $t['earned_date'] ?? $t['created_at'] ?? '0000-00-00 00:00:00',
-                'game_title'   => $t['game_title'],
-                'game_image'   => $t['game_image'],
-                'trophy_name'  => $t['trophy_name'],
-                'trophy_type'  => $t['trophy_type']
-            ];
-        }
-
-        // 3. Tri global de la timeline par date décroissante
-        usort($timeline, function ($a, $b) {
-            $dateA = strtotime($a['sort_date'] ?? '');
-            $dateB = strtotime($b['sort_date'] ?? '');
-
-            return $dateB - $dateA;
-        });
 
         $view = dirname(__DIR__) . '/views/progression.php';
         require dirname(__DIR__) . '/views/layout.php';
