@@ -46,18 +46,22 @@ $imagePlaceholder = '<div class="position-absolute top-0 w-100 h-100 d-flex alig
 
 $formatIcon = (isset($g['format']) && $g['format'] === 'physical') 
     ? '<i class="material-icons-outlined icon-sm text-secondary" title="Physique">&#xe1a1;</i>' 
-    : '<i class="material-icons-outlined icon-sm text-secondary" title="Dématérialisé">&#xe3dd;</i>';
+    : '<i class="material-icons-outlined icon-sm text-secondary" title="Digital">&#xe3dd;</i>';
 
 $platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
 if (!empty($g['platform'])) {
-    if (strpos($g['platform'], ',') !== false) {
-        $platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
-    } else {
-        $platL = strtolower($g['platform']);
-        if (strpos($platL, 'ps') !== false || strpos($platL, 'playstation') !== false) $platIconHtml = '<i class="svg-icon ps-icon me-1"></i>';
-        elseif (strpos($platL, 'xbox') !== false) $platIconHtml = '<i class="svg-icon xbox-icon me-1"></i>';
-        elseif (strpos($platL, 'switch') !== false) $platIconHtml = '<i class="svg-icon switch-icon me-1"></i>';
-        elseif (strpos($platL, 'pc') !== false) $platIconHtml = '<i class="svg-icon pc-icon me-1"></i>';
+    $platL = strtolower($g['platform']);
+    
+    if (strpos($platL, 'ps') !== false || strpos($platL, 'playstation') !== false || strpos($platL, 'vita') !== false || strpos($platL, 'psp') !== false) {
+        $platIconHtml = '<i class="svg-icon ps-icon me-1"></i>';
+    } elseif (strpos($platL, 'xbox') !== false) {
+        $platIconHtml = '<i class="svg-icon xbox-icon me-1"></i>';
+    } elseif (strpos($platL, 'switch') !== false || strpos($platL, 'nintendo') !== false || strpos($platL, 'wii') !== false || strpos($platL, 'gamecube') !== false || strpos($platL, 'game boy') !== false || strpos($platL, 'nes') !== false || strpos($platL, 'ds') !== false) {
+        $platIconHtml = '<i class="svg-icon switch-icon me-1"></i>';
+    } elseif (strpos($platL, 'pc') !== false || strpos($platL, 'mac') !== false || strpos($platL, 'linux') !== false) {
+        $platIconHtml = '<i class="svg-icon pc-icon me-1"></i>';
+    } elseif (strpos($platL, 'ios') !== false || strpos($platL, 'android') !== false) {
+        $platIconHtml = '<i class="material-icons-outlined icon-sm me-1" title="Mobile">&#xe32c;</i>';
     }
 }
 

@@ -19,13 +19,31 @@ if (isset($games) && is_array($games)) {
         <h2 class="h2 dashboard-welcome mb-1 fw-light"><?= __('wishlist_title') ?></h2>
     </div>
     <div class="stat-widget">
-    <i class="material-icons stat-icon text-danger">&#xe8b1;</i>
-    <div class="stat-content">
-        <span class="stat-label"><?= __('wishlist_count_label') ?></span>
-        <span class="stat-value text-danger animate-counter" data-target="<?= $totalWishlist ?>">0</span>
+        <i class="material-icons stat-icon text-danger">&#xe8b1;</i>
+        <div class="stat-content">
+            <span class="stat-label"><?= __('wishlist_count_label') ?></span>
+            <span class="stat-value text-danger animate-counter" data-target="<?= $totalWishlist ?>">0</span>
+        </div>
     </div>
 </div>
+
+<div class="d-flex justify-content-center mb-4 mt-2">
+    <div class="custom-tabs-container shadow-sm border border-opacity-10">
+
+        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
+        <label for="btnLibPhys" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
+        </label>
+
+        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
+        <label for="btnLibDigi" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
+        </label>
+
+        <div class="custom-tab-slider"></div>
+    </div>
 </div>
+
 
 <div class="card bg-body-primaary border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
     <div class="card-header accordion-trigger bg-transparent border-0 p-3 p-md-4 d-flex justify-content-between align-items-center <?= isset($_GET['open_add']) ? '' : 'collapsed' ?>"
@@ -39,7 +57,7 @@ if (isset($games) && is_array($games)) {
     <div class="collapse <?= isset($_GET['open_add']) ? 'show' : '' ?>" id="addGameSection">
         <div class="card-body px-4 pb-4 pt-0">
             <hr class="text-secondary opacity-10 my-2 mb-4">
-            
+
             <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
                 <div class="flex-grow-1 w-100">
                     <div class="search-wrapper">
@@ -53,18 +71,21 @@ if (isset($games) && is_array($games)) {
                     <i class="material-icons-outlined icon-sm fs-4 me-2">&#xe145;</i><?= __('wishlist_manual_add') ?>
                 </button>
             </div>
-            
+
             <div id="rawgContainer" class="mt-3 d-none border-top pt-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0 text-secondary small fw-bold text-uppercase"><?= __('dashboard_internet_results') ?></h6>
                     <button type="button" class="btn-close btn-sm" onclick="closeSearch()"></button>
                 </div>
-                <div id="rawgLoading" class="text-center d-none py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                <div id="rawgLoading" class="text-center d-none py-3">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                </div>
                 <div id="rawgResults" class="d-flex gap-2 overflow-auto pb-2"></div>
             </div>
         </div>
     </div>
 </div>
+
 
 <div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
@@ -74,7 +95,8 @@ if (isset($games) && is_array($games)) {
         <span class="input-group-text border-0 pe-3 bg-transparent" style="cursor:pointer" onclick="document.getElementById('internalSearchInput').value=''; updateView();"><i class="material-icons-outlined opacity-50 icon-sm">&#xe5cd;</i></span>
     </div>
 
-    <div class="w-100 flex-grow-1 overflow-hidden"> <div class="filters-scroll-container">
+    <div class="w-100 flex-grow-1 overflow-hidden">
+        <div class="filters-scroll-container">
 
             <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
                 <option value="all"><?= __('filter_platform') ?></option>
@@ -88,6 +110,7 @@ if (isset($games) && is_array($games)) {
             <input type="hidden" id="filterStatus" value="wishlist">
 
             <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="release_asc" selected><?= __('wishlist_release_date') ?></option>
                 <option value="date_desc"><?= __('sort_recent') ?></option>
                 <option value="alpha_asc"><?= __('sort_az') ?></option>
                 <option value="rating_desc"><?= __('sort_rating') ?></option>
@@ -95,13 +118,13 @@ if (isset($games) && is_array($games)) {
             </select>
 
             <div class="view-toggle-tabs shadow-sm border border-opacity-10 d-none d-md-flex">
-                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input" 
+                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input"
                     onclick="setView('grid')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? '' : 'checked' ?>>
                 <label for="btnGridInput" class="view-tab-label">
                     <i class="material-icons-outlined icon-md">&#xe9b0;</i>
                 </label>
 
-                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input" 
+                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input"
                     onclick="setView('list')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? 'checked' : '' ?>>
                 <label for="btnListInput" class="view-tab-label">
                     <i class="material-icons-outlined icon-md">&#xe8ef;</i>
@@ -131,13 +154,14 @@ if (isset($games) && is_array($games)) {
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <form action="/save" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                
+
                 <input type="hidden" name="status" value="wishlist" id="gameStatus">
-                <input type="hidden" name="release_date" id="gameDate"> <div class="d-none">
-                    <input type="radio" id="fmtPhysical" name="format" value="physical" checked>
-                    <input type="radio" id="fmtDigital" name="format" value="digital">
+                <input type="hidden" name="release_date" id="gameDate">
+                <div class="d-none">
                     <div id="modalTabs"></div>
-                    <div id="multiPlatformContainer"><div id="platformInputsList"></div><input id="gamePlatformCustom"></div>
+                    <div id="multiPlatformContainer">
+                        <div id="platformInputsList"></div><input id="gamePlatformCustom">
+                    </div>
                     <input id="gameMeta"><input id="gameRating"><input id="gameDesc">
                 </div>
 
@@ -145,11 +169,11 @@ if (isset($games) && is_array($games)) {
                     <h5 class="modal-title fs-5 fw-bold"><?= __('wishlist_modal_title') ?></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                
+
                 <div class="modal-body">
                     <input type="hidden" name="game_id" id="gameId">
                     <input type="hidden" name="rawg_id" id="gameRawgId">
-                    
+
                     <div class="row g-4">
                         <div class="col-md-4">
                             <div class="ratio ratio-1x1 bg-body-tertiary rounded-4 overflow-hidden position-relative group-hover-upload">
@@ -161,7 +185,7 @@ if (isset($games) && is_array($games)) {
                                 <input type="file" name="image_upload" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" accept="image/*" onchange="previewFile(this)">
                                 <input type="hidden" name="image_url_hidden" id="gameImageHidden">
                             </div>
-                            
+
                             <div class="mt-3">
                                 <label class="form-label small fw-bold text-secondary"><?= __('wishlist_field_price') ?></label>
                                 <div class="input-group">
@@ -170,13 +194,13 @@ if (isset($games) && is_array($games)) {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-8">
                             <div class="form-floating mb-3">
                                 <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" required>
                                 <label><?= __('modal_title_label') ?></label>
                             </div>
-                            
+
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
                                     <label class="form-label small fw-bold mb-1 text-secondary"><?= __('filter_platform') ?></label>
@@ -188,9 +212,20 @@ if (isset($games) && is_array($games)) {
                                         <option value="PC">PC</option>
                                     </select>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-6" id="releaseDateCol">
                                     <label class="form-label small fw-bold mb-1 text-secondary"><?= __('wishlist_release_date') ?></label>
-                                    <input type="date" id="gameDateVisual" class="form-control rounded-3" onchange="document.getElementById('gameDate').value = this.value">
+                                    <input type="date" id="gameDateVisual" class="form-control rounded-3 bg-body-tertiary" readonly>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold mb-2 text-secondary"><?= __('modal_format_label') ?></label>
+                                <div class="btn-group w-100 shadow-sm" role="group">
+                                    <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" autocomplete="off" checked>
+                                    <label class="btn btn-outline-secondary" for="fmtPhysical"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?></label>
+
+                                    <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital" autocomplete="off">
+                                    <label class="btn btn-outline-secondary" for="fmtDigital"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?></label>
                                 </div>
                             </div>
 
