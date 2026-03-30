@@ -237,7 +237,7 @@ class User
             $file = dirname(__DIR__) . '/' . $user['avatar_url'];
             if (file_exists($file)) unlink($file);
         }
-        $stmt = $this->conn->prepare("SELECT image_url FROM games WHERE user_id = ?");
+        $stmt = $this->conn->prepare("SELECT image_url FROM user_games WHERE user_id = ?");
         $stmt->execute([$id]);
         while ($row = $stmt->fetch()) {
             if (!empty($row['image_url'])) {

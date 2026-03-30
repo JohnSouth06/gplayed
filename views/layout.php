@@ -90,7 +90,7 @@ if (isset($_SESSION['force_loader'])) {
                 $hasLoanedGames = false;
                 global $db;
                 if (isset($_SESSION['user_id']) && $db) {
-                    $stmtMenu = $db->prepare("SELECT COUNT(*) FROM games WHERE user_id = :uid AND status = 'loaned'");
+                    $stmtMenu = $db->prepare("SELECT COUNT(*) FROM user_games WHERE user_id = :uid AND status = 'loaned'");
                     $stmtMenu->execute(['uid' => $_SESSION['user_id']]);
                     if ($stmtMenu->fetchColumn() > 0) {
                         $hasLoanedGames = true;

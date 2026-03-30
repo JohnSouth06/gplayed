@@ -253,19 +253,22 @@ class GameController
     }
 
     public function index()
-    {
-        if (!isset($_SESSION['user_id'])) {
-            $view = dirname(__DIR__) . '/views/auth.php';
-            require dirname(__DIR__) . '/views/layout.php';
-            return;
-        }
-
-        $games = $this->gameModel->getAll($_SESSION['user_id']);
-
-        $this->injectTrophiesSummary($games);
-
-        $view = dirname(__DIR__) . '/views/dashboard.php';
+{
+    if (!isset($_SESSION['user_id'])) {
+        $view = dirname(__DIR__) . '/views/auth.php';
         require dirname(__DIR__) . '/views/layout.php';
+        return;
+    }
+
+    $games = $this->gameModel->getAll($_SESSION['user_id']);
+    $this->injectTrophiesSummary($games);
+
+    $totalGames = count($games);
+    $playingCount = count(array_filter($games, fn($g) => $g['status'] === 'playing'));
+    $finishedCount = count(array_filter($games, fn($g) => in_array($g['status'], ['finished', 'completed'])));
+
+    $view = dirname(__DIR__) . '/views/dashboard.php';
+    require dirname(__DIR__) . '/views/layout.php';
     }
 
 
@@ -761,8 +764,8 @@ class GameController
         $updatedCount = 0;
         $oneYearAgo = time() - (365 * 24 * 60 * 60);
 
-        $stmtFindGame = $this->db->prepare("SELECT id, status FROM games WHERE user_id = :uid AND title = :title AND platform = 'PC' LIMIT 1");
-        $stmtUpdateStatus = $this->db->prepare("UPDATE games SET status = :status WHERE id = :id");
+        $stmtFindGame = $this->db->prepare("SELECT id, status FROM user_games WHERE user_id = :uid AND title = :title AND platform = 'PC' LIMIT 1");
+        $stmtUpdateStatus = $this->db->prepare("UPDATE user_games SET status = :status WHERE id = :id");
 
         foreach ($data['response']['games'] as $steamGame) {
             $playtimeMinutes = $steamGame['playtime_forever'] ?? 0;
