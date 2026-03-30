@@ -234,7 +234,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                 </div>
                                 <div class="col-md-7">
                                     <div class="form-floating mb-3">
-                                        <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" readonly required>
+                                        <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" required>
                                         <label><?= __('modal_title_label') ?></label>
                                     </div>
                                     <div class="row g-2 mb-3">
@@ -305,7 +305,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_meta_label') ?></label>
-                                            <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---" readonly>
+                                            <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---">
                                         </div>
                                     </div>
                                     <div class="mb-3">

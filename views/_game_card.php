@@ -46,7 +46,7 @@ $imagePlaceholder = '<div class="position-absolute top-0 w-100 h-100 d-flex alig
 
 $formatIcon = (isset($g['format']) && $g['format'] === 'physical') 
     ? '<i class="material-icons-outlined icon-sm text-secondary" title="Physique">&#xe1a1;</i>' 
-    : '<i class="material-icons-outlined icon-sm text-secondary" title="Digital">&#xe3dd;</i>';
+    : '<i class="material-icons-outlined icon-sm text-secondary" title="Dématérialisé">&#xe3dd;</i>';
 
 $platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
 if (!empty($g['platform'])) {

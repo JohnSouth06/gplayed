@@ -670,37 +670,13 @@ function openModal(g = null) {
         const modalElement = document.getElementById('gameModal');
         if (!modalElement) return;
         modal = new bootstrap.Modal(modalElement);
-    } 
-    // ... (gardez la suite de votre code s'il y a d'autres choses ici) ...
-
+    }
     const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
     safeSet('gameId', g ? g.id : '');
-    
-    // CORRECTION 1 : On conserve l'ID IGDB si on édite un jeu (sinon on le vide)
-    // Selon le nom de votre colonne, cela peut être g.rawg_id ou g.igdb_id
-    safeSet('gameRawgId', g ? (g.rawg_id || g.igdb_id || '') : '');
-    
-    // CORRECTION 2 : On remplit le titre
+    safeSet('gameRawgId', '');
     safeSet('gameTitle', g ? g.title : '');
-    
-    // CORRECTION 3 : On ajoute le remplissage des genres (s'il manquait)
-    safeSet('gameGenres', g ? g.genres : '');
-
     safeSet('gameImageHidden', g ? (g.image_url || '') : '');
-
-    // OPTIONNEL : Vous pouvez forcer le verrouillage (readonly) directement en Javascript ici 
-    // pour être sûr à 100% que l'utilisateur ne puisse pas écrire dedans
-    const titleInput = document.getElementById('gameTitle');
-    const genresInput = document.getElementById('gameGenres');
-    if (titleInput) {
-        titleInput.readOnly = true;
-        titleInput.classList.add('bg-light'); // Ajoute un fond gris
-    }
-    if (genresInput) {
-        genresInput.readOnly = true;
-        genresInput.classList.add('bg-light');
-    }
 
     const prev = document.getElementById('previewImg');
     const holder = document.getElementById('uploadPlaceholder');
@@ -713,12 +689,8 @@ function openModal(g = null) {
             prev.classList.remove('d-none');
             holder.classList.add('d-none');
         }
-        else { 
-            prev.classList.add('d-none'); 
-            holder.classList.remove('d-none'); 
-        }
+        else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
     }
-}
 
     const priceVal = g ? (g.estimated_price || '') : '';
     safeSet('gamePriceTablet', priceVal);
