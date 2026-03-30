@@ -20,6 +20,7 @@ return [
     'menu_library' => 'Library',
     'menu_loaned' => 'Loaned',
     'menu_journal' => 'Journal',
+    'menu_trophies' => 'PSN Trophies',
     'menu_stats' => 'Statistics',
     'menu_community' => 'Community',
     'menu_feed' => 'News Feed',
@@ -392,13 +393,20 @@ return [
     'profile_import_help' => 'Allows you to restore a backup.',
 
     // PSN
-    'psn_sync_title' => 'PSN Synchronization',
+    'psn_title' => 'Our last Playstation trophies',
+    'psn_sync_title' => 'Playstation Network Synchronization',
+    'psn_games_title' => 'Title of the game',
     'psn_sync_desc' => 'You must <b>imperatively</b> have set the privacy of your PlayStation Network activities to "Everyone" for synchronization to work correctly. Connect to your PSN account via the secure link below: <a href="https://id.sonyentertainmentnetwork.com/id/management_ca/" target="_blank">Playstation Network</a>',    'psn_sync_id' => 'Your PSN ID',
+    'psn_trophy_not_obtained' => 'Not achieved',
     'psn_sync_btn' => 'Synchronize',
     'psn_sync_cooldown' => 'Next synchronization possible in :',
     'psn_sync_status' => 'Connecting to PlayStation services...',
     'psn_sync_in_progress' => 'Synchronization in progress...',
     'psn_warning_close' => '⚠️ Warning: Do not close this window until the process is complete.',
+    'psn_total_platinum' => 'Platinium',
+    'psn_total_gold' => 'Gold',
+    'psn_total_silver' => 'Silver',
+    'psn_total_bronze' => 'Bronze',
 
     // Danger Zone
     'profile_danger_title' => 'Danger Zone',

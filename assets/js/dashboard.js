@@ -92,15 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
     filterConfig.forEach(filter => {
         const el = document.getElementById(filter.id);
         if (el) {
-            // Restaurer la valeur depuis le localStorage au chargement
-            const savedValue = localStorage.getItem(filter.key);
-            if (savedValue) {
-                el.value = savedValue;
+            if (el.type !== 'hidden') {
+                const savedValue = localStorage.getItem(filter.key);
+                if (savedValue) {
+                    el.value = savedValue;
+                }
             }
 
-            // Sauvegarder la nouvelle valeur à chaque changement et mettre à jour la vue
             el.addEventListener('change', () => {
-                localStorage.setItem(filter.key, el.value);
+                if (el.type !== 'hidden') {
+                    localStorage.setItem(filter.key, el.value);
+                }
                 updateView();
             });
         }
@@ -213,6 +215,10 @@ function getProcessedGames() {
         const valB = (key) => b[key] || 0;
 
         switch (sortType) {
+            case 'release_asc': 
+                if (!a.release_date) return 1;
+                if (!b.release_date) return -1;
+                return new Date(a.release_date) - new Date(b.release_date);
             case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
             case 'alpha_asc': return (a.title || '').localeCompare(b.title || '');
             case 'rating_desc': return valB('user_rating') - valA('user_rating');
@@ -497,22 +503,6 @@ function generateGridCard(g) {
         </a>`;
     }
 
-    // ==========================================
-    // GÉNÉRATION DU BLOC DES TROPHÉES
-    // ==========================================
-    let trophiesHtml = '';
-    if (g.trophies_summary && g.trophies_summary.total > 0) {
-        const t = g.trophies_summary;
-        const percent = Math.round((t.obtained / t.total) * 100);
-
-        // On ajoute un petit badge discret directement dans la zone metaHtml
-        // L'icône &#xea23; correspond à la coupe de trophée dans Material Icons
-        metaHtml += `<span class="meta-tag text-warning bg-warning-subtle border-warning-subtle" title="Progression des trophées PSN">
-            <i class="material-icons-outlined icon-sm me-1">&#xea23;</i>${percent}%
-        </span>`;
-    }
-
-
 
     const templateNode = document.getElementById('gridCardTemplate');
     if (!templateNode) return '';
@@ -528,7 +518,7 @@ function generateGridCard(g) {
         .replaceAll('{title}', g.title)
         .replaceAll('{ratingHtml}', ratingHtml)
         .replaceAll('{metaHtml}', metaHtml)
-        .replaceAll('{trophiesHtml}', trophiesHtml)
+        .replaceAll('{trophiesHtml}', '')
         .replaceAll('{genres}', translateGenres(g.genres))
         .replaceAll('{loanInfoHtml}', loanInfoHtml)
         .replaceAll('{actionsHtml}', actionsHtml);
@@ -680,13 +670,37 @@ function openModal(g = null) {
         const modalElement = document.getElementById('gameModal');
         if (!modalElement) return;
         modal = new bootstrap.Modal(modalElement);
-    }
+    } 
+    // ... (gardez la suite de votre code s'il y a d'autres choses ici) ...
+
     const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
     safeSet('gameId', g ? g.id : '');
-    safeSet('gameRawgId', '');
+    
+    // CORRECTION 1 : On conserve l'ID IGDB si on édite un jeu (sinon on le vide)
+    // Selon le nom de votre colonne, cela peut être g.rawg_id ou g.igdb_id
+    safeSet('gameRawgId', g ? (g.rawg_id || g.igdb_id || '') : '');
+    
+    // CORRECTION 2 : On remplit le titre
     safeSet('gameTitle', g ? g.title : '');
+    
+    // CORRECTION 3 : On ajoute le remplissage des genres (s'il manquait)
+    safeSet('gameGenres', g ? g.genres : '');
+
     safeSet('gameImageHidden', g ? (g.image_url || '') : '');
+
+    // OPTIONNEL : Vous pouvez forcer le verrouillage (readonly) directement en Javascript ici 
+    // pour être sûr à 100% que l'utilisateur ne puisse pas écrire dedans
+    const titleInput = document.getElementById('gameTitle');
+    const genresInput = document.getElementById('gameGenres');
+    if (titleInput) {
+        titleInput.readOnly = true;
+        titleInput.classList.add('bg-light'); // Ajoute un fond gris
+    }
+    if (genresInput) {
+        genresInput.readOnly = true;
+        genresInput.classList.add('bg-light');
+    }
 
     const prev = document.getElementById('previewImg');
     const holder = document.getElementById('uploadPlaceholder');
@@ -699,8 +713,12 @@ function openModal(g = null) {
             prev.classList.remove('d-none');
             holder.classList.add('d-none');
         }
-        else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
+        else { 
+            prev.classList.add('d-none'); 
+            holder.classList.remove('d-none'); 
+        }
     }
+}
 
     const priceVal = g ? (g.estimated_price || '') : '';
     safeSet('gamePriceTablet', priceVal);
@@ -727,9 +745,19 @@ function openModal(g = null) {
 
     checkPsnVisibility();
 
+    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
     const fmtDigital = document.getElementById('fmtDigital');
     const fmtPhysical = document.getElementById('fmtPhysical');
-    document.getElementById('gameFormatHidden').value = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
+    
+    if (fmtDigital && fmtPhysical) {
+        if (formatToSet === 'digital') {
+            fmtDigital.checked = true;
+            fmtPhysical.checked = false;
+        } else {
+            fmtPhysical.checked = true;
+            fmtDigital.checked = false;
+        }
+    }
 
     const isWishlistPage = window.location.pathname.includes('wishlist');
     safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));

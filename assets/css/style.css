@@ -975,18 +975,6 @@ img#winnerImage {
     margin-right: 4px;
 }
 
-.spinner {
-    animation: spin 1s linear infinite;
-    vertical-align: middle;
-    margin-right: 5px;
-}
-
-@keyframes spin {
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
 /* RESPONSIVE ADJUSTS */
 @media (min-width: 991.98px) {
     #sidebar {
