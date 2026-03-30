@@ -261,7 +261,6 @@ class GameController
     }
 
     $games = $this->gameModel->getAll($_SESSION['user_id']);
-    $this->injectTrophiesSummary($games);
 
     $totalGames = count($games);
     $playingCount = count(array_filter($games, fn($g) => $g['status'] === 'playing'));
@@ -291,8 +290,6 @@ class GameController
         } else {
             $games = $this->gameModel->searchGames($_SESSION['user_id'], $term);
         }
-
-        $this->injectTrophiesSummary($games);
 
         // 4. Renvoi de la réponse en JSON
         header('Content-Type: application/json');
@@ -1068,8 +1065,6 @@ class GameController
         // Récupération des jeux de cet utilisateur
         $games = $this->gameModel->getAll($targetUser['id']);
 
-        $this->injectTrophiesSummary($games);
-
         // On définit $owner pour que la vue puisse afficher les infos du profil
         $owner = $targetUser;
 
@@ -1078,24 +1073,5 @@ class GameController
 
         $view = dirname(__DIR__) . '/views/public_collection.php';
         require dirname(__DIR__) . '/views/layout.php';
-    }
-
-    // --- NOUVEAU : Fonction utilitaire pour injecter les trophées ---
-    private function injectTrophiesSummary(&$games)
-    {
-        if (empty($games)) return;
-
-        require_once dirname(__DIR__) . '/models/Trophy.php';
-        $trophyModel = new Trophy($this->db);
-
-        foreach ($games as &$game) {
-            // On ne cherche les trophées que pour les plateformes PlayStation
-            if (stripos($game['platform'], 'PS') !== false || stripos($game['platform'], 'PlayStation') !== false) {
-                $summary = $trophyModel->getSummaryByGame($game['id']);
-                if ($summary) {
-                    $game['trophies_summary'] = $summary;
-                }
-            }
-        }
     }
 }

@@ -93,7 +93,7 @@ switch ($action) {
 
     // Games
     case 'save':
-        $gameController->save();
+        $gameController->saveGame();
         break;
     case 'delete':
         $gameController->delete();

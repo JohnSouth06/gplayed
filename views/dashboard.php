@@ -199,11 +199,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                         <h5 class="modal-title fs-5 fw-bold"><?= __('modal_details_title') ?></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <ul class="nav nav-tabs mt-3 border-0 gap-2" id="modalTabs" style="display:none;">
-                        <li class="nav-item">
-                            <a class="nav-link active" data-bs-toggle="tab" href="#tab-info"><?= __('modal_tab_info') ?></a>
-                        </li>
-                    </ul>
                 </div>
                 <div class="modal-body">
                     <div class="tab-content">
@@ -237,10 +232,14 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                         <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" readonly required>
                                         <label><?= __('modal_title_label') ?></label>
                                     </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_genres_label') ?></label>
+                                        <input type="text" name="genres" id="gameGenres" class="form-control rounded-3 bg-body-tertiary" placeholder="Action, RPG..." readonly>
+                                    </div>
                                     <div class="row g-2 mb-3">
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_platform_label') ?></label>
-                                            <select name="platform" id="gamePlatform" class="form-select rounded-3" required onchange="checkPsnVisibility();">
+                                            <select name="platform" id="gamePlatform" class="form-select rounded-3" required>
                                                 <option value="PC">PC (Microsoft Windows)</option>
                                                 <option value="Mac">Mac</option>
                                                 <option value="Linux">Linux</option>
@@ -307,10 +306,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_meta_label') ?></label>
                                             <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---" readonly>
                                         </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_genres_label') ?></label>
-                                        <input type="text" name="genres" id="gameGenres" class="form-control rounded-3" placeholder="Action, RPG...">
                                     </div>
                                     <div class="mt-3 d-md-none d-lg-block">
                                         <label class="form-label small fw-bold text-secondary"><?= __('modal_price_label') ?></label>

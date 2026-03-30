@@ -670,55 +670,30 @@ function openModal(g = null) {
         const modalElement = document.getElementById('gameModal');
         if (!modalElement) return;
         modal = new bootstrap.Modal(modalElement);
-    } 
-    // ... (gardez la suite de votre code s'il y a d'autres choses ici) ...
-
+    }
     const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
     safeSet('gameId', g ? g.id : '');
-    
-    // CORRECTION 1 : On conserve l'ID IGDB si on édite un jeu (sinon on le vide)
-    // Selon le nom de votre colonne, cela peut être g.rawg_id ou g.igdb_id
-    safeSet('gameRawgId', g ? (g.rawg_id || g.igdb_id || '') : '');
-    
-    // CORRECTION 2 : On remplit le titre
+    safeSet('gameRawgId', '');
     safeSet('gameTitle', g ? g.title : '');
-    
-    // CORRECTION 3 : On ajoute le remplissage des genres (s'il manquait)
-    safeSet('gameGenres', g ? g.genres : '');
-
     safeSet('gameImageHidden', g ? (g.image_url || '') : '');
 
-    // OPTIONNEL : Vous pouvez forcer le verrouillage (readonly) directement en Javascript ici 
-    // pour être sûr à 100% que l'utilisateur ne puisse pas écrire dedans
-    const titleInput = document.getElementById('gameTitle');
-    const genresInput = document.getElementById('gameGenres');
-    if (titleInput) {
-        titleInput.readOnly = true;
-        titleInput.classList.add('bg-light'); // Ajoute un fond gris
-    }
-    if (genresInput) {
-        genresInput.readOnly = true;
-        genresInput.classList.add('bg-light');
-    }
-
     const prev = document.getElementById('previewImg');
-    const holder = document.getElementById('uploadPlaceholder');
-    if (prev && holder) {
-        if (g && g.image_url) {
-            let prevImgUrl = g.image_url;
-            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
-            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
-            prev.src = prevImgUrl;
-            prev.classList.remove('d-none');
-            holder.classList.add('d-none');
+        const holder = document.getElementById('uploadPlaceholder');
+        if (prev && holder) {
+            if (g && g.image_url) {
+                let prevImgUrl = g.image_url;
+                if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+                else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+                prev.src = prevImgUrl;
+                prev.classList.remove('d-none');
+                holder.classList.add('d-none');
+            }
+            else { 
+                prev.classList.add('d-none'); 
+                holder.classList.remove('d-none'); 
+            }
         }
-        else { 
-            prev.classList.add('d-none'); 
-            holder.classList.remove('d-none'); 
-        }
-    }
-}
 
     const priceVal = g ? (g.estimated_price || '') : '';
     safeSet('gamePriceTablet', priceVal);
@@ -742,8 +717,7 @@ function openModal(g = null) {
             else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); }
         } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
     }
-
-    checkPsnVisibility();
+    
 
     const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
     const fmtDigital = document.getElementById('fmtDigital');
@@ -768,11 +742,8 @@ function openModal(g = null) {
     safeSet('gameDesc', g ? g.description : '');
     safeSet('gameGenres', g ? translateGenres(g.genres) : '');
 
-    if (g && g.id) loadTrophies(g.id);
     modal.show();
 }
-
-function checkPsnVisibility() { const plat = document.getElementById('gamePlatform'); if (!plat) return; const tabs = document.getElementById('modalTabs'); if (!tabs) return; if (plat.value.includes('PS') || plat.value.includes('PlayStation')) { tabs.style.display = 'flex'; } else { tabs.style.display = 'none'; const firstTabEl = document.querySelector('#modalTabs li:first-child button') || document.querySelector('#modalTabs li:first-child a'); if (firstTabEl) { const firstTab = new bootstrap.Tab(firstTabEl); firstTab.show(); } } }
 
 let loanModal;
 function openLoanModal(gameId, gameTitle) {
@@ -785,93 +756,6 @@ function openLoanModal(gameId, gameTitle) {
     if (loanGameTitle) loanGameTitle.innerText = gameTitle;
     loanModal.show();
 }
-
-async function loadTrophies(gameId) {
-    const list = document.getElementById('trophiesList');
-    if (!list) return;
-
-    list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
-
-    try {
-        const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`);
-        const data = await res.json();
-        const pct = data.progress.percent;
-
-        const bar = document.getElementById('trophyProgressBar');
-        const txt = document.getElementById('trophyProgressText');
-        if (bar) bar.style.width = pct + '%';
-        if (txt) txt.innerText = pct + '%';
-
-        if (data.trophies.length === 0) {
-            list.innerHTML = `<div class="text-center text-muted small py-3">${typeof LANG !== 'undefined' ? LANG.no_trophies : 'Aucun trophée'}</div>`;
-            return;
-        }
-
-        // ==========================================
-        // TRI INTELLIGENT DES TROPHÉES
-        // ==========================================
-        data.trophies.sort((a, b) => {
-            // 1. Les trophées NON obtenus (0) apparaissent avant les obtenus (1)
-            if (a.is_obtained != b.is_obtained) {
-                return a.is_obtained - b.is_obtained;
-            }
-            // 2. Ensuite, on trie par importance (Platine, Or, Argent, Bronze)
-            const typeOrder = { 'platinum': 1, 'gold': 2, 'silver': 3, 'bronze': 4 };
-            return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
-        });
-
-        // On vérifie si c'est un jeu PlayStation
-        const platformEl = document.getElementById('gamePlatform');
-        const isPlayStation = platformEl && (platformEl.value.includes('PS') || platformEl.value.includes('PlayStation'));
-
-        let htmlContent = '';
-        data.trophies.forEach(t => {
-            const colorClass = `trophy-${t.type}`;
-
-            // Assignation de la bonne image selon le type
-            let iconImg = 'bronze.png';
-            if (t.type === 'platinum') iconImg = 'platinum.png';
-            if (t.type === 'gold') iconImg = 'gold.png';
-            if (t.type === 'silver') iconImg = 'silver.png';
-            const icon = `<img src="../assets/images/${iconImg}" class="trophy-icon d-table-cell me-2 align-top">`;
-
-            const isObtained = t.is_obtained == 1;
-            const gameTitleEl = document.getElementById('gameTitle');
-            const gameTitle = gameTitleEl ? gameTitleEl.value : '';
-            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title)}`;
-
-            // Design selon l'obtention (barré et semi-transparent si déjà obtenu)
-            const titleStyle = isObtained ? 'text-decoration-line-through text-muted opacity-50' : 'text-body';
-            const bgClass = isObtained ? 'bg-body-tertiary opacity-50' : 'bg-body border border-secondary border-opacity-10 shadow-sm';
-
-            // Boutons : On cache la corbeille pour les jeux PSN pour éviter de supprimer un trophée officiel
-            let actionButtons = `<a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="Chercher une solution"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a>`;
-            if (!isPlayStation) {
-                actionButtons += `<button class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button>`;
-            }
-
-            htmlContent += `
-            <div class="d-flex align-items-center p-2 mb-2 rounded trophy-item ${colorClass} ${bgClass}">
-                <div class="trophy-icon fs-5">${icon}</div>
-                <div class="flex-grow-1 ms-2" style="${!isPlayStation ? 'cursor:pointer' : ''}" onclick="${!isPlayStation ? `toggleTrophy(${t.id})` : ''}">
-                    <div class="fw-bold small ${titleStyle}">${t.title}</div>
-                </div>
-                <div class="d-flex gap-2 align-items-center">
-                    ${actionButtons}
-                </div>
-            </div>`;
-        });
-
-        list.innerHTML = htmlContent;
-
-    } catch (e) {
-        list.innerHTML = `<div class="text-danger small text-center">${typeof LANG !== 'undefined' ? LANG.error_loading : 'Erreur de chargement'}</div>`;
-    }
-}
-
-async function addTrophy() { const gameIdEl = document.getElementById('gameId'); if (!gameIdEl) return; const gameId = gameIdEl.value; if (!gameId) { alert(LANG.alert_save_first); return; } const titleEl = document.getElementById('newTrophyTitle'); const typeEl = document.getElementById('newTrophyType'); const title = titleEl ? titleEl.value : ''; const type = typeEl ? typeEl.value : ''; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('/?action=api_add_trophy', { method: 'POST', body: formData }); if (titleEl) titleEl.value = ''; loadTrophies(gameId); }
-async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }
-async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }
 
 async function searchIgdb(autoOpen = false) {
     const input = document.getElementById('rawgSearchInput');
