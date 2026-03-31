@@ -92,15 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
     filterConfig.forEach(filter => {
         const el = document.getElementById(filter.id);
         if (el) {
-            // Restaurer la valeur depuis le localStorage au chargement
-            const savedValue = localStorage.getItem(filter.key);
-            if (savedValue) {
-                el.value = savedValue;
+            if (el.type !== 'hidden') {
+                const savedValue = localStorage.getItem(filter.key);
+                if (savedValue) {
+                    el.value = savedValue;
+                }
             }
 
-            // Sauvegarder la nouvelle valeur à chaque changement et mettre à jour la vue
             el.addEventListener('change', () => {
-                localStorage.setItem(filter.key, el.value);
+                if (el.type !== 'hidden') {
+                    localStorage.setItem(filter.key, el.value);
+                }
                 updateView();
             });
         }
@@ -213,9 +215,12 @@ function getProcessedGames() {
         const valB = (key) => b[key] || 0;
 
         switch (sortType) {
+            case 'release_asc': 
+                if (!a.release_date) return 1;
+                if (!b.release_date) return -1;
+                return new Date(a.release_date) - new Date(b.release_date);
             case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
             case 'alpha_asc': return (a.title || '').localeCompare(b.title || '');
-            case 'rating_desc': return valB('user_rating') - valA('user_rating');
             case 'status_asc': return (a.status || '').localeCompare(b.status || '');
             case 'platform_asc': return (a.platform || '').localeCompare(b.platform || '');
             default: return new Date(b.created_at) - new Date(a.created_at);
@@ -454,7 +459,6 @@ function generateGridCard(g) {
 
     const imageHtml = img ? `<img src="${img}" class="card-cover-img" loading="lazy">` : `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
     const statusHtml = `<i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}`;
-    const ratingHtml = g.user_rating > 0 ? `<div class="fw-bold text-warning d-flex align-items-center small"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</div>` : '';
 
     let loanBtnHtml = '';
     if (g.format === 'physical' && g.status !== 'wishlist') {
@@ -497,22 +501,6 @@ function generateGridCard(g) {
         </a>`;
     }
 
-    // ==========================================
-    // GÉNÉRATION DU BLOC DES TROPHÉES
-    // ==========================================
-    let trophiesHtml = '';
-    if (g.trophies_summary && g.trophies_summary.total > 0) {
-        const t = g.trophies_summary;
-        const percent = Math.round((t.obtained / t.total) * 100);
-
-        // On ajoute un petit badge discret directement dans la zone metaHtml
-        // L'icône &#xea23; correspond à la coupe de trophée dans Material Icons
-        metaHtml += `<span class="meta-tag text-warning bg-warning-subtle border-warning-subtle" title="Progression des trophées PSN">
-            <i class="material-icons-outlined icon-sm me-1">&#xea23;</i>${percent}%
-        </span>`;
-    }
-
-
 
     const templateNode = document.getElementById('gridCardTemplate');
     if (!templateNode) return '';
@@ -526,9 +514,8 @@ function generateGridCard(g) {
         .replaceAll('{statusClass}', s.class || '')
         .replaceAll('{statusHtml}', statusHtml)
         .replaceAll('{title}', g.title)
-        .replaceAll('{ratingHtml}', ratingHtml)
         .replaceAll('{metaHtml}', metaHtml)
-        .replaceAll('{trophiesHtml}', trophiesHtml)
+        .replaceAll('{trophiesHtml}', '')
         .replaceAll('{genres}', translateGenres(g.genres))
         .replaceAll('{loanInfoHtml}', loanInfoHtml)
         .replaceAll('{actionsHtml}', actionsHtml);
@@ -689,18 +676,21 @@ function openModal(g = null) {
     safeSet('gameImageHidden', g ? (g.image_url || '') : '');
 
     const prev = document.getElementById('previewImg');
-    const holder = document.getElementById('uploadPlaceholder');
-    if (prev && holder) {
-        if (g && g.image_url) {
-            let prevImgUrl = g.image_url;
-            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
-            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
-            prev.src = prevImgUrl;
-            prev.classList.remove('d-none');
-            holder.classList.add('d-none');
+        const holder = document.getElementById('uploadPlaceholder');
+        if (prev && holder) {
+            if (g && g.image_url) {
+                let prevImgUrl = g.image_url;
+                if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+                else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+                prev.src = prevImgUrl;
+                prev.classList.remove('d-none');
+                holder.classList.add('d-none');
+            }
+            else { 
+                prev.classList.add('d-none'); 
+                holder.classList.remove('d-none'); 
+            }
         }
-        else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
-    }
 
     const priceVal = g ? (g.estimated_price || '') : '';
     safeSet('gamePriceTablet', priceVal);
@@ -724,27 +714,32 @@ function openModal(g = null) {
             else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); }
         } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
     }
+    
 
-    checkPsnVisibility();
-
+    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
     const fmtDigital = document.getElementById('fmtDigital');
     const fmtPhysical = document.getElementById('fmtPhysical');
-    document.getElementById('gameFormatHidden').value = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
+    
+    if (fmtDigital && fmtPhysical) {
+        if (formatToSet === 'digital') {
+            fmtDigital.checked = true;
+            fmtPhysical.checked = false;
+        } else {
+            fmtPhysical.checked = true;
+            fmtDigital.checked = false;
+        }
+    }
 
     const isWishlistPage = window.location.pathname.includes('wishlist');
     safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
     safeSet('gameDate', g ? g.release_date : '');
     safeSet('gameMeta', g ? g.metacritic_score : '');
-    safeSet('gameRating', g ? g.user_rating : '');
     safeSet('gameComment', g ? g.comment : '');
     safeSet('gameDesc', g ? g.description : '');
     safeSet('gameGenres', g ? translateGenres(g.genres) : '');
 
-    if (g && g.id) loadTrophies(g.id);
     modal.show();
 }
-
-function checkPsnVisibility() { const plat = document.getElementById('gamePlatform'); if (!plat) return; const tabs = document.getElementById('modalTabs'); if (!tabs) return; if (plat.value.includes('PS') || plat.value.includes('PlayStation')) { tabs.style.display = 'flex'; } else { tabs.style.display = 'none'; const firstTabEl = document.querySelector('#modalTabs li:first-child button') || document.querySelector('#modalTabs li:first-child a'); if (firstTabEl) { const firstTab = new bootstrap.Tab(firstTabEl); firstTab.show(); } } }
 
 let loanModal;
 function openLoanModal(gameId, gameTitle) {
@@ -757,93 +752,6 @@ function openLoanModal(gameId, gameTitle) {
     if (loanGameTitle) loanGameTitle.innerText = gameTitle;
     loanModal.show();
 }
-
-async function loadTrophies(gameId) {
-    const list = document.getElementById('trophiesList');
-    if (!list) return;
-
-    list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
-
-    try {
-        const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`);
-        const data = await res.json();
-        const pct = data.progress.percent;
-
-        const bar = document.getElementById('trophyProgressBar');
-        const txt = document.getElementById('trophyProgressText');
-        if (bar) bar.style.width = pct + '%';
-        if (txt) txt.innerText = pct + '%';
-
-        if (data.trophies.length === 0) {
-            list.innerHTML = `<div class="text-center text-muted small py-3">${typeof LANG !== 'undefined' ? LANG.no_trophies : 'Aucun trophée'}</div>`;
-            return;
-        }
-
-        // ==========================================
-        // TRI INTELLIGENT DES TROPHÉES
-        // ==========================================
-        data.trophies.sort((a, b) => {
-            // 1. Les trophées NON obtenus (0) apparaissent avant les obtenus (1)
-            if (a.is_obtained != b.is_obtained) {
-                return a.is_obtained - b.is_obtained;
-            }
-            // 2. Ensuite, on trie par importance (Platine, Or, Argent, Bronze)
-            const typeOrder = { 'platinum': 1, 'gold': 2, 'silver': 3, 'bronze': 4 };
-            return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
-        });
-
-        // On vérifie si c'est un jeu PlayStation
-        const platformEl = document.getElementById('gamePlatform');
-        const isPlayStation = platformEl && (platformEl.value.includes('PS') || platformEl.value.includes('PlayStation'));
-
-        let htmlContent = '';
-        data.trophies.forEach(t => {
-            const colorClass = `trophy-${t.type}`;
-
-            // Assignation de la bonne image selon le type
-            let iconImg = 'bronze.png';
-            if (t.type === 'platinum') iconImg = 'platinum.png';
-            if (t.type === 'gold') iconImg = 'gold.png';
-            if (t.type === 'silver') iconImg = 'silver.png';
-            const icon = `<img src="../assets/images/${iconImg}" class="trophy-icon d-table-cell me-2 align-top">`;
-
-            const isObtained = t.is_obtained == 1;
-            const gameTitleEl = document.getElementById('gameTitle');
-            const gameTitle = gameTitleEl ? gameTitleEl.value : '';
-            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title)}`;
-
-            // Design selon l'obtention (barré et semi-transparent si déjà obtenu)
-            const titleStyle = isObtained ? 'text-decoration-line-through text-muted opacity-50' : 'text-body';
-            const bgClass = isObtained ? 'bg-body-tertiary opacity-50' : 'bg-body border border-secondary border-opacity-10 shadow-sm';
-
-            // Boutons : On cache la corbeille pour les jeux PSN pour éviter de supprimer un trophée officiel
-            let actionButtons = `<a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="Chercher une solution"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a>`;
-            if (!isPlayStation) {
-                actionButtons += `<button class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button>`;
-            }
-
-            htmlContent += `
-            <div class="d-flex align-items-center p-2 mb-2 rounded trophy-item ${colorClass} ${bgClass}">
-                <div class="trophy-icon fs-5">${icon}</div>
-                <div class="flex-grow-1 ms-2" style="${!isPlayStation ? 'cursor:pointer' : ''}" onclick="${!isPlayStation ? `toggleTrophy(${t.id})` : ''}">
-                    <div class="fw-bold small ${titleStyle}">${t.title}</div>
-                </div>
-                <div class="d-flex gap-2 align-items-center">
-                    ${actionButtons}
-                </div>
-            </div>`;
-        });
-
-        list.innerHTML = htmlContent;
-
-    } catch (e) {
-        list.innerHTML = `<div class="text-danger small text-center">${typeof LANG !== 'undefined' ? LANG.error_loading : 'Erreur de chargement'}</div>`;
-    }
-}
-
-async function addTrophy() { const gameIdEl = document.getElementById('gameId'); if (!gameIdEl) return; const gameId = gameIdEl.value; if (!gameId) { alert(LANG.alert_save_first); return; } const titleEl = document.getElementById('newTrophyTitle'); const typeEl = document.getElementById('newTrophyType'); const title = titleEl ? titleEl.value : ''; const type = typeEl ? typeEl.value : ''; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('/?action=api_add_trophy', { method: 'POST', body: formData }); if (titleEl) titleEl.value = ''; loadTrophies(gameId); }
-async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }
-async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }
 
 async function searchIgdb(autoOpen = false) {
     const input = document.getElementById('rawgSearchInput');

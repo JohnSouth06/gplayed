@@ -113,65 +113,7 @@
                             </a>
                         </div>
                     </div>
-
-                <?php elseif ($item['type'] === 'trophy'): ?>
-                    <?php
-                    // Sélection des couleurs et icônes en fonction du type de trophée
-                    $iconImg = 'bronze.png';
-                    $bgGradient = 'rgba(205, 127, 50, 0.05)'; // Couleur Bronze légère
-                    $badgeColor = 'text-warning'; // Fallback Bootstrap
-                    $badgeBg = 'bg-warning-subtle';
-
-                    if ($item['trophy_type'] === 'platinum') {
-                        $iconImg = 'platinum.png';
-                        $bgGradient = 'rgba(153, 204, 255, 0.1)'; // Bleu/Platine
-                        $badgeColor = 'text-info';
-                        $badgeBg = 'bg-info-subtle';
-                    } elseif ($item['trophy_type'] === 'gold') {
-                        $iconImg = 'gold.png';
-                        $bgGradient = 'rgba(255, 215, 0, 0.08)'; // Or
-                        $badgeColor = 'text-warning';
-                        $badgeBg = 'bg-warning-subtle';
-                    } elseif ($item['trophy_type'] === 'silver') {
-                        $iconImg = 'silver.png';
-                        $bgGradient = 'rgba(192, 192, 192, 0.08)'; // Argent
-                        $badgeColor = 'text-secondary';
-                        $badgeBg = 'bg-secondary-subtle';
-                    }
-                    ?>
-
-                    <div class="list-group-item p-4 border-light-subtle hover-bg-light" style="background: linear-gradient(90deg, <?= $bgGradient ?> 0%, transparent 100%);">
-                        <div class="d-flex gap-3 align-items-center">
-                            <div class="flex-shrink-0">
-                                <?php if ($item['game_image']): ?>
-                                    <img src="<?= htmlspecialchars($item['game_image']) ?>" class="rounded-3 object-fit-cover shadow-sm" style="width: 60px; height: 60px;">
-                                <?php else: ?>
-                                    <div class="rounded-3 bg-secondary-subtle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                        <i class="material-icons align-middle text-secondary icon-lg">&#xe338;</i>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <div>
-                                        <h6 class="mb-0 fw-bold text-body me-2"><?= htmlspecialchars($item['game_title']) ?></h6>
-                                        <div class="text-muted small mt-1">
-                                            <span><?= date('d/m/Y', strtotime($item['date_display'])) ?></span>
-                                        </div>
-                                    </div>
-                                    <span class="badge <?= $badgeBg ?> <?= $badgeColor ?> fw-normal border border-opacity-25">
-                                        <i class="material-icons align-middle icon-sm me-1">&#xea23;</i>Nouveau Trophée
-                                    </span>
-                                </div>
-
-                                <div class="d-inline-flex align-items-center p-2 mt-2 rounded-3 bg-body border shadow-sm" style="border-color: <?= str_replace(', 0.05)', ', 0.3)', $bgGradient) ?> !important;">
-                                    <img src="assets/images/<?= $iconImg ?>" class="me-2" style="width: 24px; height: 24px;" alt="<?= $item['trophy_type'] ?>">
-                                    <span class="fw-bold small text-body"><?= htmlspecialchars($item['trophy_name']) ?></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    
                 <?php endif; ?>
 
             <?php endforeach; ?>

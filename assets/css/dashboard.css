@@ -120,21 +120,27 @@
 /* --- Overlay Actions (Boutons centrés avec flou) --- */
 .card-overlay-actions {
     position: absolute;
-    inset: 0; /* Prend toute la taille de la carte (Haut/Bas/Gauche/Droite = 0) */
-    background: rgba(var(--bs-body-bg-rgb), 0.6); /* Fond semi-transparent utilisant la couleur du thème */
-    backdrop-filter: blur(8px); /* L'effet de flou magique */
-    -webkit-backdrop-filter: blur(8px); /* Support Safari */
+    inset: 0;
+    /* Prend toute la taille de la carte (Haut/Bas/Gauche/Droite = 0) */
+    background: rgba(var(--bs-body-bg-rgb), 0.6);
+    /* Fond semi-transparent utilisant la couleur du thème */
+    backdrop-filter: blur(8px);
+    /* L'effet de flou magique */
+    -webkit-backdrop-filter: blur(8px);
+    /* Support Safari */
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1.5rem; /* Espace entre les deux boutons */
-    
+    gap: 1.5rem;
+    /* Espace entre les deux boutons */
+
     /* Animation */
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 20;
-    border-radius: 24px; /* Même arrondi que la carte */
+    border-radius: 24px;
+    /* Même arrondi que la carte */
 }
 
 /* Apparition au survol (ou au tap sur mobile) */
@@ -147,6 +153,7 @@
 .scale-on-hover {
     transition: transform 0.2s ease;
 }
+
 .scale-on-hover:hover {
     transform: scale(1.15);
 }
@@ -356,11 +363,11 @@
     font-size: 0.95rem;
     color: var(--bs-secondary);
     cursor: pointer;
-    z-index: 2; 
+    z-index: 2;
     transition: color 0.3s ease;
 }
 
-.custom-tab-input:checked + .custom-tab-label {
+.custom-tab-input:checked+.custom-tab-label {
     color: var(--bs-body-bg);
 }
 
@@ -372,39 +379,48 @@
     height: calc(100% - 12px);
     background-color: var(--bs-primary);
     border-radius: 50px;
-    transition: transform 0.4s cubic-bezier(0.68, -0.15, 0.265, 1.25); 
+    transition: transform 0.4s cubic-bezier(0.68, -0.15, 0.265, 1.25);
     z-index: 1;
     box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
 }
 
-#btnLibPhys:checked ~ .custom-tab-slider {
+#btnLibPhys:checked~.custom-tab-slider {
     transform: translateX(0);
 }
 
-#btnLibDigi:checked ~ .custom-tab-slider {
+#btnLibDigi:checked~.custom-tab-slider {
     transform: translateX(100%);
 }
 
 @keyframes pulse-red {
-    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
 }
 
 .pulse-animation {
     animation: pulse-red 1.5s infinite;
-    background-color: #dc3545 !important; /* Rouge Bootstrap */
+    background-color: #dc3545 !important;
+    /* Rouge Bootstrap */
     color: white !important;
     border: none !important;
 }
 
 /* JAQUETTE JEUX DIGITAUX */
 .card-cover-container.ratio-digital {
-    padding-top: 0 !important; 
+    padding-top: 0 !important;
 
-    aspect-ratio: 460 / 215; 
+    aspect-ratio: 460 / 215;
 
-    height: auto; 
+    height: auto;
 }
 
 .card-cover-container.ratio-digital .card-cover-img {
@@ -414,6 +430,87 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* --- TROPHEES PSN --- */
+.psn-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #1e1e24, #16161a) !important;
+}
+
+.psn-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+.psn-card-img-wrapper {
+    width: 100px;
+    min-width: 100px;
+    overflow: hidden;
+}
+
+.psn-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.psn-trophies-grid {
+    display: flex;
+    gap: 10px;
+}
+
+.psn-t-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #a0a0a0;
+}
+
+.psn-progress-bar {
+    height: 5px !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 10px;
+}
+
+.stat-widget img {
+    opacity: 0.8;
+}
+
+#psnTrophyList::-webkit-scrollbar {
+    width: 8px;
+}
+
+#psnTrophyList::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#psnTrophyList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.list-group-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.drop-shadow {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+
+#psnTrophyModal .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+#psnTrophyModal .list-group-item:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
 /* --- FILTRES MOBILES (Scroll horizontal uniquement sur mobile) --- */
@@ -447,15 +544,18 @@
         display: flex;
         width: 100%;
         gap: 10px;
-        justify-content: space-between; /* Distribue l'espace */
+        justify-content: space-between;
+        /* Distribue l'espace */
     }
 
     /* Les selects s'étirent équitablement */
     .filters-scroll-container .form-select {
-        flex: 1 1 0; /* Prend tout l'espace disponible */
+        flex: 1 1 0;
+        /* Prend tout l'espace disponible */
         width: 100%;
-        min-width: 0; 
-        text-align: left; /* <--- CHANGEMENT ICI : Force l'alignement à gauche */
+        min-width: 0;
+        text-align: left;
+        /* <--- CHANGEMENT ICI : Force l'alignement à gauche */
     }
 
     /* --- UNIFORMISATION VIEW TOGGLE (GRID/LIST) --- */
@@ -464,7 +564,8 @@
         position: relative;
         background-color: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.03));
         border-radius: 50px;
-        padding: 4px; /* Un peu plus compact que le switch principal */
+        padding: 4px;
+        /* Un peu plus compact que le switch principal */
         width: 100px;
         height: 42px;
     }
@@ -485,7 +586,7 @@
         transition: color 0.3s ease;
     }
 
-    .view-tab-input:checked + .view-tab-label {
+    .view-tab-input:checked+.view-tab-label {
         color: var(--bs-body-bg) !important;
     }
 
@@ -502,11 +603,11 @@
     }
 
     /* Animation du slider selon l'input coché */
-    #btnGridInput:checked ~ .view-tab-slider {
+    #btnGridInput:checked~.view-tab-slider {
         transform: translateX(0);
     }
 
-    #btnListInput:checked ~ .view-tab-slider {
+    #btnListInput:checked~.view-tab-slider {
         transform: translateX(100%);
     }
 }
@@ -521,7 +622,7 @@
     border-radius: 50%;
     background-color: var(--main-color);
     color: #111;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     z-index: 1050;
     display: flex;
     align-items: center;
@@ -531,11 +632,18 @@
     cursor: pointer;
 }
 
-.fab-view-toggle:active { transform: scale(0.90); }
-.fab-view-toggle i { font-size: 28px; }
+.fab-view-toggle:active {
+    transform: scale(0.90);
+}
+
+.fab-view-toggle i {
+    font-size: 28px;
+}
 
 @media (min-width: 768px) {
-    .fab-view-toggle { display: none !important; }
+    .fab-view-toggle {
+        display: none !important;
+    }
 }
 
 /* RESPONSIVE */
@@ -547,6 +655,7 @@
 }
 
 @media (max-width: 575.98px) {
+
     .btn:not(.d-none),
     .btn-icon-action:not(.d-none),
     .status-badge-float:not(.d-none) {

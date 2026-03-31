@@ -27,6 +27,7 @@ require_once ROOT_PATH . '/controllers/GameController.php';
 require_once ROOT_PATH . '/controllers/ProgressController.php';
 require_once ROOT_PATH . '/controllers/CommunityController.php';
 require_once ROOT_PATH . '/controllers/TrophyController.php';
+require_once ROOT_PATH . '/controllers/PsnController.php';
 require_once ROOT_PATH . '/config/lang.php';
 
 $database = new Database();
@@ -37,6 +38,7 @@ $gameController = new GameController($db);
 $progressController = new ProgressController($db);
 $communityController = new CommunityController($db);
 $trophyController = new TrophyController($db);
+$psnController = new PsnController($db);
 
 $action = $_GET['action'] ?? 'home';
 
@@ -91,7 +93,7 @@ switch ($action) {
 
     // Games
     case 'save':
-        $gameController->save();
+        $gameController->saveGame();
         break;
     case 'delete':
         $gameController->delete();
@@ -99,6 +101,15 @@ switch ($action) {
     case 'stats':
         $gameController->stats();
         break;
+
+    // PSN Trophies
+    case 'psn_trophies':
+    $psnController->index();
+    break;
+
+    case 'api_psn_get_trophies':
+    $psnController->apiGetTrophies();
+    break;
 
     // Wishlist
     case 'wishlist':
@@ -134,9 +145,8 @@ switch ($action) {
 
     // Import PSN trophies
     case 'api_psn_sync':
-        $gameController->apiPsnSync();
+        $psnController->sync(); 
         break;
-
 
     // Import Steam
     case 'steam_login':
