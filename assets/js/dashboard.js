@@ -215,7 +215,7 @@ function getProcessedGames() {
         const valB = (key) => b[key] || 0;
 
         switch (sortType) {
-            case 'release_asc': 
+            case 'release_asc':
                 if (!a.release_date) return 1;
                 if (!b.release_date) return -1;
                 return new Date(a.release_date) - new Date(b.release_date);
@@ -676,21 +676,21 @@ function openModal(g = null) {
     safeSet('gameImageHidden', g ? (g.image_url || '') : '');
 
     const prev = document.getElementById('previewImg');
-        const holder = document.getElementById('uploadPlaceholder');
-        if (prev && holder) {
-            if (g && g.image_url) {
-                let prevImgUrl = g.image_url;
-                if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
-                else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
-                prev.src = prevImgUrl;
-                prev.classList.remove('d-none');
-                holder.classList.add('d-none');
-            }
-            else { 
-                prev.classList.add('d-none'); 
-                holder.classList.remove('d-none'); 
-            }
+    const holder = document.getElementById('uploadPlaceholder');
+    if (prev && holder) {
+        if (g && g.image_url) {
+            let prevImgUrl = g.image_url;
+            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+            prev.src = prevImgUrl;
+            prev.classList.remove('d-none');
+            holder.classList.add('d-none');
         }
+        else {
+            prev.classList.add('d-none');
+            holder.classList.remove('d-none');
+        }
+    }
 
     const priceVal = g ? (g.estimated_price || '') : '';
     safeSet('gamePriceTablet', priceVal);
@@ -714,12 +714,12 @@ function openModal(g = null) {
             else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); }
         } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
     }
-    
+
 
     const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
     const fmtDigital = document.getElementById('fmtDigital');
     const fmtPhysical = document.getElementById('fmtPhysical');
-    
+
     if (fmtDigital && fmtPhysical) {
         if (formatToSet === 'digital') {
             fmtDigital.checked = true;
@@ -815,6 +815,21 @@ async function fetchGameDetails(id) {
         if (!res.ok) throw new Error('Erreur API');
 
         const g = await res.json();
+
+        // Remplissage des données globales
+        document.getElementById('displayTitle').innerText = g.name;
+        document.getElementById('displayDevPub').innerText = `${g.developer || ''} | ${g.publisher || ''}`;
+        document.getElementById('gameDescriptionContent').innerText = g.summary || "Aucune description.";
+        document.getElementById('hltbDisplay').innerText = g.hltb_main ? `${g.hltb_main}h` : '--h';
+
+        // Médias : On génère une recherche Youtube basée sur le titre
+        const ytSearch = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' gameplay trailer')}`;
+        document.getElementById('ytPlayer').src = ytSearch;
+        document.getElementById('ytLink').href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' trailer')}`;
+
+        // On s'assure que les champs cachés pour la sauvegarde sont remplis
+        document.getElementById('gameTitle').value = g.name;
+        document.getElementById('gameDesc').value = g.summary;
 
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
             const cleanTitle = g.name.trim().toLowerCase();

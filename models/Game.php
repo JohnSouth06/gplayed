@@ -20,13 +20,14 @@ class Game
 
     public function getAll($userId)
     {
-        // Ajout du JOIN pour récupérer les infos du catalogue
-        $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, p.time_main AS playtime 
-                  FROM " . $this->table . " ug 
-                  JOIN games g ON ug.game_id = g.id
-                  LEFT JOIN playtime p ON ug.id = p.game_id 
-                  WHERE ug.user_id = :user_id 
-                  ORDER BY ug.created_at DESC";
+        $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, 
+                     g.summary, g.developer, g.publisher, g.hltb_main, g.rating AS igdb_rating,
+                     p.time_main AS playtime 
+              FROM " . $this->table . " ug 
+              JOIN games g ON ug.game_id = g.id
+              LEFT JOIN playtime p ON ug.id = p.game_id 
+              WHERE ug.user_id = :user_id 
+              ORDER BY ug.created_at DESC";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
@@ -130,32 +131,36 @@ class Game
 
         // 1. GESTION DU CATALOGUE (Nouvelle architecture)
         if ($igdbId && !$this->catalogGameExists($igdbId)) {
-            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date) 
-                             VALUES (:id, :title, :cover_url, :genres, :release_date)";
+            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, hltb_main, rating) 
+                         VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :hltb, :rating)";
             $stmtCat = $this->conn->prepare($queryCatalog);
-            $stmtCat->bindParam(':id', $igdbId);
-            $stmtCat->bindParam(':title', $data['title']);
-            $stmtCat->bindParam(':cover_url', $imagePath);
-            $stmtCat->bindParam(':genres', $data['genres']);
-            $stmtCat->bindParam(':release_date', $releaseDate);
-            $stmtCat->execute();
+            $stmtCat->execute([
+                ':id' => $igdbId,
+                ':title' => $data['title'],
+                ':cover_url' => $data['image_url_hidden'],
+                ':genres' => $data['genres'],
+                ':release_date' => $data['release_date'],
+                ':summary' => $data['description'], // On stocke la description globale ici
+                ':dev' => $data['developer'] ?? null,
+                ':pub' => $data['publisher'] ?? null,
+                ':hltb' => $data['hltb_main'] ?? null,
+                ':rating' => $data['metacritic'] // Note IGDB
+            ]);
         }
 
         // 2. GESTION DE LA COLLECTION UTILISATEUR
         if (!empty($data['game_id'])) {
             $query = "UPDATE " . $this->table . " SET 
-            platform=:platform, format=:format, status=:status, 
-            metacritic_score=:meta, comment=:comment, 
-            description=:desc, dominant_color=:color, estimated_price=:price";
-            
-            $query .= " WHERE id=:id AND user_id=:uid";
-
+        platform=:platform, format=:format, status=:status, 
+        user_rating=:rating, comment=:comment, 
+        dominant_color=:color, estimated_price=:price 
+        WHERE id=:id AND user_id=:uid";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':id', $data['game_id']);
         } else {
             $query = "INSERT INTO " . $this->table . " 
-            (user_id, game_id, platform, format, status, metacritic_score, comment, description, dominant_color, estimated_price) 
-            VALUES (:uid, :igdb_id, :platform, :format, :status, :meta, :comment, :desc, :color, :price)";
+        (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
+        VALUES (:uid, :igdb_id, :platform, :format, :status, :comment, :color, :price)";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':igdb_id', $igdbId);
         }
@@ -285,14 +290,26 @@ class Game
     {
         $title = mb_strtolower(trim($title), 'UTF-8');
         $unwanted_array = [
-            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
-            'à' => 'a', 'â' => 'a', 'ä' => 'a',
-            'î' => 'i', 'ï' => 'i',
-            'ô' => 'o', 'ö' => 'o',
-            'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'é' => 'e',
+            'è' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'à' => 'a',
+            'â' => 'a',
+            'ä' => 'a',
+            'î' => 'i',
+            'ï' => 'i',
+            'ô' => 'o',
+            'ö' => 'o',
+            'ù' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
             'ç' => 'c',
-            '™' => '', '®' => '', '©' => '',
-            ' - ' => ' ', ': ' => ' '
+            '™' => '',
+            '®' => '',
+            '©' => '',
+            ' - ' => ' ',
+            ': ' => ' '
         ];
         $title = strtr($title, $unwanted_array);
         $title = preg_replace('/[^a-z0-9]/', '', $title);
@@ -467,7 +484,7 @@ class Game
         }
 
         $dst = imagecreatetruecolor($newWidth, $newHeight);
-        
+
         if ($mime == 'image/png' || $mime == 'image/webp') {
             imagealphablending($dst, false);
             imagesavealpha($dst, true);

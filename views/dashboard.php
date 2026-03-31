@@ -200,6 +200,12 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                     </div>
                 </div>
                 <div class="modal-body">
+                    <ul class="nav nav-pills nav-fill mb-4 bg-body-tertiary rounded-3 p-1" id="gameModalTabs">
+                        <li class="nav-item"><button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">Général</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-desc" type="button">Description</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-media" type="button">Médias</button></li>
+                    </ul>
+
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="tab-info">
                             <input type="hidden" name="game_id" id="gameId">
@@ -234,6 +240,10 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_genres_label') ?></label>
                                         <input type="text" name="genres" id="gameGenres" class="form-control rounded-3 bg-body-tertiary" placeholder="Action, RPG..." readonly>
+                                    </div>
+                                    <div class="mt-3 p-3 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-10">
+                                        <div class="small fw-bold text-primary mb-1"><i class="material-icons-outlined icon-sm me-1">&#xe192;</i>How Long To Beat</div>
+                                        <div id="hltbDisplay" class="h5 mb-0 fw-bold">--h</div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold mb-2 text-secondary">Format</label>
@@ -297,8 +307,8 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                            <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_meta_label') ?></label>
-                                            <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---" readonly>
+                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_meta_label') ?></label>
+                                        <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---" readonly>
                                     </div>
                                     <div class="mt-3 d-md-none d-lg-block">
                                         <label class="form-label small fw-bold text-secondary"><?= __('modal_price_label') ?></label>
@@ -318,6 +328,20 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                             </div>
                             <input type="hidden" name="release_date" id="gameDate">
                             <input type="hidden" name="description" id="gameDesc">
+                        </div>
+                        <div class="tab-pane fade" id="tab-desc">
+                            <div id="gameDescriptionContent" class="text-secondary" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-media">
+                            <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm">
+                                <iframe id="ytPlayer" src="" frameborder="0" allowfullscreen></iframe>
+                            </div>
+                            <div class="mt-3 text-center">
+                                <a id="ytLink" href="#" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill">
+                                    <i class="material-icons-outlined icon-sm me-1">&#xe04b;</i>Voir sur YouTube
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
