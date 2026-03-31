@@ -524,6 +524,15 @@ class GameController
                 foreach ($data['genres'] as $g) $genres[] = $g['name'];
             }
 
+            $platformsList = [];
+            if (isset($data['platforms'])) {
+                foreach ($data['platforms'] as $p) {
+                    if (isset($p['name'])) {
+                        $platformsList[] = $p['name'];
+                    }
+                }
+            }
+
             $developer = '';
             $publisher = '';
             if (isset($data['involved_companies'])) {
@@ -550,7 +559,8 @@ class GameController
                 'developer' => $developer,
                 'publisher' => $publisher,
                 'video_id' => $videoId,
-                'genres_list' => implode(', ', $genres)
+                'genres_list' => implode(', ', $genres),
+                'platforms' => $platformsList
             ];
 
             header('Content-Type: application/json');

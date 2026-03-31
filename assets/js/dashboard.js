@@ -1,3 +1,13 @@
+let defaultPlatformsHTML = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect) {
+        // On sauvegarde la liste exhaustive (PC, PS5, Xbox, etc.)
+        defaultPlatformsHTML = platformSelect.innerHTML;
+    }
+});
+
 const statusConfig = {
     'not_started': { label: LANG.status_not_started, class: 'bg-secondary', icon: '&#xe837;' },
     'playing': { label: LANG.status_playing, class: 'bg-info', icon: '&#xea5b;' },
@@ -7,6 +17,61 @@ const statusConfig = {
     'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-dark', icon: '&#xe8b1;' },
     'loaned': { label: (typeof LANG !== 'undefined' && LANG.status_loaned) ? LANG.status_loaned : 'Prêté', class: 'bg-warning text-dark', icon: '&#xe0e3;' }
 };
+
+function mapIgdbPlatform(igdbName) {
+    const mapping = {
+        "PC (Microsoft Windows)": "PC",
+        "PlayStation 5": "PS5",
+        "PlayStation 4": "PS4",
+        "PlayStation 3": "PS3",
+        "PlayStation 2": "PS2",
+        "PlayStation": "PlayStation",
+        "PlayStation Vita": "PS Vita",
+        "PlayStation Portable": "PSP",
+        "Xbox Series X|S": "Xbox Series",
+        "Xbox Series X": "Xbox Series",
+        "Xbox Series S": "Xbox Series",
+        "Xbox One": "Xbox One",
+        "Xbox 360": "Xbox 360",
+        "Xbox": "Xbox",
+        "Nintendo Switch": "Switch",
+        "Wii U": "Wii U",
+        "Wii": "Wii",
+        "Nintendo GameCube": "GameCube",
+        "Nintendo 64": "Nintendo 64",
+        "Super Nintendo Entertainment System (SNES)": "SNES",
+        "Super Famicom": "SNES",
+        "Nintendo Entertainment System": "NES",
+        "Nintendo 3DS": "Nintendo 3DS",
+        "New Nintendo 3DS": "Nintendo 3DS",
+        "Nintendo DS": "Nintendo DS",
+        "Game Boy Advance": "Game Boy Advance",
+        "Game Boy Color": "Game Boy Color",
+        "Game Boy": "Game Boy",
+        "iOS": "iOS",
+        "Android": "Android",
+        "Dreamcast": "Sega Dreamcast",
+        "Sega Saturn": "Sega Saturn",
+        "Sega Mega Drive/Genesis": "Sega Mega Drive",
+        "Sega Genesis": "Sega Mega Drive",
+        "Sega Master System": "Sega Master System",
+        "Mac": "Mac",
+        "Linux": "Linux"
+    };
+
+    // 1. On cherche une correspondance exacte
+    if (mapping[igdbName]) {
+        return mapping[igdbName];
+    }
+
+    // 2. Fallbacks pour les correspondances partielles
+    if (igdbName.includes("Xbox Series")) return "Xbox Series";
+    if (igdbName.includes("Mac")) return "Mac";
+    if (igdbName.includes("PC")) return "PC";
+
+    // 3. Si aucune correspondance n'est trouvée, on retourne le nom original
+    return igdbName;
+}
 
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
 
@@ -703,16 +768,33 @@ function openModal(g = null) {
         priceDesktop.oninput = function () { priceTablet.value = this.value; };
     }
 
-    const standardPlatforms = ['PS5', 'PS4', 'Xbox Series', 'Switch', 'PC'];
-    const platformSelect = document.getElementById('gamePlatform');
     const listContainer = document.getElementById('platformInputsList');
     if (listContainer) listContainer.innerHTML = '';
 
     if (platformSelect) {
+        // On restaure la liste complète par défaut à chaque ouverture
+        platformSelect.innerHTML = defaultPlatformsHTML;
+
         if (g && g.platform) {
-            if (standardPlatforms.includes(g.platform)) { platformSelect.value = g.platform; toggleCustomPlatform(); }
-            else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); }
-        } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
+            // NOUVEAU : On vérifie si la plateforme du jeu correspond à une option existante
+            const platformExists = Array.from(platformSelect.options).some(opt => opt.value === g.platform);
+
+            if (platformExists) { 
+                // La plateforme existe dans la liste (ex: "GameCube", "SNES", "PC")
+                platformSelect.value = g.platform; 
+                toggleCustomPlatform(); 
+            } else { 
+                // La plateforme n'existe pas ou contient des virgules (ex: "PS5, PC")
+                platformSelect.value = 'Multiplateforme'; 
+                toggleCustomPlatform(); 
+                const parts = g.platform.split(',').map(s => s.trim()); 
+                parts.forEach(p => addPlatformInput(p)); 
+            }
+        } else { 
+            // Valeur par défaut si aucune plateforme n'est définie
+            platformSelect.value = 'PS5'; 
+            toggleCustomPlatform(); 
+        }
     }
 
 
@@ -816,10 +898,10 @@ async function fetchGameDetails(id) {
 
         const g = await res.json();
 
-       // 1. En-tête de la description (Développeur / Éditeur)
+        // 1. En-tête de la description (Développeur / Éditeur)
         const displayDev = document.getElementById('displayDev');
         if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
-        
+
         const displayPub = document.getElementById('displayPub');
         if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
 
@@ -842,12 +924,12 @@ async function fetchGameDetails(id) {
         // On s'assure que les champs cachés pour la sauvegarde sont remplis
         document.getElementById('gameTitle').value = g.name;
         document.getElementById('gameDesc').value = g.description_raw;
-        
-        if(document.getElementById('gameDeveloper')) document.getElementById('gameDeveloper').value = g.developer || '';
-        if(document.getElementById('gamePublisher')) document.getElementById('gamePublisher').value = g.publisher || '';
-        
+
+        if (document.getElementById('gameDeveloper')) document.getElementById('gameDeveloper').value = g.developer || '';
+        if (document.getElementById('gamePublisher')) document.getElementById('gamePublisher').value = g.publisher || '';
+
         // On vide le champ manuel HLTB pour un nouveau jeu
-        if(document.getElementById('gameHltb')) document.getElementById('gameHltb').value = g.hltb_main || '';
+        if (document.getElementById('gameHltb')) document.getElementById('gameHltb').value = g.hltb_main || '';
 
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
             const cleanTitle = g.name.trim().toLowerCase();
@@ -861,6 +943,33 @@ async function fetchGameDetails(id) {
         }
 
         openModal();
+
+        const platformSelect = document.getElementById('gamePlatform');
+        if (platformSelect) {
+            // On vérifie que l'API a bien renvoyé un tableau de plateformes
+            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
+                
+                platformSelect.innerHTML = ''; // On vide la liste complète
+                
+                g.platforms.forEach(p => {
+                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
+                    
+                    // On convertit le nom IGDB vers le format de la base de données
+                    const mappedName = mapIgdbPlatform(rawName); 
+                    
+                    // On s'assure de ne pas ajouter la même plateforme en double
+                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+                    
+                    if (!alreadyExists) {
+                        const option = document.createElement('option');
+                        option.value = mappedName;
+                        option.textContent = mappedName; // On affiche le nom simplifié
+                        platformSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+        // -------------------------------------------------
 
         const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
         safeSet('gameTitle', g.name);
