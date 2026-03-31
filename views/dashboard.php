@@ -349,6 +349,9 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                     <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4"><?= __('modal_btn_save') ?></button>
                     <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal"><?= __('modal_btn_cancel') ?></button>
                 </div>
+                <input type="hidden" name="developer" id="gameDeveloper">
+                <input type="hidden" name="publisher" id="gamePublisher">
+                <input type="hidden" name="hltb_main" id="gameHltb">
             </form>
         </div>
     </div>

@@ -151,16 +151,15 @@ class Game
         // 2. GESTION DE LA COLLECTION UTILISATEUR
         if (!empty($data['game_id'])) {
             $query = "UPDATE " . $this->table . " SET 
-        platform=:platform, format=:format, status=:status, 
-        user_rating=:rating, comment=:comment, 
-        dominant_color=:color, estimated_price=:price 
-        WHERE id=:id AND user_id=:uid";
+            platform=:platform, format=:format, status=:status, 
+            comment=:comment, dominant_color=:color, estimated_price=:price 
+            WHERE id=:id AND user_id=:uid";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':id', $data['game_id']);
         } else {
             $query = "INSERT INTO " . $this->table . " 
-        (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
-        VALUES (:uid, :igdb_id, :platform, :format, :status, :comment, :color, :price)";
+            (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
+            VALUES (:uid, :igdb_id, :platform, :format, :status, :comment, :color, :price)";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':igdb_id', $igdbId);
         }
@@ -169,9 +168,7 @@ class Game
         $stmt->bindParam(':platform', $finalPlatform);
         $stmt->bindParam(':format', $format);
         $stmt->bindParam(':status', $data['status']);
-        $stmt->bindParam(':meta', $metaScore);
         $stmt->bindParam(':comment', $data['comment']);
-        $stmt->bindParam(':desc', $data['description']);
         $stmt->bindParam(':color', $dominantColor);
         $stmt->bindParam(':price', $price);
 
@@ -339,8 +336,8 @@ class Game
         }
 
         $query = "INSERT INTO " . $this->table . " 
-                  (user_id, game_id, platform, format, status, metacritic_score, comment, description, dominant_color, estimated_price) 
-                  VALUES (:uid, :game_id, :platform, :format, :status, :meta, :rating, :comment, :desc, :color, :price)";
+                  (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
+                  VALUES (:uid, :game_id, :platform, :format, :status, :comment, :color, :price)";
         $stmt = $this->conn->prepare($query);
 
         $dominantColor = $game['dominant_color'] ?? null;
@@ -362,9 +359,7 @@ class Game
         $stmt->bindParam(':platform', $game['platform']);
         $stmt->bindParam(':format', $game['format']);
         $stmt->bindParam(':status', $game['status']);
-        $stmt->bindParam(':meta', $game['metacritic_score']);
         $stmt->bindParam(':comment', $game['comment']);
-        $stmt->bindParam(':desc', $game['description']);
         $stmt->bindParam(':color', $dominantColor);
         $stmt->bindParam(':price', $game['estimated_price']);
 

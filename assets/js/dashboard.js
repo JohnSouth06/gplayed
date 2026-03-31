@@ -829,7 +829,11 @@ async function fetchGameDetails(id) {
 
         // On s'assure que les champs cachés pour la sauvegarde sont remplis
         document.getElementById('gameTitle').value = g.name;
-        document.getElementById('gameDesc').value = g.summary;
+        document.getElementById('gameDesc').value = g.description_raw;
+        
+        if(document.getElementById('gameDeveloper')) document.getElementById('gameDeveloper').value = g.developer || '';
+        if(document.getElementById('gamePublisher')) document.getElementById('gamePublisher').value = g.publisher || '';
+        if(document.getElementById('gameHltb')) document.getElementById('gameHltb').value = g.hltb_main || '';
 
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
             const cleanTitle = g.name.trim().toLowerCase();

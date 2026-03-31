@@ -150,7 +150,7 @@ class GameController
 
         // On prépare les données (fusion des nouvelles valeurs avec celles existantes)
         $gameData = [
-            'game_id' => $gameId, 
+            'game_id' => $gameId,
             'rawg_id' => $existingGame['rawg_id'] ?? $existingGame['igdb_id'] ?? null, // Conservation de l'ID IGDB
             'title' => $input['title'] ?? $existingGame['title'],
             'status' => $input['status'] ?? $existingGame['status'],
@@ -251,21 +251,21 @@ class GameController
     }
 
     public function index()
-{
-    if (!isset($_SESSION['user_id'])) {
-        $view = dirname(__DIR__) . '/views/auth.php';
+    {
+        if (!isset($_SESSION['user_id'])) {
+            $view = dirname(__DIR__) . '/views/auth.php';
+            require dirname(__DIR__) . '/views/layout.php';
+            return;
+        }
+
+        $games = $this->gameModel->getAll($_SESSION['user_id']);
+
+        $totalGames = count($games);
+        $playingCount = count(array_filter($games, fn($g) => $g['status'] === 'playing'));
+        $finishedCount = count(array_filter($games, fn($g) => in_array($g['status'], ['finished', 'completed'])));
+
+        $view = dirname(__DIR__) . '/views/dashboard.php';
         require dirname(__DIR__) . '/views/layout.php';
-        return;
-    }
-
-    $games = $this->gameModel->getAll($_SESSION['user_id']);
-
-    $totalGames = count($games);
-    $playingCount = count(array_filter($games, fn($g) => $g['status'] === 'playing'));
-    $finishedCount = count(array_filter($games, fn($g) => in_array($g['status'], ['finished', 'completed'])));
-
-    $view = dirname(__DIR__) . '/views/dashboard.php';
-    require dirname(__DIR__) . '/views/layout.php';
     }
 
 
@@ -347,9 +347,9 @@ class GameController
                 header("Location: /");
                 exit;
             }
-            
+
             $userId = $_SESSION['user_id'];
-            
+
             // On récupère directement les données du formulaire
             $gameData = [
                 'game_id' => $_POST['game_id'] ?? '', // Rempli si c'est une mise à jour
@@ -374,7 +374,7 @@ class GameController
             } else {
                 $_SESSION['toast'] = ['msg' => "Erreur lors de l'enregistrement.", 'type' => 'danger'];
             }
-            
+
             // Redirection vers le dashboard après traitement
             header("Location: /dashboard");
             exit;
@@ -509,7 +509,8 @@ class GameController
         if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) exit();
 
         $id = intval($_GET['id']);
-        $body = "fields name, cover.url, first_release_date, rating, summary, genres.name, platforms.name; where id = {$id};";
+        // Ajout de involved_companies
+        $body = "fields name, cover.url, first_release_date, rating, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, genres.name, platforms.name; where id = {$id};";
 
         $results = $this->callIgdb('games', $body);
         $data = ($results && isset($results[0])) ? $results[0] : null;
@@ -520,6 +521,16 @@ class GameController
                 foreach ($data['genres'] as $g) $genres[] = $g['name'];
             }
 
+            // Extraction dev/editeur
+            $developer = '';
+            $publisher = '';
+            if (isset($data['involved_companies'])) {
+                foreach ($data['involved_companies'] as $ic) {
+                    if (isset($ic['developer']) && $ic['developer']) $developer = $ic['company']['name'];
+                    if (isset($ic['publisher']) && $ic['publisher']) $publisher = $ic['company']['name'];
+                }
+            }
+
             $img = isset($data['cover']['url']) ? 'https:' . str_replace('t_thumb', 't_720p', $data['cover']['url']) : '';
 
             $response = [
@@ -528,6 +539,8 @@ class GameController
                 'metacritic' => isset($data['rating']) ? round($data['rating']) : '',
                 'background_image' => $img,
                 'description_raw' => $data['summary'] ?? '',
+                'developer' => $developer,
+                'publisher' => $publisher,
                 'genres_list' => implode(', ', $genres)
             ];
 
@@ -680,18 +693,23 @@ class GameController
         $imageUrl = "https://cdn.cloudflare.steamstatic.com/steam/apps/{$appId}/header.jpg";
 
         $gameData = [
-            'title' => $title,
-            'platform' => 'PC',
-            'format' => 'digital',
-            'status' => $status,
-            'release_date' => null,
-            'metacritic_score' => null,
-            'comment' => 'Import from Steam',
-            'image_url' => $imageUrl,
-            'description' => '',
-            'genres' => '',
-            'dominant_color' => 'rgb(30, 30, 30)',
-            'estimated_price' => null
+            'game_id' => $_POST['game_id'] ?? '',
+            'rawg_id' => $_POST['rawg_id'] ?? null,
+            'title' => $_POST['title'] ?? 'Titre inconnu',
+            'status' => $_POST['status'] ?? 'not_started',
+            'format' => $_POST['format'] ?? 'digital',
+            'platform' => $_POST['platform'] ?? 'PC',
+            'platform_custom' => $_POST['platform_custom'] ?? '',
+            'comment' => $_POST['comment'] ?? '',
+            'image_url_hidden' => $_POST['image_url_hidden'] ?? '',
+            'metacritic' => $_POST['metacritic'] ?? null,
+            'genres' => $_POST['genres'] ?? null,
+            'release_date' => $_POST['release_date'] ?? null,
+            'description' => $_POST['description'] ?? '',
+            'estimated_price' => $_POST['estimated_price'] ?? null,
+            'developer' => $_POST['developer'] ?? null,
+            'publisher' => $_POST['publisher'] ?? null,
+            'hltb_main' => $_POST['hltb_main'] ?? null
         ];
 
         if ($this->gameModel->importEntry($gameData, $_SESSION['user_id'])) {
@@ -813,50 +831,50 @@ class GameController
         if ($httpCode !== 200 || !$response) return false;
 
         $data = json_decode($response, true);
-    if (!$data || !$data['success']) return false;
+        if (!$data || !$data['success']) return false;
 
-    require_once dirname(__DIR__) . '/models/Trophy.php';
-    $trophyModel = new Trophy($this->db);
+        require_once dirname(__DIR__) . '/models/Trophy.php';
+        $trophyModel = new Trophy($this->db);
 
-    $stats = ['games' => 0, 'trophies' => 0];
+        $stats = ['games' => 0, 'trophies' => 0];
 
-    foreach ($data['games'] as $psnGame) {
-        $localGame = $this->gameModel->findPlayStationGameByTitle($userId, $psnGame['titleName']);
-        
-        if ($localGame) {
-            if (isset($localGame['status']) && $localGame['status'] === 'completed') continue;
+        foreach ($data['games'] as $psnGame) {
+            $localGame = $this->gameModel->findPlayStationGameByTitle($userId, $psnGame['titleName']);
 
-            $gameId = $localGame['id'];
-            $stats['games']++;
-            
-            if (isset($psnGame['earnedTrophies']) && is_array($psnGame['earnedTrophies'])) {
-                foreach ($psnGame['earnedTrophies'] as $trophy) {
-                    $title = $trophy['trophyName'] ?? 'Trophée Inconnu';
-                    $type = strtolower($trophy['trophyType'] ?? 'bronze'); 
-                    $isObtained = !empty($trophy['earned']);
-                    
-                    $rawDate = $trophy['earnedDateTime'] ?? $trophy['earnedDate'] ?? $trophy['date'] ?? null;
-                    $earnedAt = null;
+            if ($localGame) {
+                if (isset($localGame['status']) && $localGame['status'] === 'completed') continue;
 
-                    if ($rawDate && is_string($rawDate)) {
-                        $parsed = strtotime($rawDate);
-                        if ($parsed) {
-                            $earnedAt = date('Y-m-d H:i:s', $parsed);
+                $gameId = $localGame['id'];
+                $stats['games']++;
+
+                if (isset($psnGame['earnedTrophies']) && is_array($psnGame['earnedTrophies'])) {
+                    foreach ($psnGame['earnedTrophies'] as $trophy) {
+                        $title = $trophy['trophyName'] ?? 'Trophée Inconnu';
+                        $type = strtolower($trophy['trophyType'] ?? 'bronze');
+                        $isObtained = !empty($trophy['earned']);
+
+                        $rawDate = $trophy['earnedDateTime'] ?? $trophy['earnedDate'] ?? $trophy['date'] ?? null;
+                        $earnedAt = null;
+
+                        if ($rawDate && is_string($rawDate)) {
+                            $parsed = strtotime($rawDate);
+                            if ($parsed) {
+                                $earnedAt = date('Y-m-d H:i:s', $parsed);
+                            }
                         }
-                    }
 
-                    if ($isObtained && !isset($GLOBALS['debug_trophy_logged'])) {
-                        file_put_contents(dirname(__DIR__) . '/api/cron_psn.log', "DEBUG EARNED TROPHY: " . json_encode($trophy) . "\n", FILE_APPEND);
-                        $GLOBALS['debug_trophy_logged'] = true; // Empêche de spammer le fichier log
-                    }
+                        if ($isObtained && !isset($GLOBALS['debug_trophy_logged'])) {
+                            file_put_contents(dirname(__DIR__) . '/api/cron_psn.log', "DEBUG EARNED TROPHY: " . json_encode($trophy) . "\n", FILE_APPEND);
+                            $GLOBALS['debug_trophy_logged'] = true; // Empêche de spammer le fichier log
+                        }
 
-                    $trophyModel->syncPsnTrophy($gameId, $title, $type, $isObtained, $earnedAt);
-                    $stats['trophies']++;
+                        $trophyModel->syncPsnTrophy($gameId, $title, $type, $isObtained, $earnedAt);
+                        $stats['trophies']++;
+                    }
                 }
             }
         }
-    }
-    return $stats;
+        return $stats;
     }
 
     public function apiPsnSync()
