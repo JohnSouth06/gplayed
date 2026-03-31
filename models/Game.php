@@ -21,9 +21,9 @@ class Game
     public function getAll($userId)
     {
         $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, 
-                     g.summary, g.developer, g.publisher, g.hltb_main, g.rating AS igdb_rating,
+                     g.summary, g.developer, g.publisher, g.rating AS igdb_rating,
                      p.time_main AS playtime 
-              FROM " . $this->table . " ug 
+              FROM " . $this->table . " ug
               JOIN games g ON ug.game_id = g.id
               LEFT JOIN playtime p ON ug.id = p.game_id 
               WHERE ug.user_id = :user_id 
@@ -131,7 +131,7 @@ class Game
 
         // 1. GESTION DU CATALOGUE (Nouvelle architecture)
         if ($igdbId && !$this->catalogGameExists($igdbId)) {
-            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, hltb_main, rating) 
+            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, rating) 
                          VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :hltb, :rating)";
             $stmtCat = $this->conn->prepare($queryCatalog);
             $stmtCat->execute([
@@ -143,7 +143,6 @@ class Game
                 ':summary' => $data['description'], // On stocke la description globale ici
                 ':dev' => $data['developer'] ?? null,
                 ':pub' => $data['publisher'] ?? null,
-                ':hltb' => $data['hltb_main'] ?? null,
                 ':rating' => $data['metacritic'] // Note IGDB
             ]);
         }

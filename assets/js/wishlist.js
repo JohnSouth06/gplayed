@@ -1,5 +1,5 @@
 function openModal() {
-    const fields = ['gameId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual'];
+    const fields = ['gameId', 'gameRawgId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual', 'gameDesc', 'gameDeveloper', 'gamePublisher', 'gameMeta'];
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';

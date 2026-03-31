@@ -99,12 +99,38 @@ if (isset($games) && is_array($games)) {
         <div class="filters-scroll-container">
 
             <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
-                <option value="all"><?= __('filter_platform') ?></option>
+                <option value="PC">PC (Microsoft Windows)</option>
+                <option value="Mac">Mac</option>
+                <option value="Linux">Linux</option>
                 <option value="PS5">PlayStation 5</option>
                 <option value="PS4">PlayStation 4</option>
-                <option value="Xbox Series">Xbox Series</option>
-                <option value="Switch">Switch 1 / 2</option>
-                <option value="PC">PC / Steam</option>
+                <option value="PS3">PlayStation 3</option>
+                <option value="PS2">PlayStation 2</option>
+                <option value="PlayStation">PlayStation</option>
+                <option value="PS Vita">PS Vita</option>
+                <option value="PSP">PSP</option>
+                <option value="Xbox Series">Xbox Series X|S</option>
+                <option value="Xbox One">Xbox One</option>
+                <option value="Xbox 360">Xbox 360</option>
+                <option value="Xbox">Xbox</option>
+                <option value="Switch">Nintendo Switch</option>
+                <option value="Wii U">Wii U</option>
+                <option value="Wii">Wii</option>
+                <option value="GameCube">GameCube</option>
+                <option value="Nintendo 64">Nintendo 64</option>
+                <option value="SNES">SNES</option>
+                <option value="NES">NES</option>
+                <option value="Nintendo 3DS">Nintendo 3DS</option>
+                <option value="Nintendo DS">Nintendo DS</option>
+                <option value="Game Boy Advance">Game Boy Advance</option>
+                <option value="Game Boy Color">Game Boy Color</option>
+                <option value="Game Boy">Game Boy</option>
+                <option value="iOS">iOS</option>
+                <option value="Android">Android</option>
+                <option value="Sega Dreamcast">Sega Dreamcast</option>
+                <option value="Sega Saturn">Sega Saturn</option>
+                <option value="Sega Mega Drive">Sega Mega Drive/Genesis</option>
+                <option value="Sega Master System">Sega Master System</option>
             </select>
 
             <input type="hidden" id="filterStatus" value="wishlist">
@@ -160,9 +186,13 @@ if (isset($games) && is_array($games)) {
                 <div class="d-none">
                     <div id="modalTabs"></div>
                     <div id="multiPlatformContainer">
-                        <div id="platformInputsList"></div><input id="gamePlatformCustom">
+                        <div id="platformInputsList"></div>
+                        <input type="hidden" name="platform_custom" id="gamePlatformCustom">
                     </div>
-                    <input id="gameMeta"><input id="gameRating"><input id="gameDesc">
+                    <input type="hidden" name="metacritic" id="gameMeta">
+                    <input type="hidden" name="description" id="gameDesc">
+                    <input type="hidden" name="developer" id="gameDeveloper">
+                    <input type="hidden" name="publisher" id="gamePublisher">
                 </div>
 
                 <div class="modal-header border-bottom-0 pb-0">
@@ -205,11 +235,38 @@ if (isset($games) && is_array($games)) {
                                 <div class="col-6">
                                     <label class="form-label small fw-bold mb-1 text-secondary"><?= __('filter_platform') ?></label>
                                     <select name="platform" id="gamePlatform" class="form-select rounded-3" required>
+                                        <option value="PC">PC (Microsoft Windows)</option>
+                                        <option value="Mac">Mac</option>
+                                        <option value="Linux">Linux</option>
                                         <option value="PS5">PlayStation 5</option>
                                         <option value="PS4">PlayStation 4</option>
-                                        <option value="Xbox Series">Xbox Series</option>
-                                        <option value="Switch">Switch</option>
-                                        <option value="PC">PC</option>
+                                        <option value="PS3">PlayStation 3</option>
+                                        <option value="PS2">PlayStation 2</option>
+                                        <option value="PlayStation">PlayStation</option>
+                                        <option value="PS Vita">PS Vita</option>
+                                        <option value="PSP">PSP</option>
+                                        <option value="Xbox Series">Xbox Series X|S</option>
+                                        <option value="Xbox One">Xbox One</option>
+                                        <option value="Xbox 360">Xbox 360</option>
+                                        <option value="Xbox">Xbox</option>
+                                        <option value="Switch">Nintendo Switch</option>
+                                        <option value="Wii U">Wii U</option>
+                                        <option value="Wii">Wii</option>
+                                        <option value="GameCube">GameCube</option>
+                                        <option value="Nintendo 64">Nintendo 64</option>
+                                        <option value="SNES">SNES</option>
+                                        <option value="NES">NES</option>
+                                        <option value="Nintendo 3DS">Nintendo 3DS</option>
+                                        <option value="Nintendo DS">Nintendo DS</option>
+                                        <option value="Game Boy Advance">Game Boy Advance</option>
+                                        <option value="Game Boy Color">Game Boy Color</option>
+                                        <option value="Game Boy">Game Boy</option>
+                                        <option value="iOS">iOS</option>
+                                        <option value="Android">Android</option>
+                                        <option value="Sega Dreamcast">Sega Dreamcast</option>
+                                        <option value="Sega Saturn">Sega Saturn</option>
+                                        <option value="Sega Mega Drive">Sega Mega Drive/Genesis</option>
+                                        <option value="Sega Master System">Sega Master System</option>
                                     </select>
                                 </div>
                                 <div class="col-6" id="releaseDateCol">

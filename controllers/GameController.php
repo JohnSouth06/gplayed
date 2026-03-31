@@ -509,13 +509,16 @@ class GameController
         if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) exit();
 
         $id = intval($_GET['id']);
-        // Ajout des vidéos (videos.video_id) et des traductions (translations...)
-        $body = "fields name, cover.url, first_release_date, rating, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, genres.name, platforms.name, videos.video_id, translations.language.locale, translations.summary; where id = {$id};";
+        
+        // Suppression des champs "translations" qui rendent la requête invalide pour IGDB
+        $body = "fields name, cover.url, first_release_date, rating, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, genres.name, platforms.name, videos.video_id; where id = {$id};";
 
         $results = $this->callIgdb('games', $body);
-        $data = ($results && isset($results[0])) ? $results[0] : null;
+        
+        // Sécurité : On s'assure que l'API a bien répondu avec les données du jeu
+        if ($results && is_array($results) && isset($results[0]) && isset($results[0]['id'])) {
+            $data = $results[0];
 
-        if ($data) {
             $genres = [];
             if (isset($data['genres'])) {
                 foreach ($data['genres'] as $g) $genres[] = $g['name'];
@@ -527,19 +530,6 @@ class GameController
                 foreach ($data['involved_companies'] as $ic) {
                     if (isset($ic['developer']) && $ic['developer']) $developer = $ic['company']['name'];
                     if (isset($ic['publisher']) && $ic['publisher']) $publisher = $ic['company']['name'];
-                }
-            }
-
-            // Gestion de la traduction française
-            $summary = $data['summary'] ?? '';
-            if (isset($data['translations'])) {
-                foreach ($data['translations'] as $t) {
-                    if (isset($t['language']['locale']) && strpos($t['language']['locale'], 'fr') !== false) {
-                        if (!empty($t['summary'])) {
-                            $summary = $t['summary'];
-                        }
-                        break;
-                    }
                 }
             }
 
@@ -556,18 +546,19 @@ class GameController
                 'released' => isset($data['first_release_date']) ? date('Y-m-d', $data['first_release_date']) : '',
                 'metacritic' => isset($data['rating']) ? round($data['rating']) : '',
                 'background_image' => $img,
-                'description_raw' => $summary, // Résumé traduit
+                'description_raw' => $data['summary'] ?? '', // Description officielle (généralement EN)
                 'developer' => $developer,
                 'publisher' => $publisher,
-                'video_id' => $videoId, // ID Youtube
+                'video_id' => $videoId,
                 'genres_list' => implode(', ', $genres)
             ];
 
             header('Content-Type: application/json');
             echo json_encode($response);
         } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Not found']);
+            // L'API a renvoyé une erreur ou n'a rien trouvé
+            http_response_code(400);
+            echo json_encode(['error' => 'Erreur API IGDB', 'details' => $results]);
         }
         exit();
     }
@@ -727,8 +718,7 @@ class GameController
             'description' => $_POST['description'] ?? '',
             'estimated_price' => $_POST['estimated_price'] ?? null,
             'developer' => $_POST['developer'] ?? null,
-            'publisher' => $_POST['publisher'] ?? null,
-            'hltb_main' => $_POST['hltb_main'] ?? null
+            'publisher' => $_POST['publisher'] ?? null
         ];
 
         if ($this->gameModel->importEntry($gameData, $_SESSION['user_id'])) {
