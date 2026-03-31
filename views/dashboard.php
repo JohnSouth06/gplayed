@@ -242,8 +242,8 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                         <input type="text" name="genres" id="gameGenres" class="form-control rounded-3 bg-body-tertiary" placeholder="Action, RPG..." readonly>
                                     </div>
                                     <div class="mt-3 p-3 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-10">
-                                        <div class="small fw-bold text-primary mb-1"><i class="material-icons-outlined icon-sm me-1">&#xe192;</i>How Long To Beat</div>
-                                        <div id="hltbDisplay" class="h5 mb-0 fw-bold">--h</div>
+                                        <label class="small fw-bold text-primary mb-1 d-block"><i class="material-icons-outlined icon-sm me-1">&#xe192;</i>How Long To Beat (Heures)</label>
+                                        <input type="number" name="hltb_main" id="gameHltb" class="form-control form-control-sm bg-transparent border-primary text-primary fw-bold" placeholder="Ex: 15" step="0.5">
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold mb-2 text-secondary">Format</label>
@@ -330,6 +330,12 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                             <input type="hidden" name="description" id="gameDesc">
                         </div>
                         <div class="tab-pane fade" id="tab-desc">
+                            <div class="mb-3 p-3 bg-body-secondary rounded-3 small border border-opacity-10">
+                                <div class="row">
+                                    <div class="col-6"><span class="text-muted">Développeur :</span> <strong id="displayDev">Inconnu</strong></div>
+                                    <div class="col-6"><span class="text-muted">Éditeur :</span> <strong id="displayPub">Inconnu</strong></div>
+                                </div>
+                            </div>
                             <div id="gameDescriptionContent" class="text-secondary" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></div>
                         </div>
 

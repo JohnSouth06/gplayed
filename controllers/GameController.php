@@ -509,8 +509,8 @@ class GameController
         if (!isset($_SESSION['user_id']) || !isset($_GET['id'])) exit();
 
         $id = intval($_GET['id']);
-        // Ajout de involved_companies
-        $body = "fields name, cover.url, first_release_date, rating, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, genres.name, platforms.name; where id = {$id};";
+        // Ajout des vidéos (videos.video_id) et des traductions (translations...)
+        $body = "fields name, cover.url, first_release_date, rating, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, genres.name, platforms.name, videos.video_id, translations.language.locale, translations.summary; where id = {$id};";
 
         $results = $this->callIgdb('games', $body);
         $data = ($results && isset($results[0])) ? $results[0] : null;
@@ -521,7 +521,6 @@ class GameController
                 foreach ($data['genres'] as $g) $genres[] = $g['name'];
             }
 
-            // Extraction dev/editeur
             $developer = '';
             $publisher = '';
             if (isset($data['involved_companies'])) {
@@ -531,6 +530,25 @@ class GameController
                 }
             }
 
+            // Gestion de la traduction française
+            $summary = $data['summary'] ?? '';
+            if (isset($data['translations'])) {
+                foreach ($data['translations'] as $t) {
+                    if (isset($t['language']['locale']) && strpos($t['language']['locale'], 'fr') !== false) {
+                        if (!empty($t['summary'])) {
+                            $summary = $t['summary'];
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Récupération de la première vidéo YouTube
+            $videoId = '';
+            if (isset($data['videos']) && count($data['videos']) > 0) {
+                $videoId = $data['videos'][0]['video_id'];
+            }
+
             $img = isset($data['cover']['url']) ? 'https:' . str_replace('t_thumb', 't_720p', $data['cover']['url']) : '';
 
             $response = [
@@ -538,9 +556,10 @@ class GameController
                 'released' => isset($data['first_release_date']) ? date('Y-m-d', $data['first_release_date']) : '',
                 'metacritic' => isset($data['rating']) ? round($data['rating']) : '',
                 'background_image' => $img,
-                'description_raw' => $data['summary'] ?? '',
+                'description_raw' => $summary, // Résumé traduit
                 'developer' => $developer,
                 'publisher' => $publisher,
+                'video_id' => $videoId, // ID Youtube
                 'genres_list' => implode(', ', $genres)
             ];
 

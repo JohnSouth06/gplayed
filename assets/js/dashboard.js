@@ -816,16 +816,28 @@ async function fetchGameDetails(id) {
 
         const g = await res.json();
 
-        // Remplissage des données globales
-        document.getElementById('displayTitle').innerText = g.name;
-        document.getElementById('displayDevPub').innerText = `${g.developer || ''} | ${g.publisher || ''}`;
-        document.getElementById('gameDescriptionContent').innerText = g.summary || "Aucune description.";
-        document.getElementById('hltbDisplay').innerText = g.hltb_main ? `${g.hltb_main}h` : '--h';
+       // 1. En-tête de la description (Développeur / Éditeur)
+        const displayDev = document.getElementById('displayDev');
+        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
+        
+        const displayPub = document.getElementById('displayPub');
+        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
 
-        // Médias : On génère une recherche Youtube basée sur le titre
-        const ytSearch = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' gameplay trailer')}`;
-        document.getElementById('ytPlayer').src = ytSearch;
-        document.getElementById('ytLink').href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' trailer')}`;
+        // 2. Texte de description (qui sera en FR si disponible)
+        const descContent = document.getElementById('gameDescriptionContent');
+        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
+
+        // 3. Vidéo YouTube via ID officiel IGDB
+        const ytPlayer = document.getElementById('ytPlayer');
+        const ytLink = document.getElementById('ytLink');
+        if (g.video_id) {
+            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed/${g.video_id}`;
+            if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${g.video_id}`;
+        } else {
+            // Fallback si aucune vidéo n'est trouvée sur IGDB
+            if (ytPlayer) ytPlayer.src = '';
+            if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' trailer')}`;
+        }
 
         // On s'assure que les champs cachés pour la sauvegarde sont remplis
         document.getElementById('gameTitle').value = g.name;
@@ -833,6 +845,8 @@ async function fetchGameDetails(id) {
         
         if(document.getElementById('gameDeveloper')) document.getElementById('gameDeveloper').value = g.developer || '';
         if(document.getElementById('gamePublisher')) document.getElementById('gamePublisher').value = g.publisher || '';
+        
+        // On vide le champ manuel HLTB pour un nouveau jeu
         if(document.getElementById('gameHltb')) document.getElementById('gameHltb').value = g.hltb_main || '';
 
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
