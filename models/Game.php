@@ -132,7 +132,7 @@ class Game
         // 1. GESTION DU CATALOGUE (Nouvelle architecture)
         if ($igdbId && !$this->catalogGameExists($igdbId)) {
             $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, rating) 
-                         VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :hltb, :rating)";
+                         VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating)";
             $stmtCat = $this->conn->prepare($queryCatalog);
             $stmtCat->execute([
                 ':id' => $igdbId,

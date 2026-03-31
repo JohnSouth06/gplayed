@@ -509,9 +509,11 @@ function generateGridCard(g) {
 
     metaHtml += `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
 
+    let ratingHtml = '';
     if (g.metacritic_score > 0) {
-        let metaIcon = g.metacritic_score >= 75 ? 'text-success' : (g.metacritic_score >= 50 ? 'text-warning' : 'text-danger');
-        metaHtml += `<span class="meta-tag" title="${LANG.js_meta_score}"><i class="svg-icon metacritic-icon ${metaIcon} me-1"></i>${g.metacritic_score}</span>`;
+        let metaColor = g.metacritic_score >= 75 ? 'text-success' : (g.metacritic_score >= 50 ? 'text-warning' : 'text-danger');
+
+        ratingHtml = `<i class="svg-icon metacritic-icon ${metaColor} me-1" style="vertical-align: middle;"></i><strong>${g.metacritic_score}</strong>`;
     }
 
     if (g.estimated_price > 0) {
@@ -580,6 +582,7 @@ function generateGridCard(g) {
         .replaceAll('{statusHtml}', statusHtml)
         .replaceAll('{title}', g.title)
         .replaceAll('{metaHtml}', metaHtml)
+        .replaceAll('{ratingHtml}', ratingHtml)
         .replaceAll('{trophiesHtml}', '')
         .replaceAll('{genres}', translateGenres(g.genres))
         .replaceAll('{loanInfoHtml}', loanInfoHtml)
