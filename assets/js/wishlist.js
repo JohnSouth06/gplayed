@@ -1,5 +1,5 @@
 function openModal() {
-    const fields = ['gameId', 'gameRawgId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual', 'gameDesc', 'gameDeveloper', 'gamePublisher', 'gameMeta'];
+    const fields = ['gameId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual'];
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -23,6 +23,13 @@ function openModal() {
     const statusField = document.getElementById('gameStatus');
     if (statusField) statusField.value = 'wishlist';
 
+    // --- AJOUT : Restauration de la liste complète des plateformes ---
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
+        platformSelect.innerHTML = defaultPlatformsHTML;
+    }
+    // -----------------------------------------------------------------
+
     if (typeof currentLibraryFormat !== 'undefined') {
         const fmtPhys = document.getElementById('fmtPhysical');
         const fmtDigi = document.getElementById('fmtDigital');
@@ -44,7 +51,29 @@ function editGame(game) {
     document.getElementById('gameId').value = game.id;
     document.getElementById('gameRawgId').value = game.rawg_id || '';
     document.getElementById('gameTitle').value = game.title;
-    document.getElementById('gamePlatform').value = game.platform;
+    
+    // --- AJOUT : Restauration et sélection intelligente de la plateforme ---
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
+        platformSelect.innerHTML = defaultPlatformsHTML;
+        
+        // On vérifie si la plateforme du jeu existe dans la liste standard
+        const platformExists = Array.from(platformSelect.options).some(opt => opt.value === game.platform);
+        
+        // Si elle n'existe pas, on l'ajoute dynamiquement pour pouvoir l'afficher
+        if (!platformExists && game.platform) {
+            const option = document.createElement('option');
+            option.value = game.platform;
+            option.textContent = game.platform;
+            platformSelect.appendChild(option);
+        }
+    }
+    
+    if (document.getElementById('gamePlatform')) {
+        document.getElementById('gamePlatform').value = game.platform;
+    }
+    // -----------------------------------------------------------------------
+
     document.getElementById('gameGenres').value = game.genres || '';
     document.getElementById('gameComment').value = game.comment || '';
 

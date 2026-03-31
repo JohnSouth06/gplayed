@@ -768,6 +768,8 @@ function openModal(g = null) {
         priceDesktop.oninput = function () { priceTablet.value = this.value; };
     }
 
+    const platformSelect = document.getElementById('gamePlatform'); 
+    
     const listContainer = document.getElementById('platformInputsList');
     if (listContainer) listContainer.innerHTML = '';
 
