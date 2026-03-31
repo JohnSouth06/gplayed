@@ -140,7 +140,7 @@ class Game
                 ':cover_url' => $data['image_url_hidden'],
                 ':genres' => $data['genres'],
                 ':release_date' => $data['release_date'],
-                ':summary' => $data['description'], // On stocke la description globale ici
+                ':summary' => $data['description'],
                 ':dev' => $data['developer'] ?? null,
                 ':pub' => $data['publisher'] ?? null,
                 ':rating' => $data['metacritic'] // Note IGDB

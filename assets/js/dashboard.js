@@ -771,37 +771,18 @@ function openModal(g = null) {
         priceDesktop.oninput = function () { priceTablet.value = this.value; };
     }
 
-    const platformSelect = document.getElementById('gamePlatform'); 
-    
     const listContainer = document.getElementById('platformInputsList');
     if (listContainer) listContainer.innerHTML = '';
 
+    const platformSelect = document.getElementById('gamePlatform');
     if (platformSelect) {
-        // On restaure la liste complète par défaut à chaque ouverture
         platformSelect.innerHTML = defaultPlatformsHTML;
-
         if (g && g.platform) {
-            // NOUVEAU : On vérifie si la plateforme du jeu correspond à une option existante
             const platformExists = Array.from(platformSelect.options).some(opt => opt.value === g.platform);
-
-            if (platformExists) { 
-                // La plateforme existe dans la liste (ex: "GameCube", "SNES", "PC")
-                platformSelect.value = g.platform; 
-                toggleCustomPlatform(); 
-            } else { 
-                // La plateforme n'existe pas ou contient des virgules (ex: "PS5, PC")
-                platformSelect.value = 'Multiplateforme'; 
-                toggleCustomPlatform(); 
-                const parts = g.platform.split(',').map(s => s.trim()); 
-                parts.forEach(p => addPlatformInput(p)); 
-            }
-        } else { 
-            // Valeur par défaut si aucune plateforme n'est définie
-            platformSelect.value = 'PS5'; 
-            toggleCustomPlatform(); 
-        }
+            if (platformExists) { platformSelect.value = g.platform; toggleCustomPlatform(); }
+            else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); }
+        } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
     }
-
 
     const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
     const fmtDigital = document.getElementById('fmtDigital');
@@ -820,10 +801,37 @@ function openModal(g = null) {
     const isWishlistPage = window.location.pathname.includes('wishlist');
     safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
     safeSet('gameDate', g ? g.release_date : '');
-    safeSet('gameMeta', g ? g.metacritic_score : '');
+
+    safeSet('gameMeta', g ? g.igdb_rating : '');
     safeSet('gameComment', g ? g.comment : '');
-    safeSet('gameDesc', g ? g.description : '');
+    safeSet('gameDesc', g ? (g.summary || g.description || '') : '');
     safeSet('gameGenres', g ? translateGenres(g.genres) : '');
+
+    // --- NOUVEAU : Gestion de l'affichage des onglets ---
+    safeSet('gameDeveloper', g ? (g.developer || '') : '');
+    safeSet('gamePublisher', g ? (g.publisher || '') : '');
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = (g && g.developer) ? g.developer : 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = (g && g.publisher) ? g.publisher : 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = g ? (g.summary || g.description || "Aucune description.") : "Aucune description.";
+
+    const ytPlayer = document.getElementById('ytPlayer');
+    const ytLink = document.getElementById('ytLink');
+    
+    // Si on édite un jeu existant, on génère une recherche vidéo YouTube automatique
+    if (g && g.title) {
+        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.title + ' game trailer')}`;
+        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.title + ' game trailer')}`;
+    } else {
+        // S'il s'agit d'un "Ajout manuel", on laisse vide
+        if (ytPlayer) ytPlayer.src = ''; 
+        if (ytLink) ytLink.href = '#';
+    }
 
     modal.show();
 }
@@ -903,39 +911,6 @@ async function fetchGameDetails(id) {
 
         const g = await res.json();
 
-        // 1. En-tête de la description (Développeur / Éditeur)
-        const displayDev = document.getElementById('displayDev');
-        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
-
-        const displayPub = document.getElementById('displayPub');
-        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
-
-        // 2. Texte de description (qui sera en FR si disponible)
-        const descContent = document.getElementById('gameDescriptionContent');
-        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
-
-        // 3. Vidéo YouTube via ID officiel IGDB
-        const ytPlayer = document.getElementById('ytPlayer');
-        const ytLink = document.getElementById('ytLink');
-        if (g.video_id) {
-            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed/${g.video_id}`;
-            if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${g.video_id}`;
-        } else {
-            // Fallback si aucune vidéo n'est trouvée sur IGDB
-            if (ytPlayer) ytPlayer.src = '';
-            if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' trailer')}`;
-        }
-
-        // On s'assure que les champs cachés pour la sauvegarde sont remplis
-        document.getElementById('gameTitle').value = g.name;
-        document.getElementById('gameDesc').value = g.description_raw;
-
-        if (document.getElementById('gameDeveloper')) document.getElementById('gameDeveloper').value = g.developer || '';
-        if (document.getElementById('gamePublisher')) document.getElementById('gamePublisher').value = g.publisher || '';
-
-        // On vide le champ manuel HLTB pour un nouveau jeu
-        if (document.getElementById('gameHltb')) document.getElementById('gameHltb').value = g.hltb_main || '';
-
         if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
             const cleanTitle = g.name.trim().toLowerCase();
             const existingGame = localGames.find(game => game.title && game.title.trim().toLowerCase() === cleanTitle);
@@ -947,41 +922,44 @@ async function fetchGameDetails(id) {
             }
         }
 
+        // 1. ON OUVRE LA MODALE EN PREMIER (pour la réinitialiser)
         openModal();
 
-        const platformSelect = document.getElementById('gamePlatform');
-        if (platformSelect) {
-            // On vérifie que l'API a bien renvoyé un tableau de plateformes
-            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
-                
-                platformSelect.innerHTML = ''; // On vide la liste complète
-                
-                g.platforms.forEach(p => {
-                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
-                    
-                    // On convertit le nom IGDB vers le format de la base de données
-                    const mappedName = mapIgdbPlatform(rawName); 
-                    
-                    // On s'assure de ne pas ajouter la même plateforme en double
-                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
-                    
-                    if (!alreadyExists) {
-                        const option = document.createElement('option');
-                        option.value = mappedName;
-                        option.textContent = mappedName; // On affiche le nom simplifié
-                        platformSelect.appendChild(option);
-                    }
-                });
-            }
-        }
-        // -------------------------------------------------
+        // 2. ON REMPLIT LES ELEMENTS VISUELS
+        const displayDev = document.getElementById('displayDev');
+        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
 
+        const displayPub = document.getElementById('displayPub');
+        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
+
+        const descContent = document.getElementById('gameDescriptionContent');
+        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
+
+        const ytPlayer = document.getElementById('ytPlayer');
+        const ytLink = document.getElementById('ytLink');
+        if (g.video_id) {
+            // Si IGDB a une vidéo officielle, on l'affiche
+            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed/${g.video_id}`;
+            if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${g.video_id}`;
+        } else {
+            // Si IGDB n'a pas de vidéo, on génère la recherche automatique comme solution de secours
+            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' game trailer')}`;
+            if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' game trailer')}`;
+        }
+
+        // 3. ON REMPLIT LES CHAMPS CACHÉS DU FORMULAIRE
         const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
         safeSet('gameTitle', g.name);
         safeSet('gameDate', g.released);
         safeSet('gameMeta', g.metacritic);
         safeSet('gameImageHidden', g.background_image);
+        safeSet('gameDesc', g.description_raw);
+        safeSet('gameGenres', translateGenres(g.genres_list || ''));
+        safeSet('gameRawgId', id);
+        safeSet('gameDeveloper', g.developer || '');
+        safeSet('gamePublisher', g.publisher || '');
 
+        // 4. PREVIEW IMAGE
         const prev = document.getElementById('previewImg');
         const uploadPl = document.getElementById('uploadPlaceholder');
         if (prev && uploadPl) {
@@ -995,9 +973,25 @@ async function fetchGameDetails(id) {
             }
         }
 
-        safeSet('gameDesc', g.description_raw);
-        safeSet('gameGenres', translateGenres(g.genres_list || ''));
-        safeSet('gameRawgId', id);
+        // 5. PLATEFORMES DYNAMIQUES
+        const platformSelect = document.getElementById('gamePlatform');
+        if (platformSelect) {
+            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
+                platformSelect.innerHTML = ''; 
+                g.platforms.forEach(p => {
+                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
+                    const mappedName = mapIgdbPlatform(rawName); 
+                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+                    
+                    if (!alreadyExists) {
+                        const option = document.createElement('option');
+                        option.value = mappedName;
+                        option.textContent = mappedName; 
+                        platformSelect.appendChild(option);
+                    }
+                });
+            }
+        }
 
     } catch (e) {
         alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : LANG.js_import_error_generic);

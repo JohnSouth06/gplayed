@@ -133,7 +133,6 @@ class GameController
     }
 
     // --- METTRE À JOUR UN JEU (NOUVEAU) ---
-    // --- METTRE À JOUR UN JEU (NOUVEAU) ---
     public function apiUpdateGame($userId)
     {
         $input = json_decode(file_get_contents('php://input'), true);
@@ -352,20 +351,22 @@ class GameController
 
             // On récupère directement les données du formulaire
             $gameData = [
-                'game_id' => $_POST['game_id'] ?? '', // Rempli si c'est une mise à jour
-                'rawg_id' => $_POST['rawg_id'] ?? null, // C'est l'ID IGDB
+                'game_id' => $_POST['game_id'] ?? '', 
+                'rawg_id' => $_POST['rawg_id'] ?? null, 
                 'title' => $_POST['title'] ?? 'Titre inconnu',
                 'status' => $_POST['status'] ?? 'not_started',
                 'format' => $_POST['format'] ?? 'digital',
                 'platform' => $_POST['platform'] ?? 'PC',
                 'platform_custom' => $_POST['platform_custom'] ?? '',
                 'comment' => $_POST['comment'] ?? '',
-                'image_url_hidden' => $_POST['image_url_hidden'] ?? '', // L'URL IGDB
+                'image_url_hidden' => $_POST['image_url_hidden'] ?? '', 
                 'metacritic' => $_POST['metacritic'] ?? null,
                 'genres' => $_POST['genres'] ?? null,
                 'release_date' => $_POST['release_date'] ?? null,
                 'description' => $_POST['description'] ?? '',
-                'estimated_price' => $_POST['estimated_price'] ?? null
+                'estimated_price' => $_POST['estimated_price'] ?? null,
+                'developer' => $_POST['developer'] ?? null,
+                'publisher' => $_POST['publisher'] ?? null
             ];
 
             // On appelle le modèle en passant `null` pour le paramètre $file (plus d'upload)
