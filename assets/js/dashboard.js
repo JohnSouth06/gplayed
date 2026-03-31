@@ -1,3 +1,13 @@
+let defaultPlatformsHTML = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect) {
+        // On sauvegarde la liste exhaustive (PC, PS5, Xbox, etc.)
+        defaultPlatformsHTML = platformSelect.innerHTML;
+    }
+});
+
 const statusConfig = {
     'not_started': { label: LANG.status_not_started, class: 'bg-secondary', icon: '&#xe837;' },
     'playing': { label: LANG.status_playing, class: 'bg-info', icon: '&#xea5b;' },
@@ -7,6 +17,61 @@ const statusConfig = {
     'wishlist': { label: LANG.status_wishlist, class: 'bg-primary text-dark', icon: '&#xe8b1;' },
     'loaned': { label: (typeof LANG !== 'undefined' && LANG.status_loaned) ? LANG.status_loaned : 'Prêté', class: 'bg-warning text-dark', icon: '&#xe0e3;' }
 };
+
+function mapIgdbPlatform(igdbName) {
+    const mapping = {
+        "PC (Microsoft Windows)": "PC",
+        "PlayStation 5": "PS5",
+        "PlayStation 4": "PS4",
+        "PlayStation 3": "PS3",
+        "PlayStation 2": "PS2",
+        "PlayStation": "PlayStation",
+        "PlayStation Vita": "PS Vita",
+        "PlayStation Portable": "PSP",
+        "Xbox Series X|S": "Xbox Series",
+        "Xbox Series X": "Xbox Series",
+        "Xbox Series S": "Xbox Series",
+        "Xbox One": "Xbox One",
+        "Xbox 360": "Xbox 360",
+        "Xbox": "Xbox",
+        "Nintendo Switch": "Switch",
+        "Wii U": "Wii U",
+        "Wii": "Wii",
+        "Nintendo GameCube": "GameCube",
+        "Nintendo 64": "Nintendo 64",
+        "Super Nintendo Entertainment System (SNES)": "SNES",
+        "Super Famicom": "SNES",
+        "Nintendo Entertainment System": "NES",
+        "Nintendo 3DS": "Nintendo 3DS",
+        "New Nintendo 3DS": "Nintendo 3DS",
+        "Nintendo DS": "Nintendo DS",
+        "Game Boy Advance": "Game Boy Advance",
+        "Game Boy Color": "Game Boy Color",
+        "Game Boy": "Game Boy",
+        "iOS": "iOS",
+        "Android": "Android",
+        "Dreamcast": "Sega Dreamcast",
+        "Sega Saturn": "Sega Saturn",
+        "Sega Mega Drive/Genesis": "Sega Mega Drive",
+        "Sega Genesis": "Sega Mega Drive",
+        "Sega Master System": "Sega Master System",
+        "Mac": "Mac",
+        "Linux": "Linux"
+    };
+
+    // 1. On cherche une correspondance exacte
+    if (mapping[igdbName]) {
+        return mapping[igdbName];
+    }
+
+    // 2. Fallbacks pour les correspondances partielles
+    if (igdbName.includes("Xbox Series")) return "Xbox Series";
+    if (igdbName.includes("Mac")) return "Mac";
+    if (igdbName.includes("PC")) return "PC";
+
+    // 3. Si aucune correspondance n'est trouvée, on retourne le nom original
+    return igdbName;
+}
 
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
 
@@ -92,15 +157,17 @@ document.addEventListener('DOMContentLoaded', () => {
     filterConfig.forEach(filter => {
         const el = document.getElementById(filter.id);
         if (el) {
-            // Restaurer la valeur depuis le localStorage au chargement
-            const savedValue = localStorage.getItem(filter.key);
-            if (savedValue) {
-                el.value = savedValue;
+            if (el.type !== 'hidden') {
+                const savedValue = localStorage.getItem(filter.key);
+                if (savedValue) {
+                    el.value = savedValue;
+                }
             }
 
-            // Sauvegarder la nouvelle valeur à chaque changement et mettre à jour la vue
             el.addEventListener('change', () => {
-                localStorage.setItem(filter.key, el.value);
+                if (el.type !== 'hidden') {
+                    localStorage.setItem(filter.key, el.value);
+                }
                 updateView();
             });
         }
@@ -213,9 +280,12 @@ function getProcessedGames() {
         const valB = (key) => b[key] || 0;
 
         switch (sortType) {
+            case 'release_asc':
+                if (!a.release_date) return 1;
+                if (!b.release_date) return -1;
+                return new Date(a.release_date) - new Date(b.release_date);
             case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
             case 'alpha_asc': return (a.title || '').localeCompare(b.title || '');
-            case 'rating_desc': return valB('user_rating') - valA('user_rating');
             case 'status_asc': return (a.status || '').localeCompare(b.status || '');
             case 'platform_asc': return (a.platform || '').localeCompare(b.platform || '');
             default: return new Date(b.created_at) - new Date(a.created_at);
@@ -439,9 +509,11 @@ function generateGridCard(g) {
 
     metaHtml += `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
 
+    let ratingHtml = '';
     if (g.metacritic_score > 0) {
-        let metaIcon = g.metacritic_score >= 75 ? 'text-success' : (g.metacritic_score >= 50 ? 'text-warning' : 'text-danger');
-        metaHtml += `<span class="meta-tag" title="${LANG.js_meta_score}"><i class="svg-icon metacritic-icon ${metaIcon} me-1"></i>${g.metacritic_score}</span>`;
+        let metaColor = g.metacritic_score >= 75 ? 'text-success' : (g.metacritic_score >= 50 ? 'text-warning' : 'text-danger');
+
+        ratingHtml = `<i class="svg-icon metacritic-icon ${metaColor} me-1" style="vertical-align: middle;"></i><strong>${g.metacritic_score}</strong>`;
     }
 
     if (g.estimated_price > 0) {
@@ -454,7 +526,6 @@ function generateGridCard(g) {
 
     const imageHtml = img ? `<img src="${img}" class="card-cover-img" loading="lazy">` : `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
     const statusHtml = `<i class="material-icons-outlined icon-sm me-1">${s.icon}</i>${s.label}`;
-    const ratingHtml = g.user_rating > 0 ? `<div class="fw-bold text-warning d-flex align-items-center small"><i class="material-icons-outlined icon-sm filled-icon me-1">&#xe838;</i>${g.user_rating}</div>` : '';
 
     let loanBtnHtml = '';
     if (g.format === 'physical' && g.status !== 'wishlist') {
@@ -497,22 +568,6 @@ function generateGridCard(g) {
         </a>`;
     }
 
-    // ==========================================
-    // GÉNÉRATION DU BLOC DES TROPHÉES
-    // ==========================================
-    let trophiesHtml = '';
-    if (g.trophies_summary && g.trophies_summary.total > 0) {
-        const t = g.trophies_summary;
-        const percent = Math.round((t.obtained / t.total) * 100);
-
-        // On ajoute un petit badge discret directement dans la zone metaHtml
-        // L'icône &#xea23; correspond à la coupe de trophée dans Material Icons
-        metaHtml += `<span class="meta-tag text-warning bg-warning-subtle border-warning-subtle" title="Progression des trophées PSN">
-            <i class="material-icons-outlined icon-sm me-1">&#xea23;</i>${percent}%
-        </span>`;
-    }
-
-
 
     const templateNode = document.getElementById('gridCardTemplate');
     if (!templateNode) return '';
@@ -526,9 +581,9 @@ function generateGridCard(g) {
         .replaceAll('{statusClass}', s.class || '')
         .replaceAll('{statusHtml}', statusHtml)
         .replaceAll('{title}', g.title)
-        .replaceAll('{ratingHtml}', ratingHtml)
         .replaceAll('{metaHtml}', metaHtml)
-        .replaceAll('{trophiesHtml}', trophiesHtml)
+        .replaceAll('{ratingHtml}', ratingHtml)
+        .replaceAll('{trophiesHtml}', '')
         .replaceAll('{genres}', translateGenres(g.genres))
         .replaceAll('{loanInfoHtml}', loanInfoHtml)
         .replaceAll('{actionsHtml}', actionsHtml);
@@ -699,7 +754,10 @@ function openModal(g = null) {
             prev.classList.remove('d-none');
             holder.classList.add('d-none');
         }
-        else { prev.classList.add('d-none'); holder.classList.remove('d-none'); }
+        else {
+            prev.classList.add('d-none');
+            holder.classList.remove('d-none');
+        }
     }
 
     const priceVal = g ? (g.estimated_price || '') : '';
@@ -713,38 +771,70 @@ function openModal(g = null) {
         priceDesktop.oninput = function () { priceTablet.value = this.value; };
     }
 
-    const standardPlatforms = ['PS5', 'PS4', 'Xbox Series', 'Switch', 'PC'];
-    const platformSelect = document.getElementById('gamePlatform');
     const listContainer = document.getElementById('platformInputsList');
     if (listContainer) listContainer.innerHTML = '';
 
+    const platformSelect = document.getElementById('gamePlatform');
     if (platformSelect) {
+        platformSelect.innerHTML = defaultPlatformsHTML;
         if (g && g.platform) {
-            if (standardPlatforms.includes(g.platform)) { platformSelect.value = g.platform; toggleCustomPlatform(); }
+            const platformExists = Array.from(platformSelect.options).some(opt => opt.value === g.platform);
+            if (platformExists) { platformSelect.value = g.platform; toggleCustomPlatform(); }
             else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); }
         } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
     }
 
-    checkPsnVisibility();
-
+    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
     const fmtDigital = document.getElementById('fmtDigital');
     const fmtPhysical = document.getElementById('fmtPhysical');
-    document.getElementById('gameFormatHidden').value = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
+
+    if (fmtDigital && fmtPhysical) {
+        if (formatToSet === 'digital') {
+            fmtDigital.checked = true;
+            fmtPhysical.checked = false;
+        } else {
+            fmtPhysical.checked = true;
+            fmtDigital.checked = false;
+        }
+    }
 
     const isWishlistPage = window.location.pathname.includes('wishlist');
     safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
     safeSet('gameDate', g ? g.release_date : '');
-    safeSet('gameMeta', g ? g.metacritic_score : '');
-    safeSet('gameRating', g ? g.user_rating : '');
+
+    safeSet('gameMeta', g ? g.igdb_rating : '');
     safeSet('gameComment', g ? g.comment : '');
-    safeSet('gameDesc', g ? g.description : '');
+    safeSet('gameDesc', g ? (g.summary || g.description || '') : '');
     safeSet('gameGenres', g ? translateGenres(g.genres) : '');
 
-    if (g && g.id) loadTrophies(g.id);
+    // --- NOUVEAU : Gestion de l'affichage des onglets ---
+    safeSet('gameDeveloper', g ? (g.developer || '') : '');
+    safeSet('gamePublisher', g ? (g.publisher || '') : '');
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = (g && g.developer) ? g.developer : 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = (g && g.publisher) ? g.publisher : 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = g ? (g.summary || g.description || "Aucune description.") : "Aucune description.";
+
+    const ytPlayer = document.getElementById('ytPlayer');
+    const ytLink = document.getElementById('ytLink');
+    
+    // Si on édite un jeu existant, on génère une recherche vidéo YouTube automatique
+    if (g && g.title) {
+        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.title + ' game trailer')}`;
+        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.title + ' game trailer')}`;
+    } else {
+        // S'il s'agit d'un "Ajout manuel", on laisse vide
+        if (ytPlayer) ytPlayer.src = ''; 
+        if (ytLink) ytLink.href = '#';
+    }
+
     modal.show();
 }
-
-function checkPsnVisibility() { const plat = document.getElementById('gamePlatform'); if (!plat) return; const tabs = document.getElementById('modalTabs'); if (!tabs) return; if (plat.value.includes('PS') || plat.value.includes('PlayStation')) { tabs.style.display = 'flex'; } else { tabs.style.display = 'none'; const firstTabEl = document.querySelector('#modalTabs li:first-child button') || document.querySelector('#modalTabs li:first-child a'); if (firstTabEl) { const firstTab = new bootstrap.Tab(firstTabEl); firstTab.show(); } } }
 
 let loanModal;
 function openLoanModal(gameId, gameTitle) {
@@ -757,93 +847,6 @@ function openLoanModal(gameId, gameTitle) {
     if (loanGameTitle) loanGameTitle.innerText = gameTitle;
     loanModal.show();
 }
-
-async function loadTrophies(gameId) {
-    const list = document.getElementById('trophiesList');
-    if (!list) return;
-
-    list.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
-
-    try {
-        const res = await fetch(`/?action=api_get_trophies&game_id=${gameId}`);
-        const data = await res.json();
-        const pct = data.progress.percent;
-
-        const bar = document.getElementById('trophyProgressBar');
-        const txt = document.getElementById('trophyProgressText');
-        if (bar) bar.style.width = pct + '%';
-        if (txt) txt.innerText = pct + '%';
-
-        if (data.trophies.length === 0) {
-            list.innerHTML = `<div class="text-center text-muted small py-3">${typeof LANG !== 'undefined' ? LANG.no_trophies : 'Aucun trophée'}</div>`;
-            return;
-        }
-
-        // ==========================================
-        // TRI INTELLIGENT DES TROPHÉES
-        // ==========================================
-        data.trophies.sort((a, b) => {
-            // 1. Les trophées NON obtenus (0) apparaissent avant les obtenus (1)
-            if (a.is_obtained != b.is_obtained) {
-                return a.is_obtained - b.is_obtained;
-            }
-            // 2. Ensuite, on trie par importance (Platine, Or, Argent, Bronze)
-            const typeOrder = { 'platinum': 1, 'gold': 2, 'silver': 3, 'bronze': 4 };
-            return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
-        });
-
-        // On vérifie si c'est un jeu PlayStation
-        const platformEl = document.getElementById('gamePlatform');
-        const isPlayStation = platformEl && (platformEl.value.includes('PS') || platformEl.value.includes('PlayStation'));
-
-        let htmlContent = '';
-        data.trophies.forEach(t => {
-            const colorClass = `trophy-${t.type}`;
-
-            // Assignation de la bonne image selon le type
-            let iconImg = 'bronze.png';
-            if (t.type === 'platinum') iconImg = 'platinum.png';
-            if (t.type === 'gold') iconImg = 'gold.png';
-            if (t.type === 'silver') iconImg = 'silver.png';
-            const icon = `<img src="../assets/images/${iconImg}" class="trophy-icon d-table-cell me-2 align-top">`;
-
-            const isObtained = t.is_obtained == 1;
-            const gameTitleEl = document.getElementById('gameTitle');
-            const gameTitle = gameTitleEl ? gameTitleEl.value : '';
-            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(gameTitle + ' trophée ' + t.title)}`;
-
-            // Design selon l'obtention (barré et semi-transparent si déjà obtenu)
-            const titleStyle = isObtained ? 'text-decoration-line-through text-muted opacity-50' : 'text-body';
-            const bgClass = isObtained ? 'bg-body-tertiary opacity-50' : 'bg-body border border-secondary border-opacity-10 shadow-sm';
-
-            // Boutons : On cache la corbeille pour les jeux PSN pour éviter de supprimer un trophée officiel
-            let actionButtons = `<a href="${searchUrl}" target="_blank" class="btn btn-sm btn-link text-info p-0" title="Chercher une solution"><i class="material-icons-outlined icon-sm">&#xe8b6;</i></a>`;
-            if (!isPlayStation) {
-                actionButtons += `<button class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="deleteTrophy(${t.id})"><i class="material-icons-outlined icon-sm">&#xe872;</i></button>`;
-            }
-
-            htmlContent += `
-            <div class="d-flex align-items-center p-2 mb-2 rounded trophy-item ${colorClass} ${bgClass}">
-                <div class="trophy-icon fs-5">${icon}</div>
-                <div class="flex-grow-1 ms-2" style="${!isPlayStation ? 'cursor:pointer' : ''}" onclick="${!isPlayStation ? `toggleTrophy(${t.id})` : ''}">
-                    <div class="fw-bold small ${titleStyle}">${t.title}</div>
-                </div>
-                <div class="d-flex gap-2 align-items-center">
-                    ${actionButtons}
-                </div>
-            </div>`;
-        });
-
-        list.innerHTML = htmlContent;
-
-    } catch (e) {
-        list.innerHTML = `<div class="text-danger small text-center">${typeof LANG !== 'undefined' ? LANG.error_loading : 'Erreur de chargement'}</div>`;
-    }
-}
-
-async function addTrophy() { const gameIdEl = document.getElementById('gameId'); if (!gameIdEl) return; const gameId = gameIdEl.value; if (!gameId) { alert(LANG.alert_save_first); return; } const titleEl = document.getElementById('newTrophyTitle'); const typeEl = document.getElementById('newTrophyType'); const title = titleEl ? titleEl.value : ''; const type = typeEl ? typeEl.value : ''; if (!title) return; const formData = new FormData(); formData.append('game_id', gameId); formData.append('title', title); formData.append('type', type); formData.append('description', ''); await fetch('/?action=api_add_trophy', { method: 'POST', body: formData }); if (titleEl) titleEl.value = ''; loadTrophies(gameId); }
-async function toggleTrophy(id) { await fetch(`/?action=api_toggle_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }
-async function deleteTrophy(id) { if (!confirm(LANG.confirm_delete)) return; await fetch(`/?action=api_delete_trophy&id=${id}`); const gameIdEl = document.getElementById('gameId'); if (gameIdEl) loadTrophies(gameIdEl.value); }
 
 async function searchIgdb(autoOpen = false) {
     const input = document.getElementById('rawgSearchInput');
@@ -919,14 +922,44 @@ async function fetchGameDetails(id) {
             }
         }
 
+        // 1. ON OUVRE LA MODALE EN PREMIER (pour la réinitialiser)
         openModal();
 
+        // 2. ON REMPLIT LES ELEMENTS VISUELS
+        const displayDev = document.getElementById('displayDev');
+        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
+
+        const displayPub = document.getElementById('displayPub');
+        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
+
+        const descContent = document.getElementById('gameDescriptionContent');
+        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
+
+        const ytPlayer = document.getElementById('ytPlayer');
+        const ytLink = document.getElementById('ytLink');
+        if (g.video_id) {
+            // Si IGDB a une vidéo officielle, on l'affiche
+            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed/${g.video_id}`;
+            if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${g.video_id}`;
+        } else {
+            // Si IGDB n'a pas de vidéo, on génère la recherche automatique comme solution de secours
+            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' game trailer')}`;
+            if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' game trailer')}`;
+        }
+
+        // 3. ON REMPLIT LES CHAMPS CACHÉS DU FORMULAIRE
         const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
         safeSet('gameTitle', g.name);
         safeSet('gameDate', g.released);
         safeSet('gameMeta', g.metacritic);
         safeSet('gameImageHidden', g.background_image);
+        safeSet('gameDesc', g.description_raw);
+        safeSet('gameGenres', translateGenres(g.genres_list || ''));
+        safeSet('gameRawgId', id);
+        safeSet('gameDeveloper', g.developer || '');
+        safeSet('gamePublisher', g.publisher || '');
 
+        // 4. PREVIEW IMAGE
         const prev = document.getElementById('previewImg');
         const uploadPl = document.getElementById('uploadPlaceholder');
         if (prev && uploadPl) {
@@ -940,9 +973,25 @@ async function fetchGameDetails(id) {
             }
         }
 
-        safeSet('gameDesc', g.description_raw);
-        safeSet('gameGenres', translateGenres(g.genres_list || ''));
-        safeSet('gameRawgId', id);
+        // 5. PLATEFORMES DYNAMIQUES
+        const platformSelect = document.getElementById('gamePlatform');
+        if (platformSelect) {
+            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
+                platformSelect.innerHTML = ''; 
+                g.platforms.forEach(p => {
+                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
+                    const mappedName = mapIgdbPlatform(rawName); 
+                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+                    
+                    if (!alreadyExists) {
+                        const option = document.createElement('option');
+                        option.value = mappedName;
+                        option.textContent = mappedName; 
+                        platformSelect.appendChild(option);
+                    }
+                });
+            }
+        }
 
     } catch (e) {
         alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : LANG.js_import_error_generic);

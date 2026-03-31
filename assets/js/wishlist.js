@@ -1,5 +1,6 @@
 function openModal() {
-    const fields = ['gameId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual'];
+    // On s'assure de vider tous les champs, y compris les nouveaux (Desc, Dev, Pub, Meta)
+    const fields = ['gameId', 'gameRawgId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual', 'gameDesc', 'gameDeveloper', 'gamePublisher', 'gameMeta'];
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -7,6 +8,9 @@ function openModal() {
 
     const previewImg = document.getElementById('previewImg');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+
+    const dateCol = document.getElementById('releaseDateCol');
+    if (dateCol) dateCol.classList.add('d-none');
     
     if (previewImg && uploadPlaceholder) {
         previewImg.src = '';
@@ -20,6 +24,41 @@ function openModal() {
     const statusField = document.getElementById('gameStatus');
     if (statusField) statusField.value = 'wishlist';
 
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
+        platformSelect.innerHTML = defaultPlatformsHTML;
+    }
+
+    if (typeof currentLibraryFormat !== 'undefined') {
+        const fmtPhys = document.getElementById('fmtPhysical');
+        const fmtDigi = document.getElementById('fmtDigital');
+        if (fmtPhys && fmtDigi) {
+            if (currentLibraryFormat === 'digital') {
+                fmtDigi.checked = true;
+                fmtPhys.checked = false;
+            } else {
+                fmtPhys.checked = true;
+                fmtDigi.checked = false;
+            }
+        }
+    }
+
+    // --- NOUVEAU : Réinitialisation de l'onglet Médias et des infos visuelles ---
+    const ytPlayer = document.getElementById('ytPlayer');
+    const ytLink = document.getElementById('ytLink');
+    if (ytPlayer) ytPlayer.src = '';
+    if (ytLink) ytLink.href = '#';
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = "Aucune description.";
+    // ----------------------------------------------------------------------------
+
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
 
@@ -27,15 +66,68 @@ function editGame(game) {
     document.getElementById('gameId').value = game.id;
     document.getElementById('gameRawgId').value = game.rawg_id || '';
     document.getElementById('gameTitle').value = game.title;
-    document.getElementById('gamePlatform').value = game.platform;
+    
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
+        platformSelect.innerHTML = defaultPlatformsHTML;
+        const platformExists = Array.from(platformSelect.options).some(opt => opt.value === game.platform);
+        
+        if (!platformExists && game.platform) {
+            const option = document.createElement('option');
+            option.value = game.platform;
+            option.textContent = game.platform;
+            platformSelect.appendChild(option);
+        }
+    }
+    
+    if (document.getElementById('gamePlatform')) {
+        document.getElementById('gamePlatform').value = game.platform;
+    }
+
     document.getElementById('gameGenres').value = game.genres || '';
     document.getElementById('gameComment').value = game.comment || '';
-
     document.getElementById('gamePrice').value = game.estimated_price || '';
+
+    // --- NOUVEAU : Remplissage des champs de Description, Développeur et Éditeur ---
+    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    safeSet('gameDesc', game.summary || game.description || '');
+    safeSet('gameDeveloper', game.developer || '');
+    safeSet('gamePublisher', game.publisher || '');
+    safeSet('gameMeta', game.igdb_rating || game.metacritic || '');
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = game.developer || 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = game.publisher || 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = game.summary || game.description || "Aucune description.";
+    // -------------------------------------------------------------------------------
     
     document.getElementById('gameDate').value = game.release_date || '';
     const dateVisual = document.getElementById('gameDateVisual');
-    if (dateVisual) dateVisual.value = game.release_date || '';
+    const dateCol = document.getElementById('releaseDateCol');
+
+    if (game.release_date) {
+        if (dateVisual) dateVisual.value = game.release_date;
+        if (dateCol) dateCol.classList.remove('d-none');
+    } else {
+        if (dateVisual) dateVisual.value = '';
+        if (dateCol) dateCol.classList.add('d-none'); 
+    }
+
+    const fmtPhys = document.getElementById('fmtPhysical');
+    const fmtDigi = document.getElementById('fmtDigital');
+    if (fmtPhys && fmtDigi) {
+        if (game.format === 'digital') {
+            fmtDigi.checked = true;
+            fmtPhys.checked = false;
+        } else {
+            fmtPhys.checked = true;
+            fmtDigi.checked = false;
+        }
+    }
 
     const previewImg = document.getElementById('previewImg');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -49,7 +141,11 @@ function editGame(game) {
         previewImg.src = prevImgUrl;
         previewImg.classList.remove('d-none');
         uploadPlaceholder.classList.add('d-none');
-        hiddenImg.value = game.image_url; 
+        if (hiddenImg) hiddenImg.value = game.image_url; 
+    } else {
+        previewImg.classList.add('d-none');
+        uploadPlaceholder.classList.remove('d-none');
+        if (hiddenImg) hiddenImg.value = '';
     }
 
     const deleteLink = document.getElementById('deleteLink');
@@ -57,6 +153,19 @@ function editGame(game) {
         deleteLink.href = "/delete?id=" + game.id;
         document.getElementById('deleteBtnContainer').classList.remove('d-none');
     }
+
+    // --- NOUVEAU : Affichage dynamique de la vidéo YouTube ---
+    const ytPlayer = document.getElementById('ytPlayer');
+    const ytLink = document.getElementById('ytLink');
+
+    if (game.title) {
+        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(game.title + ' game trailer')}`;
+        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(game.title + ' game trailer')}`;
+    } else {
+        if (ytPlayer) ytPlayer.src = '';
+        if (ytLink) ytLink.href = '#';
+    }
+    // ---------------------------------------------------------
 
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
@@ -104,6 +213,13 @@ window.generateGridCard = function(g) {
 
     let metaHtml = '';
     let platIconHtml = '';
+
+    let releaseDateHtml = '';
+    if (g.release_date) {
+        const d = new Date(g.release_date);
+        const formattedDate = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        releaseDateHtml = `<div class="small text-primary fw-bold mt-2"><i class="material-icons-outlined icon-sm align-middle me-1">&#xeb9b;</i><?= __('modal_title_placeholder') ?> : ${formattedDate}</div>`;
+    }
 
     // Icône Plateforme
     if (g.platform && g.platform.includes(',')) {
@@ -164,7 +280,8 @@ window.generateGridCard = function(g) {
                 <div class="meta-badges mb-0">
                     ${metaHtml}
                 </div>
-                <div class="small text-muted text-truncate mt-2">${g.genres || ''}</div>
+                ${releaseDateHtml}
+                <div class="small text-muted text-truncate mt-2">${translateGenres(g.genres)}</div>
             </div>
 
             <div class="card-overlay-actions">
@@ -198,6 +315,12 @@ window.generateListRow = function(g) {
         platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe338;</i>';
     }
 
+    let releaseDateHtml = '';
+    if (g.release_date) {
+        const d = new Date(g.release_date);
+        releaseDateHtml = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2"><i class="material-icons-outlined icon-sm align-middle me-1">&#xeb9b;</i>${d.toLocaleDateString('fr-FR')}</span>`;
+    }
+
     const acquireBtn = `<a href="/?action=acquire&id=${g.id}" class="btn-icon-action text-success" title="${LANG.btn_acquire}" onclick="return confirm('${LANG.confirm_acquire}')"><i class="material-icons-outlined icon-md">&#xe8cc;</i></a>`;
 
     return `
@@ -206,8 +329,8 @@ window.generateListRow = function(g) {
             <div class="d-flex align-items-center gap-3">
                 ${img}
                 <div>
-                    <div class="fw-bold text-body">${g.title}</div>
-                    <div class="small text-secondary">${g.genres || ''}</div>
+                    <div class="fw-bold text-body">${g.title} ${releaseDateHtml}</div>
+                    <div class="small text-secondary">${translateGenres(g.genres)}</div>
                 </div>
             </div>
         </td>
