@@ -35,7 +35,7 @@ class User
         return preg_match($regex, $password);
     }
 
-    public function register($username, $email, $password)
+    public function register($username, $email, $password, $language = 'fr')
     {
         if (!$this->isPasswordStrong($password)) {
             return "weak_password";
@@ -157,7 +157,7 @@ class User
 
     public function getById($id)
     {
-        $query = "SELECT id, username, email, avatar_url, created_at, language, psn_id, last_psn_sync FROM " . $this->table . " WHERE id = :id LIMIT 1";
+        $query = "SELECT * FROM " . $this->table . " WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
@@ -237,7 +237,7 @@ class User
             $file = dirname(__DIR__) . '/' . $user['avatar_url'];
             if (file_exists($file)) unlink($file);
         }
-        $stmt = $this->conn->prepare("SELECT image_url FROM games WHERE user_id = ?");
+        $stmt = $this->conn->prepare("SELECT image_url FROM user_games WHERE user_id = ?");
         $stmt->execute([$id]);
         while ($row = $stmt->fetch()) {
             if (!empty($row['image_url'])) {
@@ -351,11 +351,30 @@ class User
         return $stmt->fetchColumn();
     }
 
-    public function updateLastPsnSync($userId) {
+    public function updateLastPsnSync($userId)
+    {
         $query = "UPDATE " . $this->table . " SET last_psn_sync = NOW() WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $userId);
         return $stmt->execute();
+    }
+
+    public function updatePsnTrophyStats($userId, $stats)
+    {
+        $query = "UPDATE users SET 
+                psn_total_platinum = :plat, 
+                psn_total_gold = :gold, 
+                psn_total_silver = :silver, 
+                psn_total_bronze = :bronze 
+              WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            ':plat'   => $stats['platinum'] ?? 0,
+            ':gold'   => $stats['gold'] ?? 0,
+            ':silver' => $stats['silver'] ?? 0,
+            ':bronze' => $stats['bronze'] ?? 0,
+            ':id'     => $userId
+        ]);
     }
 
     // --- DISCORD ---
