@@ -1,5 +1,6 @@
 function openModal() {
-    const fields = ['gameId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual'];
+    // On s'assure de vider tous les champs, y compris les nouveaux (Desc, Dev, Pub, Meta)
+    const fields = ['gameId', 'gameRawgId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual', 'gameDesc', 'gameDeveloper', 'gamePublisher', 'gameMeta'];
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -23,12 +24,10 @@ function openModal() {
     const statusField = document.getElementById('gameStatus');
     if (statusField) statusField.value = 'wishlist';
 
-    // --- AJOUT : Restauration de la liste complète des plateformes ---
     const platformSelect = document.getElementById('gamePlatform');
     if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
         platformSelect.innerHTML = defaultPlatformsHTML;
     }
-    // -----------------------------------------------------------------
 
     if (typeof currentLibraryFormat !== 'undefined') {
         const fmtPhys = document.getElementById('fmtPhysical');
@@ -44,6 +43,22 @@ function openModal() {
         }
     }
 
+    // --- NOUVEAU : Réinitialisation de l'onglet Médias et des infos visuelles ---
+    const ytPlayer = document.getElementById('ytPlayer');
+    const ytLink = document.getElementById('ytLink');
+    if (ytPlayer) ytPlayer.src = '';
+    if (ytLink) ytLink.href = '#';
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = "Aucune description.";
+    // ----------------------------------------------------------------------------
+
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
 
@@ -52,15 +67,11 @@ function editGame(game) {
     document.getElementById('gameRawgId').value = game.rawg_id || '';
     document.getElementById('gameTitle').value = game.title;
     
-    // --- AJOUT : Restauration et sélection intelligente de la plateforme ---
     const platformSelect = document.getElementById('gamePlatform');
     if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
         platformSelect.innerHTML = defaultPlatformsHTML;
-        
-        // On vérifie si la plateforme du jeu existe dans la liste standard
         const platformExists = Array.from(platformSelect.options).some(opt => opt.value === game.platform);
         
-        // Si elle n'existe pas, on l'ajoute dynamiquement pour pouvoir l'afficher
         if (!platformExists && game.platform) {
             const option = document.createElement('option');
             option.value = game.platform;
@@ -72,12 +83,27 @@ function editGame(game) {
     if (document.getElementById('gamePlatform')) {
         document.getElementById('gamePlatform').value = game.platform;
     }
-    // -----------------------------------------------------------------------
 
     document.getElementById('gameGenres').value = game.genres || '';
     document.getElementById('gameComment').value = game.comment || '';
-
     document.getElementById('gamePrice').value = game.estimated_price || '';
+
+    // --- NOUVEAU : Remplissage des champs de Description, Développeur et Éditeur ---
+    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    safeSet('gameDesc', game.summary || game.description || '');
+    safeSet('gameDeveloper', game.developer || '');
+    safeSet('gamePublisher', game.publisher || '');
+    safeSet('gameMeta', game.igdb_rating || game.metacritic || '');
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = game.developer || 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = game.publisher || 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = game.summary || game.description || "Aucune description.";
+    // -------------------------------------------------------------------------------
     
     document.getElementById('gameDate').value = game.release_date || '';
     const dateVisual = document.getElementById('gameDateVisual');
@@ -115,7 +141,11 @@ function editGame(game) {
         previewImg.src = prevImgUrl;
         previewImg.classList.remove('d-none');
         uploadPlaceholder.classList.add('d-none');
-        hiddenImg.value = game.image_url; 
+        if (hiddenImg) hiddenImg.value = game.image_url; 
+    } else {
+        previewImg.classList.add('d-none');
+        uploadPlaceholder.classList.remove('d-none');
+        if (hiddenImg) hiddenImg.value = '';
     }
 
     const deleteLink = document.getElementById('deleteLink');
@@ -123,6 +153,19 @@ function editGame(game) {
         deleteLink.href = "/delete?id=" + game.id;
         document.getElementById('deleteBtnContainer').classList.remove('d-none');
     }
+
+    // --- NOUVEAU : Affichage dynamique de la vidéo YouTube ---
+    const ytPlayer = document.getElementById('ytPlayer');
+    const ytLink = document.getElementById('ytLink');
+
+    if (game.title) {
+        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(game.title + ' game trailer')}`;
+        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(game.title + ' game trailer')}`;
+    } else {
+        if (ytPlayer) ytPlayer.src = '';
+        if (ytLink) ytLink.href = '#';
+    }
+    // ---------------------------------------------------------
 
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
