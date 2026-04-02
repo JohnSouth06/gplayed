@@ -731,7 +731,74 @@ function toggleCustomPlatform() { const select = document.getElementById('gamePl
 function addPlatformInput(value = '') { const list = document.getElementById('platformInputsList'); if (!list) return; const div = document.createElement('div'); div.className = 'input-group input-group-sm mb-1'; div.innerHTML = `<input type="text" class="form-control rounded-start-2 border-end-0 bg-white" value="${value}" placeholder="${LANG.placeholder_name}" oninput="updateHiddenPlatformInput()"><button type="button" class="btn btn-outline-danger border-start-0 rounded-end-2 bg-white text-danger" onclick="this.parentElement.remove(); updateHiddenPlatformInput()"><i class="material-icons-outlined icon-sm">&#xe5cd;</i></button>`; list.appendChild(div); updateHiddenPlatformInput(); }
 function updateHiddenPlatformInput() { const inputs = document.querySelectorAll('#platformInputsList input'); const values = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== ''); const hidden = document.getElementById('gamePlatformCustom'); if (hidden) hidden.value = values.join(', '); }
 
-function edit(id) { openModal(localGames.find(g => g.id == id)); }
+async function edit(id) { 
+    const g = localGames.find(game => game.id == id);
+    if (!g) return;
+    
+    // 1. On ouvre la modale avec les infos actuelles pour que l'interface soit réactive
+    openModal(g); 
+    
+    // 2. On récupère dynamiquement les plateformes IGDB pour filtrer le menu déroulant
+    const platformSelect = document.getElementById('gamePlatform');
+    
+    // On vérifie que le jeu possède bien un identifiant IGDB (game_id)
+    if (g.game_id && platformSelect) {
+        try {
+            const res = await fetch(`/?action=get_igdb_details&id=${g.game_id}`);
+            if (res.ok) {
+                const data = await res.json();
+                
+                // Si l'API retourne une liste de plateformes valide
+                if (data.platforms && Array.isArray(data.platforms) && data.platforms.length > 0) {
+                    // On sauvegarde la valeur qui a été présélectionnée par openModal()
+                    const currentVal = platformSelect.value;
+                    
+                    // On vide la liste exhaustive
+                    platformSelect.innerHTML = ''; 
+                    
+                    let foundCurrent = false;
+                    
+                    // On recrée la liste avec uniquement les plateformes officielles du jeu
+                    data.platforms.forEach(p => {
+                        const rawName = (typeof p === 'object' && p.name) ? p.name : p;
+                        const mappedName = mapIgdbPlatform(rawName); 
+                        const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+                        
+                        if (!alreadyExists) {
+                            const option = document.createElement('option');
+                            option.value = mappedName;
+                            option.textContent = mappedName; 
+                            platformSelect.appendChild(option);
+                        }
+                        
+                        if (mappedName === currentVal) foundCurrent = true;
+                    });
+
+                    // On ajoute l'option "Multiplateforme" pour la gestion des jeux possédés sur plusieurs supports
+                    const multiOption = document.createElement('option');
+                    multiOption.value = 'Multiplateforme';
+                    multiOption.textContent = 'Multiplateforme';
+                    platformSelect.appendChild(multiOption);
+                    
+                    if (currentVal === 'Multiplateforme') foundCurrent = true;
+
+                    // Sécurité : si la plateforme de l'utilisateur n'était pas trouvée (ex: modifiée manuellement avant cette mise à jour), on la conserve dans la liste
+                    if (!foundCurrent && currentVal) {
+                        const option = document.createElement('option');
+                        option.value = currentVal;
+                        option.textContent = currentVal;
+                        platformSelect.appendChild(option);
+                    }
+                    
+                    // On restaure le choix de l'utilisateur
+                    platformSelect.value = currentVal;
+                }
+            }
+        } catch (e) {
+            console.error("Erreur lors de la récupération des plateformes IGDB :", e);
+        }
+    }
+}
 
 function openModal(g = null) {
     if (!modal) {
