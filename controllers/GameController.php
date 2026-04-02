@@ -527,12 +527,11 @@ class GameController
 
         $id = intval($_GET['id']);
         
-        // Suppression des champs "translations" qui rendent la requête invalide pour IGDB
-        $body = "fields name, cover.url, first_release_date, rating, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, genres.name, platforms.name, videos.video_id; where id = {$id};";
+        // AJOUT : screenshots.url, artworks.url, game_modes.name
+        $body = "fields name, cover.url, first_release_date, rating, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, genres.name, platforms.name, videos.video_id, screenshots.url, artworks.url, game_modes.name; where id = {$id};";
 
         $results = $this->callIgdb('games', $body);
         
-        // Sécurité : On s'assure que l'API a bien répondu avec les données du jeu
         if ($results && is_array($results) && isset($results[0]) && isset($results[0]['id'])) {
             $data = $results[0];
 
@@ -549,6 +548,14 @@ class GameController
                     }
                 }
             }
+            
+            // NOUVEAU : Récupération des modes de jeu
+            $gameModes = [];
+            if (isset($data['game_modes'])) {
+                foreach ($data['game_modes'] as $mode) {
+                    $gameModes[] = $mode['name'];
+                }
+            }
 
             $developer = '';
             $publisher = '';
@@ -559,10 +566,31 @@ class GameController
                 }
             }
 
-            // Récupération de la première vidéo YouTube
+            // Récupération de la vidéo
             $videoId = '';
             if (isset($data['videos']) && count($data['videos']) > 0) {
                 $videoId = $data['videos'][0]['video_id'];
+            }
+            
+            // NOUVEAU : Récupération des Captures d'écran (Screenshots)
+            $screenshots = [];
+            if (isset($data['screenshots'])) {
+                foreach ($data['screenshots'] as $shot) {
+                    if (isset($shot['url'])) {
+                        // On remplace le format miniature 't_thumb' par de la haute définition 't_720p' ou 't_1080p'
+                        $screenshots[] = 'https:' . str_replace('t_thumb', 't_720p', $shot['url']);
+                    }
+                }
+            }
+
+            // NOUVEAU : Récupération des Artworks (souvent de beaux fonds d'écran)
+            $artworks = [];
+            if (isset($data['artworks'])) {
+                foreach ($data['artworks'] as $art) {
+                    if (isset($art['url'])) {
+                        $artworks[] = 'https:' . str_replace('t_thumb', 't_720p', $art['url']);
+                    }
+                }
             }
 
             $img = isset($data['cover']['url']) ? 'https:' . str_replace('t_thumb', 't_720p', $data['cover']['url']) : '';
@@ -572,18 +600,22 @@ class GameController
                 'released' => isset($data['first_release_date']) ? date('Y-m-d', $data['first_release_date']) : '',
                 'metacritic' => isset($data['rating']) ? round($data['rating']) : '',
                 'background_image' => $img,
-                'description_raw' => $data['summary'] ?? '', // Description officielle (généralement EN)
+                'description_raw' => $data['summary'] ?? '',
                 'developer' => $developer,
                 'publisher' => $publisher,
                 'video_id' => $videoId,
                 'genres_list' => implode(', ', $genres),
-                'platforms' => $platformsList
+                'platforms' => $platformsList,
+                
+                // On ajoute les nouvelles données au flux JSON
+                'game_modes' => implode(', ', $gameModes),
+                'screenshots' => $screenshots,
+                'artworks' => $artworks
             ];
 
             header('Content-Type: application/json');
             echo json_encode($response);
         } else {
-            // L'API a renvoyé une erreur ou n'a rien trouvé
             http_response_code(400);
             echo json_encode(['error' => 'Erreur API IGDB', 'details' => $results]);
         }

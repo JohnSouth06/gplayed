@@ -84,6 +84,426 @@ let modal;
 let searchTimeout;
 let currentLibraryFormat = localStorage.getItem('libraryFormat') || 'physical';
 
+function openModal(g = null, isLoadingPlatforms = false) {
+    if (!modal) {
+        const modalElement = document.getElementById('gameModal');
+        if (!modalElement) return;
+        modal = new bootstrap.Modal(modalElement);
+    }
+    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+
+    safeSet('gameId', g ? g.id : '');
+    safeSet('gameRawgId', '');
+    safeSet('gameTitle', g ? g.title : '');
+    safeSet('gameImageHidden', g ? (g.image_url || '') : '');
+
+    const prev = document.getElementById('previewImg');
+    const holder = document.getElementById('uploadPlaceholder');
+    if (prev && holder) {
+        if (g && g.image_url) {
+            let prevImgUrl = g.image_url;
+            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+            prev.src = prevImgUrl;
+            prev.classList.remove('d-none');
+            holder.classList.add('d-none');
+        } else {
+            prev.classList.add('d-none');
+            holder.classList.remove('d-none');
+        }
+    }
+
+    const priceVal = g ? (g.estimated_price || '') : '';
+    safeSet('gamePriceTablet', priceVal);
+    safeSet('gamePriceDesktop', priceVal);
+
+    const priceTablet = document.getElementById('gamePriceTablet');
+    const priceDesktop = document.getElementById('gamePriceDesktop');
+    if (priceTablet && priceDesktop) {
+        priceTablet.oninput = function () { priceDesktop.value = this.value; };
+        priceDesktop.oninput = function () { priceTablet.value = this.value; };
+    }
+
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect) {
+        if (isLoadingPlatforms) {
+            platformSelect.innerHTML = `<option value="">Chargement...</option>`;
+            platformSelect.disabled = true;
+        } else {
+            platformSelect.innerHTML = defaultPlatformsHTML;
+            platformSelect.disabled = false;
+            if (g && g.platform) {
+                const platformExists = Array.from(platformSelect.options).some(opt => opt.value === g.platform);
+                if (!platformExists) {
+                    const option = document.createElement('option');
+                    option.value = g.platform;
+                    option.textContent = g.platform;
+                    platformSelect.appendChild(option);
+                }
+                platformSelect.value = g.platform;
+            } else {
+                platformSelect.value = 'PS5';
+            }
+        }
+    }
+
+    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
+    const fmtDigital = document.getElementById('fmtDigital');
+    const fmtPhysical = document.getElementById('fmtPhysical');
+
+    if (fmtDigital && fmtPhysical) {
+        if (formatToSet === 'digital') {
+            fmtDigital.checked = true;
+            fmtPhysical.checked = false;
+        } else {
+            fmtPhysical.checked = true;
+            fmtDigital.checked = false;
+        }
+    }
+
+    const isWishlistPage = window.location.pathname.includes('wishlist');
+    safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
+    safeSet('gameDate', g ? g.release_date : '');
+    safeSet('gameMeta', g ? g.igdb_rating : '');
+    safeSet('gameComment', g ? g.comment : '');
+    safeSet('gameDesc', g ? (g.summary || g.description || '') : '');
+    safeSet('gameGenres', g ? translateGenres(g.genres) : '');
+    safeSet('gameDeveloper', g ? (g.developer || '') : '');
+    safeSet('gamePublisher', g ? (g.publisher || '') : '');
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = (g && g.developer) ? g.developer : 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = (g && g.publisher) ? g.publisher : 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = g ? (g.summary || g.description || "Aucune description.") : "Aucune description.";
+
+    // --- REINITIALISATION DES ZONES MEDIAS ET MODES DE JEU ---
+    const modesContainer = document.getElementById('game-modes-container');
+    if (modesContainer) {
+        modesContainer.innerHTML = '';
+        modesContainer.style.display = 'none';
+    }
+
+    const mediaTabContent = document.getElementById('media-tab-content');
+    if (mediaTabContent) {
+        if (g && g.title) {
+            // Affichage de chargement si on va chercher sur IGDB ou juste la vidéo par défaut
+            mediaTabContent.innerHTML = `
+                <div class="video-container mb-4">
+                    <iframe width="100%" height="315" src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.title + ' game trailer')}" frameborder="0" allowfullscreen class="rounded"></iframe>
+                </div>`;
+        } else {
+            mediaTabContent.innerHTML = '';
+        }
+    }
+    
+    // Garder la compatibilité avec l'ancien système (au cas où)
+    const ytPlayer = document.getElementById('ytPlayer');
+    const ytLink = document.getElementById('ytLink');
+    if (g && g.title) {
+        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.title + ' game trailer')}`;
+        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.title + ' game trailer')}`;
+    } else {
+        if (ytPlayer) ytPlayer.src = '';
+        if (ytLink) ytLink.href = '#';
+    }
+
+    modal.show();
+}
+
+async function edit(id) {
+    const g = localGames.find(game => game.id == id);
+    if (!g) return;
+
+    const hasIgdbId = !!g.game_id;
+
+    // 1. On ouvre la modale. Si on a un ID IGDB, on bloque le select sur "Chargement..."
+    openModal(g, hasIgdbId);
+
+    const platformSelect = document.getElementById('gamePlatform');
+
+    // 2. On récupère dynamiquement les plateformes IGDB + les Médias
+    if (hasIgdbId) {
+        // Optionnel : On met un petit spinner dans l'onglet médias pendant qu'on fetch
+        const mediaTabContent = document.getElementById('media-tab-content');
+        if (mediaTabContent) mediaTabContent.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+
+        try {
+            const res = await fetch(`/?action=get_igdb_details&id=${g.game_id}`);
+            if (res.ok) {
+                const data = await res.json();
+
+                // Gestion Plateformes
+                if (platformSelect && data.platforms && Array.isArray(data.platforms) && data.platforms.length > 0) {
+                    platformSelect.innerHTML = '';
+                    let foundCurrent = false;
+
+                    data.platforms.forEach(p => {
+                        const rawName = (typeof p === 'object' && p.name) ? p.name : p;
+                        const mappedName = mapIgdbPlatform(rawName);
+                        const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+
+                        if (!alreadyExists) {
+                            const option = document.createElement('option');
+                            option.value = mappedName;
+                            option.textContent = mappedName;
+                            platformSelect.appendChild(option);
+                        }
+                        if (mappedName === g.platform) foundCurrent = true;
+                    });
+
+                    if (!foundCurrent && g.platform) {
+                        const option = document.createElement('option');
+                        option.value = g.platform;
+                        option.textContent = g.platform;
+                        platformSelect.appendChild(option);
+                    }
+                    platformSelect.value = g.platform;
+                } else if (platformSelect) {
+                    platformSelect.innerHTML = defaultPlatformsHTML;
+                    platformSelect.value = g.platform || 'PS5';
+                }
+
+                // --- GESTION DES MODES DE JEU ---
+                const modesContainer = document.getElementById('game-modes-container');
+                if (modesContainer) {
+                    if (data.game_modes && data.game_modes.length > 0) {
+                        modesContainer.innerHTML = `<strong>Modes de jeu :</strong> ${data.game_modes}`;
+                        modesContainer.style.display = 'block';
+                    } else {
+                        modesContainer.style.display = 'none';
+                    }
+                }
+
+                // --- GESTION DE L'ONGLET MEDIAS ---
+                if (mediaTabContent) {
+                    let mediaHtml = '';
+                    
+                    // 1. Vidéo YouTube
+                    if (data.video_id) {
+                        mediaHtml += `
+                            <div class="video-container mb-4">
+                                <iframe width="100%" height="315" src="https://www.youtube.com/embed/${data.video_id}" frameborder="0" allowfullscreen class="rounded"></iframe>
+                            </div>
+                        `;
+                    } else {
+                        mediaHtml += `
+                            <div class="video-container mb-4">
+                                <iframe width="100%" height="315" src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.title + ' game trailer')}" frameborder="0" allowfullscreen class="rounded"></iframe>
+                            </div>
+                        `;
+                    }
+
+                    // 2. Captures d'écran
+                    if (data.screenshots && data.screenshots.length > 0) {
+                        mediaHtml += `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-4">`;
+                        data.screenshots.forEach(imgUrl => {
+                            mediaHtml += `
+                                <div class="col-6 col-md-4">
+                                    <a href="${imgUrl}" target="_blank">
+                                        <img src="${imgUrl}" class="img-fluid rounded shadow-sm" alt="Screenshot" style="object-fit: cover; height: 120px; width: 100%;">
+                                    </a>
+                                </div>
+                            `;
+                        });
+                        mediaHtml += `</div>`;
+                    }
+
+                    // 3. Artworks
+                    if (data.artworks && data.artworks.length > 0) {
+                        mediaHtml += `<h6 class="text-uppercase text-muted fw-bold mb-3">Artworks</h6><div class="row g-2">`;
+                        data.artworks.forEach(imgUrl => {
+                            mediaHtml += `
+                                <div class="col-6 col-md-4">
+                                    <a href="${imgUrl}" target="_blank">
+                                        <img src="${imgUrl}" class="img-fluid rounded shadow-sm" alt="Artwork" style="object-fit: cover; height: 120px; width: 100%;">
+                                    </a>
+                                </div>
+                            `;
+                        });
+                        mediaHtml += `</div>`;
+                    }
+
+                    mediaTabContent.innerHTML = mediaHtml;
+                }
+
+            }
+        } catch (e) {
+            console.error("Erreur IGDB :", e);
+            if(platformSelect) {
+                platformSelect.innerHTML = defaultPlatformsHTML;
+                platformSelect.value = g.platform || 'PS5';
+            }
+        } finally {
+            if (platformSelect) platformSelect.disabled = false;
+        }
+    }
+}
+
+async function fetchGameDetails(id) {
+    const loading = document.getElementById('rawgLoading');
+    if (loading) loading.classList.remove('d-none');
+    try {
+        const res = await fetch(`/?action=get_igdb_details&id=${id}`);
+        if (!res.ok) throw new Error('Erreur API');
+
+        const g = await res.json();
+
+        if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
+            const cleanTitle = g.name.trim().toLowerCase();
+            const existingGame = localGames.find(game => game.title && game.title.trim().toLowerCase() === cleanTitle);
+            if (existingGame) {
+                const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate)
+                    ? LANG.alert_duplicate.replace('{name}', g.name).replace('{platform}', existingGame.platform)
+                    : (LANG.js_game_exists_simple || '').replace('{name}', g.name);
+                alert(msg);
+            }
+        }
+
+        // 1. ON OUVRE LA MODALE EN PREMIER (pour la réinitialiser)
+        openModal();
+
+        // 2. ON REMPLIT LES ELEMENTS VISUELS
+        const displayDev = document.getElementById('displayDev');
+        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
+
+        const displayPub = document.getElementById('displayPub');
+        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
+
+        const descContent = document.getElementById('gameDescriptionContent');
+        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
+
+        // --- GESTION DES MODES DE JEU ---
+        const modesContainer = document.getElementById('game-modes-container');
+        if (modesContainer) {
+            if (g.game_modes && g.game_modes.length > 0) {
+                modesContainer.innerHTML = `<strong>Modes de jeu :</strong> ${g.game_modes}`;
+                modesContainer.style.display = 'block';
+            } else {
+                modesContainer.style.display = 'none';
+            }
+        }
+
+        // --- GESTION DE L'ONGLET MEDIAS ---
+        const mediaTabContent = document.getElementById('media-tab-content');
+        if (mediaTabContent) {
+            let mediaHtml = '';
+            
+            // 1. Vidéo YouTube
+            if (g.video_id) {
+                mediaHtml += `
+                    <div class="video-container mb-4">
+                        <iframe width="100%" height="315" src="https://www.youtube.com/embed/${g.video_id}" frameborder="0" allowfullscreen class="rounded"></iframe>
+                    </div>
+                `;
+            } else {
+                mediaHtml += `
+                    <div class="video-container mb-4">
+                        <iframe width="100%" height="315" src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' game trailer')}" frameborder="0" allowfullscreen class="rounded"></iframe>
+                    </div>
+                `;
+            }
+
+            // 2. Captures d'écran
+            if (g.screenshots && g.screenshots.length > 0) {
+                mediaHtml += `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-4">`;
+                g.screenshots.forEach(imgUrl => {
+                    mediaHtml += `
+                        <div class="col-6 col-md-4">
+                            <a href="${imgUrl}" target="_blank">
+                                <img src="${imgUrl}" class="img-fluid rounded shadow-sm" alt="Screenshot" style="object-fit: cover; height: 120px; width: 100%;">
+                            </a>
+                        </div>
+                    `;
+                });
+                mediaHtml += `</div>`;
+            }
+
+            // 3. Artworks
+            if (g.artworks && g.artworks.length > 0) {
+                mediaHtml += `<h6 class="text-uppercase text-muted fw-bold mb-3">Artworks</h6><div class="row g-2">`;
+                g.artworks.forEach(imgUrl => {
+                    mediaHtml += `
+                        <div class="col-6 col-md-4">
+                            <a href="${imgUrl}" target="_blank">
+                                <img src="${imgUrl}" class="img-fluid rounded shadow-sm" alt="Artwork" style="object-fit: cover; height: 120px; width: 100%;">
+                            </a>
+                        </div>
+                    `;
+                });
+                mediaHtml += `</div>`;
+            }
+
+            mediaTabContent.innerHTML = mediaHtml;
+        }
+
+        // Rétrocompatibilité (si t'as pas encore supprimé ytPlayer de ta modale)
+        const ytPlayer = document.getElementById('ytPlayer');
+        const ytLink = document.getElementById('ytLink');
+        if (g.video_id) {
+            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed/${g.video_id}`;
+            if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${g.video_id}`;
+        } else {
+            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' game trailer')}`;
+            if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' game trailer')}`;
+        }
+
+        // 3. ON REMPLIT LES CHAMPS CACHÉS DU FORMULAIRE
+        const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
+        safeSet('gameTitle', g.name);
+        safeSet('gameDate', g.released);
+        safeSet('gameMeta', g.metacritic);
+        safeSet('gameImageHidden', g.background_image);
+        safeSet('gameDesc', g.description_raw);
+        safeSet('gameGenres', translateGenres(g.genres_list || ''));
+        safeSet('gameRawgId', id);
+        safeSet('gameDeveloper', g.developer || '');
+        safeSet('gamePublisher', g.publisher || '');
+
+        // 4. PREVIEW IMAGE
+        const prev = document.getElementById('previewImg');
+        const uploadPl = document.getElementById('uploadPlaceholder');
+        if (prev && uploadPl) {
+            if (g.background_image) {
+                prev.src = g.background_image;
+                prev.classList.remove('d-none');
+                uploadPl.classList.add('d-none');
+            } else {
+                prev.classList.add('d-none');
+                uploadPl.classList.remove('d-none');
+            }
+        }
+
+        // 5. PLATEFORMES DYNAMIQUES
+        const platformSelect = document.getElementById('gamePlatform');
+        if (platformSelect) {
+            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
+                platformSelect.innerHTML = '';
+                g.platforms.forEach(p => {
+                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
+                    const mappedName = mapIgdbPlatform(rawName);
+                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+
+                    if (!alreadyExists) {
+                        const option = document.createElement('option');
+                        option.value = mappedName;
+                        option.textContent = mappedName;
+                        platformSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+
+    } catch (e) {
+        alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : LANG.js_import_error_generic);
+    } finally {
+        if (loading) loading.classList.add('d-none');
+    }
+}
+
 function translateGenres(genresString) {
     if (!genresString) return '';
     return genresString.split(',').map(genre => {
@@ -721,181 +1141,8 @@ function initViewButtons() {
         }
     }
 }
+
 function previewFile(input) { if (input.files && input.files[0]) { var reader = new FileReader(); reader.onload = function (e) { document.getElementById('previewImg').src = e.target.result; document.getElementById('previewImg').classList.remove('d-none'); document.getElementById('uploadPlaceholder').classList.add('d-none'); }; reader.readAsDataURL(input.files[0]); } }
-
-async function edit(id) {
-    const g = localGames.find(game => game.id == id);
-    if (!g) return;
-
-    const hasIgdbId = !!g.game_id;
-
-    // 1. On ouvre la modale. Si on a un ID IGDB, on bloque le select sur "Chargement..."
-    openModal(g, hasIgdbId);
-
-    const platformSelect = document.getElementById('gamePlatform');
-
-    // 2. On récupère dynamiquement les plateformes IGDB
-    if (hasIgdbId && platformSelect) {
-        try {
-            const res = await fetch(`/?action=get_igdb_details&id=${g.game_id}`);
-            if (res.ok) {
-                const data = await res.json();
-
-                if (data.platforms && Array.isArray(data.platforms) && data.platforms.length > 0) {
-                    platformSelect.innerHTML = '';
-                    let foundCurrent = false;
-
-                    data.platforms.forEach(p => {
-                        const rawName = (typeof p === 'object' && p.name) ? p.name : p;
-                        const mappedName = mapIgdbPlatform(rawName);
-                        const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
-
-                        if (!alreadyExists) {
-                            const option = document.createElement('option');
-                            option.value = mappedName;
-                            option.textContent = mappedName;
-                            platformSelect.appendChild(option);
-                        }
-
-                        if (mappedName === g.platform) foundCurrent = true;
-                    });
-
-                    // Sécurité : on conserve la plateforme actuelle du jeu si IGDB ne la liste plus
-                    if (!foundCurrent && g.platform) {
-                        const option = document.createElement('option');
-                        option.value = g.platform;
-                        option.textContent = g.platform;
-                        platformSelect.appendChild(option);
-                    }
-
-                    platformSelect.value = g.platform;
-                } else {
-                    // Fallback si IGDB ne renvoie pas de plateformes
-                    platformSelect.innerHTML = defaultPlatformsHTML;
-                    platformSelect.value = g.platform || 'PS5';
-                }
-            }
-        } catch (e) {
-            console.error("Erreur IGDB :", e);
-            platformSelect.innerHTML = defaultPlatformsHTML;
-            platformSelect.value = g.platform || 'PS5';
-        } finally {
-            // On réactive le select à la fin du chargement
-            platformSelect.disabled = false;
-        }
-    }
-}
-
-function openModal(g = null, isLoadingPlatforms = false) {
-    if (!modal) {
-        const modalElement = document.getElementById('gameModal');
-        if (!modalElement) return;
-        modal = new bootstrap.Modal(modalElement);
-    }
-    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-
-    safeSet('gameId', g ? g.id : '');
-    safeSet('gameRawgId', '');
-    safeSet('gameTitle', g ? g.title : '');
-    safeSet('gameImageHidden', g ? (g.image_url || '') : '');
-
-    const prev = document.getElementById('previewImg');
-    const holder = document.getElementById('uploadPlaceholder');
-    if (prev && holder) {
-        if (g && g.image_url) {
-            let prevImgUrl = g.image_url;
-            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
-            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
-            prev.src = prevImgUrl;
-            prev.classList.remove('d-none');
-            holder.classList.add('d-none');
-        } else {
-            prev.classList.add('d-none');
-            holder.classList.remove('d-none');
-        }
-    }
-
-    const priceVal = g ? (g.estimated_price || '') : '';
-    safeSet('gamePriceTablet', priceVal);
-    safeSet('gamePriceDesktop', priceVal);
-
-    const priceTablet = document.getElementById('gamePriceTablet');
-    const priceDesktop = document.getElementById('gamePriceDesktop');
-    if (priceTablet && priceDesktop) {
-        priceTablet.oninput = function () { priceDesktop.value = this.value; };
-        priceDesktop.oninput = function () { priceTablet.value = this.value; };
-    }
-
-    // Gestion propre des plateformes
-    const platformSelect = document.getElementById('gamePlatform');
-    if (platformSelect) {
-        if (isLoadingPlatforms) {
-            platformSelect.innerHTML = `<option value="">Chargement...</option>`;
-            platformSelect.disabled = true;
-        } else {
-            platformSelect.innerHTML = defaultPlatformsHTML;
-            platformSelect.disabled = false;
-            if (g && g.platform) {
-                // S'assurer que la plateforme existe dans la liste par défaut, sinon l'ajouter
-                const platformExists = Array.from(platformSelect.options).some(opt => opt.value === g.platform);
-                if (!platformExists) {
-                    const option = document.createElement('option');
-                    option.value = g.platform;
-                    option.textContent = g.platform;
-                    platformSelect.appendChild(option);
-                }
-                platformSelect.value = g.platform;
-            } else {
-                platformSelect.value = 'PS5';
-            }
-        }
-    }
-
-    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
-    const fmtDigital = document.getElementById('fmtDigital');
-    const fmtPhysical = document.getElementById('fmtPhysical');
-
-    if (fmtDigital && fmtPhysical) {
-        if (formatToSet === 'digital') {
-            fmtDigital.checked = true;
-            fmtPhysical.checked = false;
-        } else {
-            fmtPhysical.checked = true;
-            fmtDigital.checked = false;
-        }
-    }
-
-    const isWishlistPage = window.location.pathname.includes('wishlist');
-    safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
-    safeSet('gameDate', g ? g.release_date : '');
-    safeSet('gameMeta', g ? g.igdb_rating : '');
-    safeSet('gameComment', g ? g.comment : '');
-    safeSet('gameDesc', g ? (g.summary || g.description || '') : '');
-    safeSet('gameGenres', g ? translateGenres(g.genres) : '');
-    safeSet('gameDeveloper', g ? (g.developer || '') : '');
-    safeSet('gamePublisher', g ? (g.publisher || '') : '');
-
-    const displayDev = document.getElementById('displayDev');
-    if (displayDev) displayDev.innerText = (g && g.developer) ? g.developer : 'Inconnu';
-
-    const displayPub = document.getElementById('displayPub');
-    if (displayPub) displayPub.innerText = (g && g.publisher) ? g.publisher : 'Inconnu';
-
-    const descContent = document.getElementById('gameDescriptionContent');
-    if (descContent) descContent.innerText = g ? (g.summary || g.description || "Aucune description.") : "Aucune description.";
-
-    const ytPlayer = document.getElementById('ytPlayer');
-    const ytLink = document.getElementById('ytLink');
-    if (g && g.title) {
-        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.title + ' game trailer')}`;
-        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.title + ' game trailer')}`;
-    } else {
-        if (ytPlayer) ytPlayer.src = '';
-        if (ytLink) ytLink.href = '#';
-    }
-
-    modal.show();
-}
 
 let loanModal;
 function openLoanModal(gameId, gameTitle) {
@@ -960,103 +1207,5 @@ async function searchIgdb(autoOpen = false) {
         if (!autoOpen && loading) {
             loading.classList.add('d-none');
         }
-    }
-}
-
-async function fetchGameDetails(id) {
-    const loading = document.getElementById('rawgLoading');
-    if (loading) loading.classList.remove('d-none');
-    try {
-        const res = await fetch(`/?action=get_igdb_details&id=${id}`);
-        if (!res.ok) throw new Error('Erreur API');
-
-        const g = await res.json();
-
-        if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
-            const cleanTitle = g.name.trim().toLowerCase();
-            const existingGame = localGames.find(game => game.title && game.title.trim().toLowerCase() === cleanTitle);
-            if (existingGame) {
-                const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate)
-                    ? LANG.alert_duplicate.replace('{name}', g.name).replace('{platform}', existingGame.platform)
-                    : (LANG.js_game_exists_simple || '').replace('{name}', g.name);
-                alert(msg);
-            }
-        }
-
-        // 1. ON OUVRE LA MODALE EN PREMIER (pour la réinitialiser)
-        openModal();
-
-        // 2. ON REMPLIT LES ELEMENTS VISUELS
-        const displayDev = document.getElementById('displayDev');
-        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
-
-        const displayPub = document.getElementById('displayPub');
-        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
-
-        const descContent = document.getElementById('gameDescriptionContent');
-        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
-
-        const ytPlayer = document.getElementById('ytPlayer');
-        const ytLink = document.getElementById('ytLink');
-        if (g.video_id) {
-            // Si IGDB a une vidéo officielle, on l'affiche
-            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed/${g.video_id}`;
-            if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${g.video_id}`;
-        } else {
-            // Si IGDB n'a pas de vidéo, on génère la recherche automatique comme solution de secours
-            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' game trailer')}`;
-            if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' game trailer')}`;
-        }
-
-        // 3. ON REMPLIT LES CHAMPS CACHÉS DU FORMULAIRE
-        const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
-        safeSet('gameTitle', g.name);
-        safeSet('gameDate', g.released);
-        safeSet('gameMeta', g.metacritic);
-        safeSet('gameImageHidden', g.background_image);
-        safeSet('gameDesc', g.description_raw);
-        safeSet('gameGenres', translateGenres(g.genres_list || ''));
-        safeSet('gameRawgId', id);
-        safeSet('gameDeveloper', g.developer || '');
-        safeSet('gamePublisher', g.publisher || '');
-
-        // 4. PREVIEW IMAGE
-        const prev = document.getElementById('previewImg');
-        const uploadPl = document.getElementById('uploadPlaceholder');
-        if (prev && uploadPl) {
-            if (g.background_image) {
-                prev.src = g.background_image;
-                prev.classList.remove('d-none');
-                uploadPl.classList.add('d-none');
-            } else {
-                prev.classList.add('d-none');
-                uploadPl.classList.remove('d-none');
-            }
-        }
-
-        // 5. PLATEFORMES DYNAMIQUES
-        const platformSelect = document.getElementById('gamePlatform');
-        if (platformSelect) {
-            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
-                platformSelect.innerHTML = '';
-                g.platforms.forEach(p => {
-                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
-                    const mappedName = mapIgdbPlatform(rawName);
-                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
-
-                    if (!alreadyExists) {
-                        const option = document.createElement('option');
-                        option.value = mappedName;
-                        option.textContent = mappedName;
-                        platformSelect.appendChild(option);
-                    }
-                });
-            }
-        }
-
-    } catch (e) {
-        alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : LANG.js_import_error_generic);
-    } finally {
-        if (loading) loading.classList.add('d-none');
     }
 }

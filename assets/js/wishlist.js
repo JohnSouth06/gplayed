@@ -57,6 +57,17 @@ function openModal() {
 
     const descContent = document.getElementById('gameDescriptionContent');
     if (descContent) descContent.innerText = "Aucune description.";
+    
+    const modesContainer = document.getElementById('game-modes-container');
+    if (modesContainer) {
+        modesContainer.innerHTML = '';
+        modesContainer.style.display = 'none';
+    }
+
+    const mediaTabContent = document.getElementById('media-tab-content');
+    if (mediaTabContent) {
+        mediaTabContent.innerHTML = '';
+    }
     // ----------------------------------------------------------------------------
 
     new bootstrap.Modal(document.getElementById('gameModal')).show();
@@ -88,7 +99,7 @@ function editGame(game) {
     document.getElementById('gameComment').value = game.comment || '';
     document.getElementById('gamePrice').value = game.estimated_price || '';
 
-    // --- NOUVEAU : Remplissage des champs de Description, Développeur et Éditeur ---
+    // --- Remplissage des champs de Description, Développeur et Éditeur ---
     const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     safeSet('gameDesc', game.summary || game.description || '');
     safeSet('gameDeveloper', game.developer || '');
@@ -150,20 +161,64 @@ function editGame(game) {
 
     const deleteLink = document.getElementById('deleteLink');
     if (deleteLink) {
-        deleteLink.href = "/delete?id=" + game.id;
+        deleteLink.href = "/?action=delete&id=" + game.id;
         document.getElementById('deleteBtnContainer').classList.remove('d-none');
     }
 
-    // --- NOUVEAU : Affichage dynamique de la vidéo YouTube ---
-    const ytPlayer = document.getElementById('ytPlayer');
-    const ytLink = document.getElementById('ytLink');
+    // --- RECHERCHE IGDB EN ARRIERE-PLAN POUR MEDIAS (Wishlist) ---
+    const mediaTabContent = document.getElementById('media-tab-content');
+    if (mediaTabContent) {
+        mediaTabContent.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+    }
 
-    if (game.title) {
-        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(game.title + ' game trailer')}`;
-        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(game.title + ' game trailer')}`;
+    const igdbId = game.game_id || game.rawg_id;
+    if (igdbId) {
+        fetch(`/?action=get_igdb_details&id=${igdbId}`)
+            .then(res => res.json())
+            .then(data => {
+                const modesContainer = document.getElementById('game-modes-container');
+                if (modesContainer) {
+                    if (data.game_modes && data.game_modes.length > 0) {
+                        modesContainer.innerHTML = `<strong>Modes de jeu :</strong> ${data.game_modes}`;
+                        modesContainer.style.display = 'block';
+                    } else {
+                        modesContainer.style.display = 'none';
+                    }
+                }
+
+                if (mediaTabContent) {
+                    let mediaHtml = '';
+                    if (data.video_id) {
+                        mediaHtml += `<div class="video-container mb-4"><iframe width="100%" height="315" src="https://www.youtube.com/embed/${data.video_id}" frameborder="0" allowfullscreen class="rounded"></iframe></div>`;
+                    } else {
+                        mediaHtml += `<div class="video-container mb-4"><iframe width="100%" height="315" src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(game.title + ' game trailer')}" frameborder="0" allowfullscreen class="rounded"></iframe></div>`;
+                    }
+
+                    if (data.screenshots && data.screenshots.length > 0) {
+                        mediaHtml += `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-4">`;
+                        data.screenshots.forEach(imgUrl => mediaHtml += `<div class="col-6 col-md-4"><a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 120px; width: 100%;"></a></div>`);
+                        mediaHtml += `</div>`;
+                    }
+
+                    if (data.artworks && data.artworks.length > 0) {
+                        mediaHtml += `<h6 class="text-uppercase text-muted fw-bold mb-3">Artworks</h6><div class="row g-2">`;
+                        data.artworks.forEach(imgUrl => mediaHtml += `<div class="col-6 col-md-4"><a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 120px; width: 100%;"></a></div>`);
+                        mediaHtml += `</div>`;
+                    }
+                    mediaTabContent.innerHTML = mediaHtml;
+                }
+            })
+            .catch(() => {
+                // En cas d'erreur IGDB, on affiche juste la recherche Youtube de secours
+                if (mediaTabContent) {
+                    mediaTabContent.innerHTML = `<div class="video-container mb-4"><iframe width="100%" height="315" src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(game.title + ' game trailer')}" frameborder="0" allowfullscreen class="rounded"></iframe></div>`;
+                }
+            });
     } else {
-        if (ytPlayer) ytPlayer.src = '';
-        if (ytLink) ytLink.href = '#';
+        // Jeu manuel sans ID IGDB
+        if (mediaTabContent) {
+            mediaTabContent.innerHTML = `<div class="video-container mb-4"><iframe width="100%" height="315" src="https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(game.title + ' game trailer')}" frameborder="0" allowfullscreen class="rounded"></iframe></div>`;
+        }
     }
     // ---------------------------------------------------------
 
