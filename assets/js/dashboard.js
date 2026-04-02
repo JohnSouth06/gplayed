@@ -267,6 +267,9 @@ function getProcessedGames() {
     let filtered = localGames.filter(g => {
         if (!window.isLoanedPage && g.format !== currentLibraryFormat) return false;
 
+        if (window.isDashboard && g.status === 'wishlist') return false;
+        if (window.isWishlistPage && g.status !== 'wishlist') return false;
+
         if (platformFilter !== 'all') {
             if (g.platform === 'Multiplateforme') return true;
             if (!g.platform || !g.platform.includes(platformFilter)) return false;
