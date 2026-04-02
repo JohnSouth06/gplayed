@@ -118,7 +118,7 @@ class Game
             $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
         }
 
-        $finalPlatform = ($data['platform'] === 'Multiplateforme' && !empty($data['platform_custom'])) ? $data['platform_custom'] : $data['platform'];
+        $finalPlatform = $data['platform'] ?? 'PC';
 
         if (empty($dominantColor)) {
             $dominantColor = $this->getFallbackColor($finalPlatform);
