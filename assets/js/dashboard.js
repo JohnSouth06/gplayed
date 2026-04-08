@@ -274,7 +274,7 @@ async function edit(id) {
                     if (data.screenshots && data.screenshots.length > 0) {
                         let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
                         data.screenshots.forEach(imgUrl => {
-                            html += `<div class="col-6 col-md-4"><a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%;"></a></div>`;
+                            html += `<div class="col-6 col-md-4"><a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"></a></div>`;
                         });
                         html += `</div>`;
                         screenshotsContainer.innerHTML = html;
@@ -346,7 +346,7 @@ async function fetchGameDetails(id) {
             if (g.screenshots && g.screenshots.length > 0) {
                 let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
                 g.screenshots.forEach(imgUrl => {
-                    html += `<div class="col-6 col-md-4"><a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%;"></a></div>`;
+                    html += `<div class="col-6 col-md-4"><a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"></a></div>`;
                 });
                 html += `</div>`;
                 screenshotsContainer.innerHTML = html;
@@ -1058,6 +1058,47 @@ function openLoanModal(gameId, gameTitle) {
     if (loanGameId) loanGameId.value = gameId;
     if (loanGameTitle) loanGameTitle.innerText = gameTitle;
     loanModal.show();
+}
+
+let lightboxModalInstance = null;
+
+function openLightbox(imgUrl) {
+    let lightboxEl = document.getElementById('lightboxModal');
+    
+    // 1. Si la modale n'existe pas encore dans la page, on la crée dynamiquement
+    if (!lightboxEl) {
+        const modalHtml = `
+        <div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-content bg-transparent border-0">
+                    <div class="modal-body p-0 text-center position-relative">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-2 shadow-sm bg-light rounded-circle p-2" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1065; opacity: 0.9;"></button>
+                        <img id="lightboxImage" src="" class="img-fluid rounded shadow-lg" style="max-height: 90vh; max-width: 100%; object-fit: contain;">
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        lightboxEl = document.getElementById('lightboxModal');
+        
+        // Empêche la fermeture de la première modale (gameModal) quand on ferme la Lightbox
+        lightboxEl.addEventListener('hidden.bs.modal', function () {
+            // Remet le scroll sur le body pour que la modale en dessous puisse continuer à scroller
+            if (document.getElementById('gameModal').classList.contains('show')) {
+                document.body.classList.add('modal-open');
+            }
+        });
+    }
+    
+    // 2. On change la source de l'image
+    document.getElementById('lightboxImage').src = imgUrl;
+    
+    // 3. On initialise et on affiche
+    if (!lightboxModalInstance) {
+        lightboxModalInstance = new bootstrap.Modal(lightboxEl);
+    }
+    lightboxModalInstance.show();
 }
 
 async function searchIgdb(autoOpen = false) {

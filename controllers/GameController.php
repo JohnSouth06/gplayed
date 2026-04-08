@@ -257,8 +257,15 @@ class GameController
             return;
         }
 
-        $games = $this->gameModel->getAll($_SESSION['user_id']);
+        // 1. On récupère tous les jeux
+        $allGames = $this->gameModel->getAll($_SESSION['user_id']);
 
+        // 2. FILTRAGE : On exclut les jeux prêtés (loaned) et la wishlist du Dashboard
+        $games = array_values(array_filter($allGames, function($g) {
+            return $g['status'] !== 'loaned' && $g['status'] !== 'wishlist';
+        }));
+
+        // 3. Les compteurs se basent maintenant sur la liste filtrée
         $totalGames = count($games);
         $playingCount = count(array_filter($games, fn($g) => $g['status'] === 'playing'));
         $finishedCount = count(array_filter($games, fn($g) => in_array($g['status'], ['finished', 'completed'])));
@@ -282,11 +289,15 @@ class GameController
 
         // 3. Appel au modèle
         if ($term === '') {
-            // Si la recherche est vide, on renvoie tout (ou une liste vide selon votre préférence)
-            $games = $this->gameModel->getAll($_SESSION['user_id']);
+            $allGames = $this->gameModel->getAll($_SESSION['user_id']);
         } else {
-            $games = $this->gameModel->searchGames($_SESSION['user_id'], $term);
+            $allGames = $this->gameModel->searchGames($_SESSION['user_id'], $term);
         }
+
+        // FILTRAGE : on cache les jeux prêtés et la wishlist des résultats de recherche
+        $games = array_values(array_filter($allGames, function($g) {
+            return $g['status'] !== 'loaned' && $g['status'] !== 'wishlist';
+        }));
 
         // 4. Renvoi de la réponse en JSON
         header('Content-Type: application/json');

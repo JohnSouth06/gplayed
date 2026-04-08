@@ -173,7 +173,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <option value="finished"><?= __('status_finished') ?></option>
                 <option value="completed"><?= __('status_completed') ?></option>
                 <option value="dropped"><?= __('status_dropped') ?></option>
-                <option value="loaned"><?= __('status_loaned') ?></option>
             </select>
 
             <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
