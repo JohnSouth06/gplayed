@@ -19,6 +19,7 @@ return [
     // Sidebar / Menu
     'menu_library' => 'Bibliothèque',
     'menu_loaned' => 'Jeux prêtés',
+    'menu_trophies' => 'Trophées PSN',
     'menu_journal' => 'Journal',
     'menu_stats' => 'Statistiques',
     'menu_community' => 'Communauté',
@@ -134,8 +135,7 @@ return [
     'modal_format_label' => 'Format',
     'modal_format_physical' => 'Physique',
     'modal_format_digital' => 'Digital',
-    'modal_rating_label' => 'Note',
-    'modal_meta_label' => 'Meta',
+    'modal_meta_label' => 'Note IGDB',
     'modal_genres_label' => 'Genres',
     'modal_comment_label' => 'Commentaire / Avis',
     'modal_trophies_list' => 'Liste des Trophées',
@@ -272,7 +272,7 @@ return [
     'js_game_exists_simple' => 'Ce jeu existe déjà : {name}',
     'js_import_error_generic' => 'Erreur lors de l\'importation.',
     'js_theme_label' => 'Thème',
-    'js_meta_score' => 'Metascore',
+    'js_meta_score' => 'Note IGDB',
 
     // Stats & Wishlist
     'js_chart_games_label' => 'Jeux',
@@ -392,14 +392,21 @@ return [
     'profile_share_link_copied' => 'Lien copié dans le presse-papier !',
 
     // PSN
-    'psn_sync_title' => 'Synchronisation PSN',
+    'psn_title' => 'Vos derniers trophées Playstation',
+    'psn_sync_title' => 'Synchronisation Playstation Network',
+    'psn_games_title' => 'Titre du jeu',
     'psn_sync_desc' => 'Vous devez <b>impérativement</b> avoir défini la confidentialité de vos activités Playstation Network sur "Tout le monde" afin que la synchronisation fonctionne correctement. Connectez-vous à votre compte PSN via le lien sécurisé suivant : <a href="https://id.sonyentertainmentnetwork.com/id/management_ca/" target="_blank">Playstation Network</a>',
+    'psn_trophy_not_obtained' => 'Non obtenu',
     'psn_sync_id' => 'Votre identifiant PSN',
     'psn_sync_btn' => 'Synchroniser',
     'psn_sync_cooldown' => 'Prochaine synchronisation possible dans :',
     'psn_sync_status' => 'Connexion aux services PlayStation en cours...',
     'psn_sync_in_progress' => 'Synchronisation en cours...',
     'psn_warning_close' => '⚠️ Attention : Merci de ne pas fermer cette fenêtre durant l\'opération.',
+    'psn_total_platinum' => 'Platine',
+    'psn_total_gold' => 'Or',
+    'psn_total_silver' => 'Argent',
+    'psn_total_bronze' => 'Bronze',
 
     // Zone de danger
     'profile_danger_title' => 'Zone de danger',
