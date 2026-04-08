@@ -14,7 +14,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <i class="material-icons stat-icon text-warning-emphasis">&#xea28;</i>
             <div class="stat-content">
                 <span class="stat-label"><?= __('dashboard_total') ?></span>
-                <span id="statTotal" class="stat-value text-warning-emphasis animate-counter" data-target="<?= $totalGames ?>">0</span>                
+                <span id="statTotal" class="stat-value text-warning-emphasis animate-counter" data-target="<?= $totalGames ?>">0</span>
             </div>
         </div>
 
@@ -33,6 +33,23 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <span id="statFinished" class="stat-value text-primary animate-counter" data-target="<?= $finishedCount ?>">0</span>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-center mb-4 mt-2">
+    <div class="custom-tabs-container shadow-sm border border-opacity-10">
+
+        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
+        <label for="btnLibPhys" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
+        </label>
+
+        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
+        <label for="btnLibDigi" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
+        </label>
+
+        <div class="custom-tab-slider"></div>
     </div>
 </div>
 
@@ -67,17 +84,17 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                     </div>
                 </div>
                 <div class="position-relative">
-                    <button class="btn btn-light border shadow-sm rounded-circle d-flex align-items-center justify-content-center" 
-                            style="width: 45px; height: 45px;" 
-                            id="micBtn"
-                            onclick="toggleVoiceSearch()" 
-                            title="Recherche vocale">
+                    <button class="btn btn-light border shadow-sm rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 45px; height: 45px;"
+                        id="micBtn"
+                        onclick="toggleVoiceSearch()"
+                        title="Recherche vocale">
                         <i class="material-icons-outlined icon-md" id="micIcon">&#xe029;</i>
                     </button>
-                    
-                    <span id="langBadge" 
+
+                    <span id="langBadge"
                         onclick="toggleVoiceLang(event)"
-                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark border border-white shadow-sm" 
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark border border-white shadow-sm"
                         style="cursor: pointer; font-size: 0.65rem; z-index: 10;"
                         title="Changer de langue (EN/FR)">
                         EN
@@ -102,23 +119,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
     </div>
 </div>
 
-<div class="d-flex justify-content-center mb-4 mt-2">
-    <div class="custom-tabs-container shadow-sm border border-opacity-10">
-        
-        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
-        <label for="btnLibPhys" class="custom-tab-label">
-            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
-        </label>
-
-        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
-        <label for="btnLibDigi" class="custom-tab-label">
-            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
-        </label>
-
-        <div class="custom-tab-slider"></div>
-    </div>
-</div>
-
 <div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
     <div class="input-group rounded-pill overflow-hidden border border-opacity-10 bg shadow-sm w-100 w-xxl-50">
@@ -127,15 +127,43 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
         <span class="input-group-text border-0 pe-3 bg-transparent" style="cursor:pointer" onclick="document.getElementById('internalSearchInput').value=''; updateView();"><i class="material-icons-outlined opacity-50 icon-sm">&#xe5cd;</i></span>
     </div>
 
-    <div class="w-100 flex-grow-1 overflow-hidden"> <div class="filters-scroll-container">
-            
+    <div class="w-100 flex-grow-1 overflow-hidden">
+        <div class="filters-scroll-container">
+
             <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
-                <option value="all"><?= __('filter_platform') ?></option>
+                <option value="all" selected><?= __('modal_platform_label') ?></option>
+                <option value="PC">PC (Microsoft Windows)</option>
+                <option value="Mac">Mac</option>
+                <option value="Linux">Linux</option>
                 <option value="PS5">PlayStation 5</option>
                 <option value="PS4">PlayStation 4</option>
-                <option value="Xbox Series">Xbox Series</option>
-                <option value="Switch">Switch 1 / 2</option>
-                <option value="PC">PC / Steam</option>
+                <option value="PS3">PlayStation 3</option>
+                <option value="PS2">PlayStation 2</option>
+                <option value="PlayStation">PlayStation</option>
+                <option value="PS Vita">PS Vita</option>
+                <option value="PSP">PSP</option>
+                <option value="Xbox Series">Xbox Series X|S</option>
+                <option value="Xbox One">Xbox One</option>
+                <option value="Xbox 360">Xbox 360</option>
+                <option value="Xbox">Xbox</option>
+                <option value="Switch">Nintendo Switch</option>
+                <option value="Wii U">Wii U</option>
+                <option value="Wii">Wii</option>
+                <option value="GameCube">GameCube</option>
+                <option value="Nintendo 64">Nintendo 64</option>
+                <option value="SNES">SNES</option>
+                <option value="NES">NES</option>
+                <option value="Nintendo 3DS">Nintendo 3DS</option>
+                <option value="Nintendo DS">Nintendo DS</option>
+                <option value="Game Boy Advance">Game Boy Advance</option>
+                <option value="Game Boy Color">Game Boy Color</option>
+                <option value="Game Boy">Game Boy</option>
+                <option value="iOS">iOS</option>
+                <option value="Android">Android</option>
+                <option value="Sega Dreamcast">Sega Dreamcast</option>
+                <option value="Sega Saturn">Sega Saturn</option>
+                <option value="Sega Mega Drive">Sega Mega Drive/Genesis</option>
+                <option value="Sega Master System">Sega Master System</option>
             </select>
 
             <select id="filterStatus" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
@@ -144,26 +172,23 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <option value="playing"><?= __('status_playing') ?></option>
                 <option value="finished"><?= __('status_finished') ?></option>
                 <option value="completed"><?= __('status_completed') ?></option>
-                <option value="wishlist"><?= __('status_wishlist') ?></option>
                 <option value="dropped"><?= __('status_dropped') ?></option>
-                <option value="loaned"><?= __('status_loaned') ?></option>
             </select>
 
             <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
                 <option value="date_desc"><?= __('sort_recent') ?></option>
                 <option value="alpha_asc"><?= __('sort_az') ?></option>
-                <option value="rating_desc"><?= __('sort_rating') ?></option>
                 <option value="platform_asc"><?= __('sort_platform') ?></option>
             </select>
 
             <div class="view-toggle-tabs shadow-sm border border-opacity-10 d-none d-md-flex">
-                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input" 
+                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input"
                     onclick="setView('grid')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? '' : 'checked' ?>>
                 <label for="btnGridInput" class="view-tab-label">
                     <i class="material-icons-outlined icon-md">&#xe9b0;</i>
                 </label>
 
-                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input" 
+                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input"
                     onclick="setView('list')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? 'checked' : '' ?>>
                 <label for="btnListInput" class="view-tab-label">
                     <i class="material-icons-outlined icon-md">&#xe8ef;</i>
@@ -198,16 +223,13 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                         <h5 class="modal-title fs-5 fw-bold"><?= __('modal_details_title') ?></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <ul class="nav nav-tabs mt-3 border-0 gap-2" id="modalTabs" style="display:none;">
-                        <li class="nav-item">
-                            <a class="nav-link active" data-bs-toggle="tab" href="#tab-info"><?= __('modal_tab_info') ?></a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#tab-trophies"><?= __('modal_tab_trophies') ?></a>
-                        </li>
-                    </ul>
                 </div>
                 <div class="modal-body">
+                    <ul class="nav nav-pills nav-fill mb-4 bg-body-tertiary rounded-3 p-1" id="gameModalTabs">
+                        <li class="nav-item"><button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">Général</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-desc" type="button">Description</button></li>
+                    </ul>
+
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="tab-info">
                             <input type="hidden" name="game_id" id="gameId">
@@ -236,27 +258,60 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                 </div>
                                 <div class="col-md-7">
                                     <div class="form-floating mb-3">
-                                        <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" required>
+                                        <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" readonly required>
                                         <label><?= __('modal_title_label') ?></label>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_genres_label') ?></label>
+                                        <input type="text" name="genres" id="gameGenres" class="form-control rounded-3 bg-body-tertiary" placeholder="Action, RPG..." readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-2 text-secondary">Format</label>
+                                        <div class="btn-group w-100 shadow-sm" role="group">
+                                            <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" autocomplete="off" checked>
+                                            <label class="btn btn-outline-secondary" for="fmtPhysical"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?></label>
+
+                                            <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital" autocomplete="off">
+                                            <label class="btn btn-outline-secondary" for="fmtDigital"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?></label>
+                                        </div>
                                     </div>
                                     <div class="row g-2 mb-3">
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_platform_label') ?></label>
-                                            <select name="platform" id="gamePlatform" class="form-select rounded-3" required onchange="toggleCustomPlatform(); checkPsnVisibility();">
+                                            <select name="platform" id="gamePlatform" class="form-select rounded-3" required>
+                                                <option value="PC">PC (Microsoft Windows)</option>
+                                                <option value="Mac">Mac</option>
+                                                <option value="Linux">Linux</option>
                                                 <option value="PS5">PlayStation 5</option>
                                                 <option value="PS4">PlayStation 4</option>
-                                                <option value="Xbox Series">Xbox Series</option>
-                                                <option value="Switch">Switch</option>
-                                                <option value="PC">PC</option>
-                                                <option value="Multiplateforme"><?= __('modal_platform_multi') ?></option>
+                                                <option value="PS3">PlayStation 3</option>
+                                                <option value="PS2">PlayStation 2</option>
+                                                <option value="PlayStation">PlayStation</option>
+                                                <option value="PS Vita">PS Vita</option>
+                                                <option value="PSP">PSP</option>
+                                                <option value="Xbox Series">Xbox Series X|S</option>
+                                                <option value="Xbox One">Xbox One</option>
+                                                <option value="Xbox 360">Xbox 360</option>
+                                                <option value="Xbox">Xbox</option>
+                                                <option value="Switch">Nintendo Switch</option>
+                                                <option value="Wii U">Wii U</option>
+                                                <option value="Wii">Wii</option>
+                                                <option value="GameCube">GameCube</option>
+                                                <option value="Nintendo 64">Nintendo 64</option>
+                                                <option value="SNES">SNES</option>
+                                                <option value="NES">NES</option>
+                                                <option value="Nintendo 3DS">Nintendo 3DS</option>
+                                                <option value="Nintendo DS">Nintendo DS</option>
+                                                <option value="Game Boy Advance">Game Boy Advance</option>
+                                                <option value="Game Boy Color">Game Boy Color</option>
+                                                <option value="Game Boy">Game Boy</option>
+                                                <option value="iOS">iOS</option>
+                                                <option value="Android">Android</option>
+                                                <option value="Sega Dreamcast">Sega Dreamcast</option>
+                                                <option value="Sega Saturn">Sega Saturn</option>
+                                                <option value="Sega Mega Drive">Sega Mega Drive/Genesis</option>
+                                                <option value="Sega Master System">Sega Master System</option>
                                             </select>
-                                            <div id="multiPlatformContainer" class="d-none mt-2 p-2 bg-body-tertiary rounded-3 border">
-                                                <div id="platformInputsList" class="d-flex flex-column gap-2 mb-2"></div>
-                                                <button type="button" class="btn btn-sm btn-outline-primary w-100 dashed-border" onclick="addPlatformInput()">
-                                                    <i class="material-icons-outlined icon-sm">&#xe145;</i>
-                                                </button>
-                                                <input type="hidden" name="platform_custom" id="gamePlatformCustom">
-                                            </div>
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_status_label') ?></label>
@@ -267,24 +322,12 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                                                 <option value="completed"><?= __('status_completed') ?></option>
                                                 <option value="dropped"><?= __('status_dropped') ?></option>
                                                 <option value="loaned"><?= __('status_loaned') ?></option>
-                                                <option value="wishlist"><?= __('status_wishlist') ?></option>
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="row g-2 mb-3">
-                                            <input type="hidden" name="format" id="gameFormatHidden" value="physical">
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_rating_label') ?></label>
-                                            <input type="number" name="user_rating" id="gameRating" class="form-control rounded-3" max="10">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_meta_label') ?></label>
-                                            <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---">
-                                        </div>
-                                    </div>
                                     <div class="mb-3">
-                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_genres_label') ?></label>
-                                        <input type="text" name="genres" id="gameGenres" class="form-control rounded-3" placeholder="Action, RPG...">
+                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_meta_label') ?></label>
+                                        <input type="number" name="metacritic" id="gameMeta" class="form-control rounded-3" placeholder="---" readonly>
                                     </div>
                                     <div class="mt-3 d-md-none d-lg-block">
                                         <label class="form-label small fw-bold text-secondary"><?= __('modal_price_label') ?></label>
@@ -305,41 +348,20 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                             <input type="hidden" name="release_date" id="gameDate">
                             <input type="hidden" name="description" id="gameDesc">
                         </div>
-
-                        <div class="tab-pane fade" id="tab-trophies">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0 fw-bold"><?= __('modal_trophies_list') ?></h6>
-                                <div class="progress flex-grow-1 mx-3" style="height: 10px;">
-                                    <div id="trophyProgressBar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                        <div class="tab-pane fade" id="tab-desc">
+                            <div class="mb-3 p-3 bg-body-secondary rounded-3 small border border-opacity-10">
+                                <div class="row">
+                                    <div class="col-6"><span class="text-muted">Développeur :</span> <strong id="displayDev">Inconnu</strong></div>
+                                    <div class="col-6"><span class="text-muted">Éditeur :</span> <strong id="displayPub">Inconnu</strong></div>
                                 </div>
-                                <span id="trophyProgressText" class="small fw-bold">0%</span>
+                                <div class="row mt-2" id="game-modes-container" style="display: none;">
+                                    <div class="col-12"><span class="text-muted">Modes :</span> <strong id="displayModes"></strong></div>
+                                </div>
                             </div>
-                            <div class="input-group mb-3">
 
-                                <select id="newTrophyType" name="trophyType" class="d-none">
-                                    <option value="bronze" selected><?= __('trophy_bronze') ?></option>
-                                    <option value="silver"><?= __('trophy_silver') ?></option>
-                                    <option value="gold"><?= __('trophy_gold') ?></option>
-                                    <option value="platinum"><?= __('trophy_platinum') ?></option>
-                                </select>
+                            <div id="gameDescriptionContent" class="text-secondary mb-4" style="white-space: pre-wrap; max-height: 250px; overflow-y: auto;"></div>
 
-                                <button class="form-select text-start d-flex align-items-center rounded-start" type="button" id="trophyDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 140px; cursor: pointer;"> 
-                                    <span class="d-flex align-items-center w-100 overflow-hidden">
-                                        <img src="./assets/images/bronze.png" class="trophy-icon me-2" alt="">
-                                        <span class="text-truncate"><?= __('trophy_bronze') ?></span>
-                                    </span>
-                                </button>
-                                
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" data-value="bronze"><img src="./assets/images/bronze.png" class="trophy-icon me-2"> <?= __('trophy_bronze') ?></a></li>
-                                    <li><a class="dropdown-item" href="#" data-value="silver"><img src="./assets/images/silver.png" class="trophy-icon me-2"> <?= __('trophy_silver') ?></a></li>
-                                    <li><a class="dropdown-item" href="#" data-value="gold"><img src="./assets/images/gold.png" class="trophy-icon me-2"> <?= __('trophy_gold') ?></a></li>
-                                    <li><a class="dropdown-item" href="#" data-value="platinum"><img src="./assets/images/platinum.png" class="trophy-icon me-2"> <?= __('trophy_platinum') ?></a></li>
-                                </ul>
-                                <input type="text" id="newTrophyTitle" class="form-control" placeholder="<?= __('modal_trophy_name_placeholder') ?>">
-                                <button type="button" class="btn btn-primary" onclick="addTrophy()"><i class="material-icons-outlined icon-sm">&#xe145;</i></button>
-                            </div>
-                            <div id="trophiesList" class="overflow-y-auto" style="max-height: 350px;"></div>
+                            <div id="desc-screenshots-container"></div>
                         </div>
                     </div>
                 </div>
@@ -347,6 +369,8 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                     <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4"><?= __('modal_btn_save') ?></button>
                     <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal"><?= __('modal_btn_cancel') ?></button>
                 </div>
+                <input type="hidden" name="developer" id="gameDeveloper">
+                <input type="hidden" name="publisher" id="gamePublisher">
             </form>
         </div>
     </div>
@@ -358,15 +382,15 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
             <form action="/loan" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                 <input type="hidden" name="game_id" id="loanGameId">
-                
+
                 <div class="modal-header border-bottom-0 pb-0">
                     <h5 class="modal-title fs-5 fw-bold"><?= __('loaned_title') ?></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                
+
                 <div class="modal-body">
                     <p class="text-secondary small mb-4"><?= __('loaned_desc2') ?> <strong id="loanGameTitle" class="text-body"></strong>. <?= __('loaned_masked_game') ?></p>
-                    
+
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-secondary"><?= __('loaned_to') ?></label>
                         <input type="text" name="loaned_to" class="form-control rounded-3" required placeholder="<?= __('loaned_name_placeholder') ?>">
@@ -376,7 +400,7 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                         <input type="date" name="loaned_date" class="form-control rounded-3" required value="<?= date('Y-m-d') ?>">
                     </div>
                 </div>
-                
+
                 <div class="modal-footer border-top-0">
                     <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4 text-dark"><?= __('loaned_confirm_return') ?></button>
                     <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal"><?= __('modal_btn_cancel') ?></button>
