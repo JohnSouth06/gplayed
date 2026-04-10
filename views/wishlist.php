@@ -19,13 +19,31 @@ if (isset($games) && is_array($games)) {
         <h2 class="h2 dashboard-welcome mb-1 fw-light"><?= __('wishlist_title') ?></h2>
     </div>
     <div class="stat-widget">
-    <i class="material-icons stat-icon text-danger">&#xe8b1;</i>
-    <div class="stat-content">
-        <span class="stat-label"><?= __('wishlist_count_label') ?></span>
-        <span class="stat-value text-danger animate-counter" data-target="<?= $totalWishlist ?>">0</span>
+        <i class="material-icons stat-icon text-danger">&#xe8b1;</i>
+        <div class="stat-content">
+            <span class="stat-label"><?= __('wishlist_count_label') ?></span>
+            <span class="stat-value text-danger animate-counter" data-target="<?= $totalWishlist ?>">0</span>
+        </div>
     </div>
 </div>
+
+<div class="d-flex justify-content-center mb-4 mt-2">
+    <div class="custom-tabs-container shadow-sm border border-opacity-10">
+
+        <input type="radio" name="libFormat" id="btnLibPhys" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('physical')">
+        <label for="btnLibPhys" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?>
+        </label>
+
+        <input type="radio" name="libFormat" id="btnLibDigi" class="custom-tab-input" autocomplete="off" onchange="setLibraryFormat('digital')">
+        <label for="btnLibDigi" class="custom-tab-label">
+            <i class="material-icons-outlined icon-sm align-middle me-2">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?>
+        </label>
+
+        <div class="custom-tab-slider"></div>
+    </div>
 </div>
+
 
 <div class="card bg-body-primaary border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
     <div class="card-header accordion-trigger bg-transparent border-0 p-3 p-md-4 d-flex justify-content-between align-items-center <?= isset($_GET['open_add']) ? '' : 'collapsed' ?>"
@@ -39,7 +57,7 @@ if (isset($games) && is_array($games)) {
     <div class="collapse <?= isset($_GET['open_add']) ? 'show' : '' ?>" id="addGameSection">
         <div class="card-body px-4 pb-4 pt-0">
             <hr class="text-secondary opacity-10 my-2 mb-4">
-            
+
             <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
                 <div class="flex-grow-1 w-100">
                     <div class="search-wrapper">
@@ -53,18 +71,21 @@ if (isset($games) && is_array($games)) {
                     <i class="material-icons-outlined icon-sm fs-4 me-2">&#xe145;</i><?= __('wishlist_manual_add') ?>
                 </button>
             </div>
-            
+
             <div id="rawgContainer" class="mt-3 d-none border-top pt-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0 text-secondary small fw-bold text-uppercase"><?= __('dashboard_internet_results') ?></h6>
                     <button type="button" class="btn-close btn-sm" onclick="closeSearch()"></button>
                 </div>
-                <div id="rawgLoading" class="text-center d-none py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                <div id="rawgLoading" class="text-center d-none py-3">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                </div>
                 <div id="rawgResults" class="d-flex gap-2 overflow-auto pb-2"></div>
             </div>
         </div>
     </div>
 </div>
+
 
 <div class="d-flex flex-column flex-xxl-row align-items-center justify-content-between mb-3 gap-3">
 
@@ -74,20 +95,49 @@ if (isset($games) && is_array($games)) {
         <span class="input-group-text border-0 pe-3 bg-transparent" style="cursor:pointer" onclick="document.getElementById('internalSearchInput').value=''; updateView();"><i class="material-icons-outlined opacity-50 icon-sm">&#xe5cd;</i></span>
     </div>
 
-    <div class="w-100 flex-grow-1 overflow-hidden"> <div class="filters-scroll-container">
+    <div class="w-100 flex-grow-1 overflow-hidden">
+        <div class="filters-scroll-container">
 
             <select id="filterPlatform" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
-                <option value="all"><?= __('filter_platform') ?></option>
+                <option value="all" selected><?= __('modal_platform_label') ?></option>
+                <option value="PC">PC (Microsoft Windows)</option>
+                <option value="Mac">Mac</option>
+                <option value="Linux">Linux</option>
                 <option value="PS5">PlayStation 5</option>
                 <option value="PS4">PlayStation 4</option>
-                <option value="Xbox Series">Xbox Series</option>
-                <option value="Switch">Switch 1 / 2</option>
-                <option value="PC">PC / Steam</option>
+                <option value="PS3">PlayStation 3</option>
+                <option value="PS2">PlayStation 2</option>
+                <option value="PlayStation">PlayStation</option>
+                <option value="PS Vita">PS Vita</option>
+                <option value="PSP">PSP</option>
+                <option value="Xbox Series">Xbox Series X|S</option>
+                <option value="Xbox One">Xbox One</option>
+                <option value="Xbox 360">Xbox 360</option>
+                <option value="Xbox">Xbox</option>
+                <option value="Switch">Nintendo Switch</option>
+                <option value="Wii U">Wii U</option>
+                <option value="Wii">Wii</option>
+                <option value="GameCube">GameCube</option>
+                <option value="Nintendo 64">Nintendo 64</option>
+                <option value="SNES">SNES</option>
+                <option value="NES">NES</option>
+                <option value="Nintendo 3DS">Nintendo 3DS</option>
+                <option value="Nintendo DS">Nintendo DS</option>
+                <option value="Game Boy Advance">Game Boy Advance</option>
+                <option value="Game Boy Color">Game Boy Color</option>
+                <option value="Game Boy">Game Boy</option>
+                <option value="iOS">iOS</option>
+                <option value="Android">Android</option>
+                <option value="Sega Dreamcast">Sega Dreamcast</option>
+                <option value="Sega Saturn">Sega Saturn</option>
+                <option value="Sega Mega Drive">Sega Mega Drive/Genesis</option>
+                <option value="Sega Master System">Sega Master System</option>
             </select>
 
             <input type="hidden" id="filterStatus" value="wishlist">
 
             <select id="sortSelect" class="form-select border shadow-sm rounded-3 py-2" onchange="updateView()">
+                <option value="release_asc" selected><?= __('wishlist_release_date') ?></option>
                 <option value="date_desc"><?= __('sort_recent') ?></option>
                 <option value="alpha_asc"><?= __('sort_az') ?></option>
                 <option value="rating_desc"><?= __('sort_rating') ?></option>
@@ -95,13 +145,13 @@ if (isset($games) && is_array($games)) {
             </select>
 
             <div class="view-toggle-tabs shadow-sm border border-opacity-10 d-none d-md-flex">
-                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input" 
+                <input type="radio" name="viewMode" id="btnGridInput" class="view-tab-input"
                     onclick="setView('grid')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? '' : 'checked' ?>>
                 <label for="btnGridInput" class="view-tab-label">
                     <i class="material-icons-outlined icon-md">&#xe9b0;</i>
                 </label>
 
-                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input" 
+                <input type="radio" name="viewMode" id="btnListInput" class="view-tab-input"
                     onclick="setView('list')" <?= (isset($_COOKIE['viewMode']) && $_COOKIE['viewMode'] == 'list') ? 'checked' : '' ?>>
                 <label for="btnListInput" class="view-tab-label">
                     <i class="material-icons-outlined icon-md">&#xe8ef;</i>
@@ -131,89 +181,156 @@ if (isset($games) && is_array($games)) {
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <form action="/save" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                
+
                 <input type="hidden" name="status" value="wishlist" id="gameStatus">
-                <input type="hidden" name="release_date" id="gameDate"> <div class="d-none">
-                    <input type="radio" id="fmtPhysical" name="format" value="physical" checked>
-                    <input type="radio" id="fmtDigital" name="format" value="digital">
+                <input type="hidden" name="release_date" id="gameDate">
+                <div class="d-none">
                     <div id="modalTabs"></div>
-                    <div id="multiPlatformContainer"><div id="platformInputsList"></div><input id="gamePlatformCustom"></div>
-                    <input id="gameMeta"><input id="gameRating"><input id="gameDesc">
+                    <div id="multiPlatformContainer">
+                        <div id="platformInputsList"></div>
+                        <input type="hidden" name="platform_custom" id="gamePlatformCustom">
+                    </div>
+                    <input type="hidden" name="metacritic" id="gameMeta">
+                    <input type="hidden" name="description" id="gameDesc">
+                    <input type="hidden" name="developer" id="gameDeveloper">
+                    <input type="hidden" name="publisher" id="gamePublisher">
                 </div>
 
                 <div class="modal-header border-bottom-0 pb-0">
                     <h5 class="modal-title fs-5 fw-bold"><?= __('wishlist_modal_title') ?></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                
+
                 <div class="modal-body">
-                    <input type="hidden" name="game_id" id="gameId">
-                    <input type="hidden" name="rawg_id" id="gameRawgId">
-                    
-                    <div class="row g-4">
-                        <div class="col-md-4">
-                            <div class="ratio ratio-1x1 bg-body-tertiary rounded-4 overflow-hidden position-relative group-hover-upload">
-                                <img id="previewImg" src="" class="d-none w-100 h-100 object-fit-cover">
-                                <div id="uploadPlaceholder" class="d-flex flex-column align-items-center justify-content-center h-100 text-secondary">
-                                    <i class="material-icons-outlined mb-2 icon-lg">&#xe2c0;</i>
-                                    <small><?= __('wishlist_field_image') ?></small>
+                    <ul class="nav nav-pills nav-fill mb-4 bg-body-tertiary rounded-3 p-1" id="gameModalTabs">
+                        <li class="nav-item"><button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">Général</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-desc" type="button">Description</button></li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tab-info">
+                            <input type="hidden" name="game_id" id="gameId">
+                            <input type="hidden" name="rawg_id" id="gameRawgId">
+
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="ratio ratio-1x1 bg-body-tertiary rounded-4 overflow-hidden position-relative group-hover-upload">
+                                        <img id="previewImg" src="" class="d-none w-100 h-100 object-fit-cover">
+                                        <div id="uploadPlaceholder" class="d-flex flex-column align-items-center justify-content-center h-100 text-secondary">
+                                            <i class="material-icons-outlined mb-2 icon-lg">&#xe2c0;</i>
+                                            <small><?= __('wishlist_field_image') ?></small>
+                                        </div>
+                                        <input type="file" name="image_upload" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" accept="image/*" onchange="previewFile(this)">
+                                        <input type="hidden" name="image_url_hidden" id="gameImageHidden">
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <label class="form-label small fw-bold text-secondary"><?= __('wishlist_field_price') ?></label>
+                                        <div class="input-group">
+                                            <input type="number" name="estimated_price" id="gamePrice" class="form-control rounded-start border-end-0" step="0.01" placeholder="0.00">
+                                            <span class="input-group-text bg-body-tertiary border-start-0 rounded-end">€</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <input type="file" name="image_upload" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" accept="image/*" onchange="previewFile(this)">
-                                <input type="hidden" name="image_url_hidden" id="gameImageHidden">
-                            </div>
-                            
-                            <div class="mt-3">
-                                <label class="form-label small fw-bold text-secondary"><?= __('wishlist_field_price') ?></label>
-                                <div class="input-group">
-                                    <input type="number" name="estimated_price" id="gamePrice" class="form-control rounded-start border-end-0" step="0.01" placeholder="0.00">
-                                    <span class="input-group-text bg-body-tertiary border-start-0 rounded-end">€</span>
+
+                                <div class="col-md-8">
+                                    <div class="form-floating mb-3">
+                                        <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" required>
+                                        <label><?= __('modal_title_label') ?></label>
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label small fw-bold mb-1 text-secondary"><?= __('filter_platform') ?></label>
+                                            <select name="platform" id="gamePlatform" class="form-select rounded-3" required>
+                                                <option value="PC">PC (Microsoft Windows)</option>
+                                                <option value="Mac">Mac</option>
+                                                <option value="Linux">Linux</option>
+                                                <option value="PS5">PlayStation 5</option>
+                                                <option value="PS4">PlayStation 4</option>
+                                                <option value="PS3">PlayStation 3</option>
+                                                <option value="PS2">PlayStation 2</option>
+                                                <option value="PlayStation">PlayStation</option>
+                                                <option value="PS Vita">PS Vita</option>
+                                                <option value="PSP">PSP</option>
+                                                <option value="Xbox Series">Xbox Series X|S</option>
+                                                <option value="Xbox One">Xbox One</option>
+                                                <option value="Xbox 360">Xbox 360</option>
+                                                <option value="Xbox">Xbox</option>
+                                                <option value="Switch">Nintendo Switch</option>
+                                                <option value="Wii U">Wii U</option>
+                                                <option value="Wii">Wii</option>
+                                                <option value="GameCube">GameCube</option>
+                                                <option value="Nintendo 64">Nintendo 64</option>
+                                                <option value="SNES">SNES</option>
+                                                <option value="NES">NES</option>
+                                                <option value="Nintendo 3DS">Nintendo 3DS</option>
+                                                <option value="Nintendo DS">Nintendo DS</option>
+                                                <option value="Game Boy Advance">Game Boy Advance</option>
+                                                <option value="Game Boy Color">Game Boy Color</option>
+                                                <option value="Game Boy">Game Boy</option>
+                                                <option value="iOS">iOS</option>
+                                                <option value="Android">Android</option>
+                                                <option value="Sega Dreamcast">Sega Dreamcast</option>
+                                                <option value="Sega Saturn">Sega Saturn</option>
+                                                <option value="Sega Mega Drive">Sega Mega Drive/Genesis</option>
+                                                <option value="Sega Master System">Sega Master System</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6" id="releaseDateCol">
+                                            <label class="form-label small fw-bold mb-1 text-secondary"><?= __('wishlist_release_date') ?></label>
+                                            <input type="date" id="gameDateVisual" class="form-control rounded-3 bg-body-tertiary" readonly>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-2 text-secondary"><?= __('modal_format_label') ?></label>
+                                        <div class="btn-group w-100 shadow-sm" role="group">
+                                            <input type="radio" class="btn-check" name="format" id="fmtPhysical" value="physical" autocomplete="off" checked>
+                                            <label class="btn btn-outline-secondary" for="fmtPhysical"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe1a1;</i><?= __('dashboard_btn_Physicalformat') ?></label>
+
+                                            <input type="radio" class="btn-check" name="format" id="fmtDigital" value="digital" autocomplete="off">
+                                            <label class="btn btn-outline-secondary" for="fmtDigital"><i class="material-icons-outlined icon-sm align-middle me-1">&#xe3dd;</i><?= __('dashboard_btn_Digitalformat') ?></label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_genres_label') ?></label>
+                                        <input type="text" name="genres" id="gameGenres" class="form-control rounded-3" placeholder="Action, RPG...">
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <label class="form-label small fw-bold mb-1 text-secondary"><?= __('wishlist_field_reason') ?></label>
+                                        <textarea name="comment" id="gameComment" class="form-control rounded-3 bg-body-tertiary border-0" rows="2" placeholder="<?= __('wishlist_placeholder_reason') ?>"></textarea>
+                                    </div>
+
+                                    <div id="deleteBtnContainer" class="mt-3 d-none text-end">
+                                        <a href="#" id="deleteLink" class="text-danger small text-decoration-none"><i class="material-icons align-middle fs-6 me-1">&#xe872;</i><?= __('wishlist_remove') ?></a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="col-md-8">
-                            <div class="form-floating mb-3">
-                                <input type="text" name="title" id="gameTitle" class="form-control rounded-3" placeholder="<?= __('modal_title_placeholder') ?>" required>
-                                <label><?= __('modal_title_label') ?></label>
-                            </div>
-                            
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <label class="form-label small fw-bold mb-1 text-secondary"><?= __('filter_platform') ?></label>
-                                    <select name="platform" id="gamePlatform" class="form-select rounded-3" required>
-                                        <option value="PS5">PlayStation 5</option>
-                                        <option value="PS4">PlayStation 4</option>
-                                        <option value="Xbox Series">Xbox Series</option>
-                                        <option value="Switch">Switch</option>
-                                        <option value="PC">PC</option>
-                                    </select>
+
+                        <div class="tab-pane fade" id="tab-desc">
+                            <div class="mb-3 p-3 bg-body-secondary rounded-3 small border border-opacity-10">
+                                <div class="row">
+                                    <div class="col-6"><span class="text-muted">Développeur :</span> <strong id="displayDev">Inconnu</strong></div>
+                                    <div class="col-6"><span class="text-muted">Éditeur :</span> <strong id="displayPub">Inconnu</strong></div>
                                 </div>
-                                <div class="col-6">
-                                    <label class="form-label small fw-bold mb-1 text-secondary"><?= __('wishlist_release_date') ?></label>
-                                    <input type="date" id="gameDateVisual" class="form-control rounded-3" onchange="document.getElementById('gameDate').value = this.value">
+                                <div class="row mt-2" id="game-modes-container" style="display: none;">
+                                    <div class="col-12"><span class="text-muted">Modes :</span> <strong id="displayModes"></strong></div>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold mb-1 text-secondary"><?= __('modal_genres_label') ?></label>
-                                <input type="text" name="genres" id="gameGenres" class="form-control rounded-3" placeholder="Action, RPG...">
-                            </div>
+                            <div id="gameDescriptionContent" class="text-secondary mb-4" style="white-space: pre-wrap; max-height: 250px; overflow-y: auto;"></div>
 
-                            <div class="mt-3">
-                                <label class="form-label small fw-bold mb-1 text-secondary"><?= __('wishlist_field_reason') ?></label>
-                                <textarea name="comment" id="gameComment" class="form-control rounded-3 bg-body-tertiary border-0" rows="2" placeholder="<?= __('wishlist_placeholder_reason') ?>"></textarea>
-                            </div>
-
-                            <div id="deleteBtnContainer" class="mt-3 d-none text-end">
-                                <a href="#" id="deleteLink" class="text-danger small text-decoration-none"><i class="material-icons align-middle fs-6 me-1">&#xe872;</i><?= __('wishlist_remove') ?></a>
-                            </div>
+                            <div id="desc-screenshots-container"></div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer border-top-0">
-                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4"><?= __('modal_btn_save') ?></button>
-                    <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal"><?= __('modal_btn_cancel') ?></button>
-                </div>
+                    <div class="modal-footer border-top-0">
+                        <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4"><?= __('modal_btn_save') ?></button>
+                        <button type="button" class="btn btn-light fw-bold rounded-pill px-4" data-bs-dismiss="modal"><?= __('modal_btn_cancel') ?></button>
+                    </div>
             </form>
         </div>
     </div>
