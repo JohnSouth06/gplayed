@@ -109,6 +109,7 @@ function openModal(g = null, isLoadingPlatforms = false) {
     safeSet('gameRawgId', '');
     safeSet('gameTitle', g ? g.title : '');
     safeSet('gameImageHidden', g ? (g.image_url || '') : '');
+    safeSet('gamePlatformsList', g ? (g.platforms_list || '') : '');
 
     const prev = document.getElementById('previewImg');
     const holder = document.getElementById('uploadPlaceholder');
@@ -139,24 +140,46 @@ function openModal(g = null, isLoadingPlatforms = false) {
 
     const platformSelect = document.getElementById('gamePlatform');
     if (platformSelect) {
-        if (isLoadingPlatforms) {
-            platformSelect.innerHTML = `<option value="">Chargement...</option>`;
-            platformSelect.disabled = true;
-        } else {
-            platformSelect.innerHTML = defaultPlatformsHTML;
-            platformSelect.disabled = false;
-            if (g && g.platform) {
-                const platformExists = Array.from(platformSelect.options).some(opt => opt.value === g.platform);
-                if (!platformExists) {
+        platformSelect.innerHTML = ''; // On vide les options par défaut
+
+        if (g && g.platforms_list) {
+            // Si c'est une chaîne séparée par des virgules (ex: "PC, PS4, Xbox")
+            let platformsArray = typeof g.platforms_list === 'string' 
+                                 ? g.platforms_list.split(',') 
+                                 : g.platforms_list;
+
+            let foundCurrent = false;
+
+            platformsArray.forEach(p => {
+                const rawName = p.trim();
+                const mappedName = mapIgdbPlatform(rawName); // Utilise votre fonction de formatage
+                const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+
+                if (!alreadyExists && mappedName) {
                     const option = document.createElement('option');
-                    option.value = g.platform;
-                    option.textContent = g.platform;
+                    option.value = mappedName;
+                    option.textContent = mappedName;
                     platformSelect.appendChild(option);
                 }
-                platformSelect.value = g.platform;
-            } else {
-                platformSelect.value = 'PS5';
+                if (mappedName === g.platform) foundCurrent = true;
+            });
+
+            // Par sécurité, on ajoute la plateforme actuelle si elle n'est pas dans la liste
+            if (g.platform && !foundCurrent) {
+                const option = document.createElement('option');
+                option.value = g.platform;
+                option.textContent = g.platform;
+                platformSelect.appendChild(option);
             }
+
+            platformSelect.value = g.platform || platformSelect.options[0].value;
+            platformSelect.disabled = false;
+
+        } else {
+            // Fallback: On charge la liste complète par défaut si `platforms_list` est vide
+            platformSelect.innerHTML = defaultPlatformsHTML;
+            platformSelect.value = (g && g.platform) ? g.platform : 'PS5';
+            platformSelect.disabled = false;
         }
     }
 
@@ -214,7 +237,7 @@ async function edit(id) {
     const hasIgdbId = !!g.game_id;
 
     // 1. On ouvre la modale. Si on a un ID IGDB, on bloque le select sur "Chargement..."
-    openModal(g, hasIgdbId);
+    openModal(g);
 
     const platformSelect = document.getElementById('gamePlatform');
 
@@ -225,38 +248,6 @@ async function edit(id) {
             if (res.ok) {
                 const data = await res.json();
 
-                // Gestion Plateformes
-                if (platformSelect && data.platforms && Array.isArray(data.platforms) && data.platforms.length > 0) {
-                    platformSelect.innerHTML = '';
-                    let foundCurrent = false;
-
-                    data.platforms.forEach(p => {
-                        const rawName = (typeof p === 'object' && p.name) ? p.name : p;
-                        const mappedName = mapIgdbPlatform(rawName);
-                        const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
-
-                        if (!alreadyExists) {
-                            const option = document.createElement('option');
-                            option.value = mappedName;
-                            option.textContent = mappedName;
-                            platformSelect.appendChild(option);
-                        }
-                        if (mappedName === g.platform) foundCurrent = true;
-                    });
-
-                    if (!foundCurrent && g.platform) {
-                        const option = document.createElement('option');
-                        option.value = g.platform;
-                        option.textContent = g.platform;
-                        platformSelect.appendChild(option);
-                    }
-                    platformSelect.value = g.platform;
-                } else if (platformSelect) {
-                    platformSelect.innerHTML = defaultPlatformsHTML;
-                    platformSelect.value = g.platform || 'PS5';
-                }
-
-                // --- GESTION DES MODES DE JEU ---
                 const modesContainer = document.getElementById('game-modes-container');
                 const displayModes = document.getElementById('displayModes');
                 if (modesContainer && displayModes) {
@@ -366,6 +357,14 @@ async function fetchGameDetails(id) {
         safeSet('gameRawgId', id);
         safeSet('gameDeveloper', g.developer || '');
         safeSet('gamePublisher', g.publisher || '');
+
+        let allPlatformsString = '';
+        if (g.platforms && Array.isArray(g.platforms)) {
+            allPlatformsString = g.platforms.map(p => {
+                return (typeof p === 'object' && p.name) ? p.name : p;
+            }).join(', ');
+        }
+        safeSet('gamePlatformsList', allPlatformsString);
 
         // 4. PREVIEW IMAGE
         const prev = document.getElementById('previewImg');

@@ -196,9 +196,31 @@ switch ($action) {
         }
         break;
 
+    // Dans votre fichier api/index.php
     case 'api_get_games':
-        $gameController = new GameController($db);
-        $gameController->apiGetGames($currentUser['id']);
+        $userId = $currentUser['id'];
+        // On récupère les données brutes depuis le modèle
+        $games = $gameModel->getAll($userId);
+
+        if ($games !== false) {
+            foreach ($games as &$game) {
+                // Mappage des champs existants
+                $game['description'] = $game['summary'] ?? '';
+
+                // LOGIQUE DE CACHE POUR LES SCREENSHOTS
+                if (empty($game['screenshots']) && !empty($game['igdb_id'])) {
+                    // Le serveur va chercher les images sur IGDB et les sauve en BDD
+                    $game['screenshots'] = $gameController->getOrFetchScreenshots($game['id'], $game['igdb_id']);
+                } else {
+                    // Déjà en BDD, chargement instantané
+                    $game['screenshots'] = $game['screenshots'] ?? '';
+                }
+            }
+            // On utilise la fonction de réponse JSON de votre fichier index.php
+            sendJson(true, 'Collection récupérée avec succès.', ['data' => $games]);
+        } else {
+            sendJson(false, 'Erreur lors de la récupération des jeux.', [], 500);
+        }
         break;
 
     case 'api_search_igdb':
@@ -208,8 +230,26 @@ switch ($action) {
         break;
 
     case 'api_save_game':
-        $gameController = new GameController($db);
-        $gameController->apiSaveGame($currentUser['id']);
+        $userId = $currentUser['id'];
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if ($data) {
+            $gameData = [
+                'rawg_id' => $data['rawg_id'] ?? null,
+                'title' => $data['title'] ?? '',
+                'platform' => $data['platform'] ?? '',
+                'platforms_list' => $data['platforms_list'] ?? '', // AJOUT : On récupère la liste envoyée par le mobile
+                'status' => $data['status'] ?? 'not_started',
+                'format' => $data['format'] ?? 'physical',
+                'image_url' => $data['background_image'] ?? null,
+                'metacritic_score' => $data['metacritic'] ?? null,
+                'genres' => $data['genres'] ?? ''
+            ];
+
+            // importEntry se chargera d'insérer dans 'games' (avec platforms_list) et 'user_games'
+            $success = $gameModel->importEntry($gameData, $userId);
+            sendJson($success, $success ? 'Jeu ajouté' : 'Erreur lors de l\'ajout');
+        }
         break;
 
     case 'api_update_game':
@@ -256,10 +296,16 @@ switch ($action) {
 
         // Récupérer les jeux (uniquement ceux qui ne sont pas en wishlist/prêtés selon votre logique web)
         $gameController = new GameController($db);
-        
+
         // NOUVELLE REQUÊTE : Jointure entre user_games et games
         $stmtGames = $db->prepare("
-            SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date 
+            SELECT 
+                ug.*, 
+                g.title, 
+                g.cover_url AS image_url, 
+                g.genres, 
+                g.release_date,
+                g.platforms_list  -- <--- AJOUTEZ CETTE LIGNE ICI
             FROM user_games ug 
             JOIN games g ON ug.game_id = g.id 
             WHERE ug.user_id = ? AND ug.status NOT IN ('wishlist', 'loaned') 
@@ -523,6 +569,7 @@ switch ($action) {
                 'image_url' => $imageUrl,
                 'status' => $status,
                 'platform' => 'PC',
+                'platforms_list' => 'PC',
                 'format' => 'digital',
                 'comment' => '',
                 'estimated_price' => null

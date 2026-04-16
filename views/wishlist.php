@@ -194,6 +194,7 @@ if (isset($games) && is_array($games)) {
                     <input type="hidden" name="description" id="gameDesc">
                     <input type="hidden" name="developer" id="gameDeveloper">
                     <input type="hidden" name="publisher" id="gamePublisher">
+                    <input type="hidden" name="platforms_list" id="gamePlatformsList">
                 </div>
 
                 <div class="modal-header border-bottom-0 pb-0">

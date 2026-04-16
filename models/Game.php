@@ -21,13 +21,13 @@ class Game
     public function getAll($userId)
     {
         $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, 
-                     g.summary, g.developer, g.publisher, g.rating AS igdb_rating,
-                     p.time_main AS playtime 
-              FROM " . $this->table . " ug
-              JOIN games g ON ug.game_id = g.id
-              LEFT JOIN playtime p ON ug.id = p.game_id 
-              WHERE ug.user_id = :user_id 
-              ORDER BY ug.created_at DESC";
+             g.summary, g.developer, g.publisher, g.rating AS igdb_rating, g.platforms_list,
+             p.time_main AS playtime 
+            FROM " . $this->table . " ug
+                    JOIN games g ON ug.game_id = g.id
+                    LEFT JOIN playtime p ON ug.id = p.game_id 
+                    WHERE ug.user_id = :user_id 
+                    ORDER BY ug.created_at DESC";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
@@ -68,10 +68,10 @@ class Game
     public function getOne($id, $userId)
     {
         $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, 
-                     g.summary, g.developer, g.publisher 
-              FROM " . $this->table . " ug 
-              JOIN games g ON ug.game_id = g.id 
-              WHERE ug.id = :id AND ug.user_id = :user_id LIMIT 1";
+             g.summary, g.developer, g.publisher, g.platforms_list 
+            FROM " . $this->table . " ug
+                    JOIN games g ON ug.game_id = g.id 
+                    WHERE ug.id = :id AND ug.user_id = :user_id LIMIT 1";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);
@@ -178,8 +178,8 @@ class Game
 
     public function searchGames($userId, $term)
     {
-        $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, p.time_main AS playtime 
-                  FROM " . $this->table . " ug 
+        $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, g.platforms_list, p.time_main AS playtime 
+                  FROM " . $this->table . " ug
                   JOIN games g ON ug.game_id = g.id
                   LEFT JOIN playtime p ON ug.id = p.game_id 
                   WHERE ug.user_id = :user_id 

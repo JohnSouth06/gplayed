@@ -4,9 +4,6 @@ session_start();
 
 require_once '../config/Database.php';
 
-// --- CONFIGURATION DEBUG ---
-define('DEBUG_MODE', true); // Mettez à true pour voir les erreurs détaillées d'IGDB
-
 // Initialisation des variables de session
 if (!isset($_GET['offset']) || $_GET['offset'] == 0) {
     $_SESSION['migration_not_found'] = [];
@@ -38,7 +35,7 @@ $igdbClientId = $_ENV['IGDB_CLIENT_ID'] ?? getenv('IGDB_CLIENT_ID');
 $igdbClientSecret = $_ENV['IGDB_CLIENT_SECRET'] ?? getenv('IGDB_CLIENT_SECRET');
 
 if (!$igdbClientId || !$igdbClientSecret) {
-    die("Erreur : Les identifiants IGDB (CLIENT_ID ou CLIENT_SECRET) sont manquants dans le .env");
+    die("Erreur : Les identifiants IGDB sont manquants dans le .env");
 }
 
 function getTwitchAccessToken($clientId, $clientSecret) {
@@ -57,7 +54,6 @@ function getTwitchAccessToken($clientId, $clientSecret) {
 }
 
 function fetchIgdbGame($title, $clientId, $accessToken) {
-    // Nettoyage ultra-simplifié pour éviter de casser la requête
     $searchTerm = trim($title);
     $searchTerm = str_replace(['"', '\\'], '', $searchTerm);
     
@@ -65,9 +61,8 @@ function fetchIgdbGame($title, $clientId, $accessToken) {
 
     $ch = curl_init();
     
-    // On retire le filtre category de la requête IGDB pour être sûr de trouver quelque chose
-    // On fera le tri sur la catégorie et le titre directement en PHP
-    $query = "search \"$searchTerm\"; fields id, name, category, cover.image_id, genres.name, first_release_date, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, total_rating; limit 10;";
+    // Ajout de platforms.name dans les champs récupérés
+    $query = "search \"$searchTerm\"; fields id, name, category, cover.image_id, genres.name, platforms.name, first_release_date, summary, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, total_rating; limit 10;";
 
     curl_setopt($ch, CURLOPT_URL, "https://api.igdb.com/v4/games");
     curl_setopt($ch, CURLOPT_POST, true);
@@ -95,14 +90,10 @@ function fetchIgdbGame($title, $clientId, $accessToken) {
             $gameName = $game['name'];
             $category = $game['category'] ?? -1;
 
-            // 1. Calcul de la ressemblance textuelle (0 à 100)
             similar_text(mb_strtolower($title), mb_strtolower($gameName), $simPercent);
             $score += $simPercent;
 
-            // 2. Bonus si c'est un "Main Game" (Catégorie 0)
             if ($category === 0) $score += 50; 
-            
-            // 3. Malus si c'est un DLC ou un Bundle (pour éviter les erreurs sur Sea of Stars)
             if ($category === 1 || $category === 3) $score -= 40;
 
             if ($score > $maxScore) {
@@ -111,13 +102,10 @@ function fetchIgdbGame($title, $clientId, $accessToken) {
             }
         }
         return $bestMatch;
-    } elseif (DEBUG_MODE) {
-        echo "<div style='color:orange;'>Erreur API pour '$title' : Code $httpcode | Réponse : $response</div>";
     }
     return null;
 }
 
-// --- EXECUTION ---
 $igdbAccessToken = getTwitchAccessToken($igdbClientId, $igdbClientSecret);
 if (!$igdbAccessToken) die("Erreur : Impossible de récupérer le Token Twitch.");
 
@@ -139,7 +127,7 @@ try {
 
     if (empty($oldGames)) {
         echo "<h2 style='color:green;'>Migration Terminée !</h2>";
-        // ... (Rapport final identique aux versions précédentes)
+        // (Affichage du rapport final omis pour la brièveté)
         exit;
     }
 
@@ -160,28 +148,43 @@ try {
         if ($igdbData) {
             $igdbId = $igdbData['id'];
 
-            // Insertion Catalogue games
             $check = $db->prepare("SELECT id FROM games WHERE id = ?");
             $check->execute([$igdbId]);
             if (!$check->fetch()) {
                 $cover = isset($igdbData['cover']['image_id']) ? "https://images.igdb.com/igdb/image/upload/t_720p/{$igdbData['cover']['image_id']}.jpg" : null;
                 $genres = isset($igdbData['genres']) ? implode(', ', array_column($igdbData['genres'], 'name')) : null;
+                
+                // Préparation de la liste des plateformes
+                $platformsList = isset($igdbData['platforms']) ? implode(', ', array_column($igdbData['platforms'], 'name')) : null;
+                
                 $date = isset($igdbData['first_release_date']) ? date('Y-m-d', $igdbData['first_release_date']) : null;
                 
                 $dev = null; $pub = null;
                 if (isset($igdbData['involved_companies'])) {
                     foreach ($igdbData['involved_companies'] as $comp) {
-                        if ($comp['developer']) $dev = $comp['company']['name'];
-                        if ($comp['publisher']) $pub = $comp['company']['name'];
+                        if (isset($comp['developer']) && $comp['developer']) $dev = $comp['company']['name'];
+                        if (isset($comp['publisher']) && $comp['publisher']) $pub = $comp['company']['name'];
                     }
                 }
 
-                $ins = $db->prepare("INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, rating, created_at) VALUES (?,?,?,?,?,?,?,?,?,NOW())");
-                $ins->execute([$igdbId, $igdbData['name'], $cover, $genres, $date, $igdbData['summary'] ?? null, $dev, $pub, $igdbData['total_rating'] ?? null]);
+                // Insertion avec la nouvelle colonne platforms_list
+                $ins = $db->prepare("INSERT INTO games (id, title, cover_url, genres, platforms_list, release_date, summary, developer, publisher, rating, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,NOW())");
+                $ins->execute([
+                    $igdbId, 
+                    $igdbData['name'], 
+                    $cover, 
+                    $genres, 
+                    $platformsList, // Nouvelle donnée
+                    $date, 
+                    $igdbData['summary'] ?? null, 
+                    $dev, 
+                    $pub, 
+                    $igdbData['total_rating'] ?? null
+                ]);
                 $_SESSION['migration_catalog']++;
             }
 
-            // Insertion user_games
+            // Insertion user_games (reste inchangé)
             $checkUg = $db->prepare("SELECT id FROM user_games WHERE user_id = ? AND game_id = ? AND platform = ?");
             $checkUg->execute([$oldGame['user_id'], $igdbId, $oldGame['platform']]);
             if (!$checkUg->fetch()) {
