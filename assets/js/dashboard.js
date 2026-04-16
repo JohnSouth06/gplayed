@@ -18,6 +18,19 @@ const statusConfig = {
     'loaned': { label: (typeof LANG !== 'undefined' && LANG.status_loaned) ? LANG.status_loaned : 'Prêté', class: 'bg-warning text-dark', icon: '&#xe0e3;' }
 };
 
+function translateGameModes(modesString) {
+    if (!modesString) return '';
+    const mapping = {
+        "Single player": "Solo",
+        "Multiplayer": "Multijoueur",
+        "Co-operative": "Coopération",
+        "Split screen": "Écran partagé",
+        "Massively Multiplayer Online (MMO)": "MMO",
+        "Battle Royale": "Battle Royale"
+    };
+    return modesString.split(',').map(m => mapping[m.trim()] || m.trim()).join(', ');
+}
+
 function mapIgdbPlatform(igdbName) {
     const mapping = {
         "PC (Microsoft Windows)": "PC",
@@ -73,6 +86,26 @@ function mapIgdbPlatform(igdbName) {
     return igdbName;
 }
 
+function renderScreenshots(urls) {
+    const container = document.getElementById('desc-screenshots-container');
+    if (!container || !urls.length) return;
+
+    let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
+    urls.forEach(imgUrl => {
+        html += `
+            <div class="col-6 col-md-4">
+                <a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')">
+                    <img src="${imgUrl}" class="img-fluid rounded shadow-sm" 
+                         style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" 
+                         onmouseover="this.style.transform='scale(1.05)'" 
+                         onmouseout="this.style.transform='scale(1)'">
+                </a>
+            </div>`;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
 
 let currentView = localStorage.getItem('viewMode') || 'grid';
@@ -83,6 +116,326 @@ let observer;
 let modal;
 let searchTimeout;
 let currentLibraryFormat = localStorage.getItem('libraryFormat') || 'physical';
+
+function openModal(g = null, isLoadingPlatforms = false) {
+    if (!modal) {
+        const modalElement = document.getElementById('gameModal');
+        if (!modalElement) return;
+        modal = new bootstrap.Modal(modalElement);
+    }
+    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+
+    safeSet('gameId', g ? g.id : '');
+    safeSet('gameRawgId', '');
+    safeSet('gameTitle', g ? g.title : '');
+    safeSet('gameImageHidden', g ? (g.image_url || '') : '');
+    safeSet('gamePlatformsList', g ? (g.platforms_list || '') : '');
+
+    const prev = document.getElementById('previewImg');
+    const holder = document.getElementById('uploadPlaceholder');
+    if (prev && holder) {
+        if (g && g.image_url) {
+            let prevImgUrl = g.image_url;
+            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
+            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+            prev.src = prevImgUrl;
+            prev.classList.remove('d-none');
+            holder.classList.add('d-none');
+        } else {
+            prev.classList.add('d-none');
+            holder.classList.remove('d-none');
+        }
+    }
+
+    const priceVal = g ? (g.estimated_price || '') : '';
+    safeSet('gamePriceTablet', priceVal);
+    safeSet('gamePriceDesktop', priceVal);
+
+    const priceTablet = document.getElementById('gamePriceTablet');
+    const priceDesktop = document.getElementById('gamePriceDesktop');
+    if (priceTablet && priceDesktop) {
+        priceTablet.oninput = function () { priceDesktop.value = this.value; };
+        priceDesktop.oninput = function () { priceTablet.value = this.value; };
+    }
+
+    const platformSelect = document.getElementById('gamePlatform');
+    if (platformSelect) {
+        platformSelect.innerHTML = ''; // On vide les options par défaut
+
+        if (g && g.platforms_list) {
+            // Si c'est une chaîne séparée par des virgules (ex: "PC, PS4, Xbox")
+            let platformsArray = typeof g.platforms_list === 'string' 
+                                 ? g.platforms_list.split(',') 
+                                 : g.platforms_list;
+
+            let foundCurrent = false;
+
+            platformsArray.forEach(p => {
+                const rawName = p.trim();
+                const mappedName = mapIgdbPlatform(rawName); // Utilise votre fonction de formatage
+                const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+
+                if (!alreadyExists && mappedName) {
+                    const option = document.createElement('option');
+                    option.value = mappedName;
+                    option.textContent = mappedName;
+                    platformSelect.appendChild(option);
+                }
+                if (mappedName === g.platform) foundCurrent = true;
+            });
+
+            // Par sécurité, on ajoute la plateforme actuelle si elle n'est pas dans la liste
+            if (g.platform && !foundCurrent) {
+                const option = document.createElement('option');
+                option.value = g.platform;
+                option.textContent = g.platform;
+                platformSelect.appendChild(option);
+            }
+
+            platformSelect.value = g.platform || platformSelect.options[0].value;
+            platformSelect.disabled = false;
+
+        } else {
+            // Fallback: On charge la liste complète par défaut si `platforms_list` est vide
+            platformSelect.innerHTML = defaultPlatformsHTML;
+            platformSelect.value = (g && g.platform) ? g.platform : 'PS5';
+            platformSelect.disabled = false;
+        }
+    }
+
+    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
+    const fmtDigital = document.getElementById('fmtDigital');
+    const fmtPhysical = document.getElementById('fmtPhysical');
+
+    if (fmtDigital && fmtPhysical) {
+        if (formatToSet === 'digital') {
+            fmtDigital.checked = true;
+            fmtPhysical.checked = false;
+        } else {
+            fmtPhysical.checked = true;
+            fmtDigital.checked = false;
+        }
+    }
+
+    const isWishlistPage = window.location.pathname.includes('wishlist');
+    safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
+    safeSet('gameDate', g ? g.release_date : '');
+    safeSet('gameMeta', g ? g.igdb_rating : '');
+    safeSet('gameComment', g ? g.comment : '');
+    safeSet('gameDesc', g ? (g.summary || g.description || '') : '');
+    safeSet('gameGenres', g ? translateGenres(g.genres) : '');
+    safeSet('gameDeveloper', g ? (g.developer || '') : '');
+    safeSet('gamePublisher', g ? (g.publisher || '') : '');
+
+    const displayDev = document.getElementById('displayDev');
+    if (displayDev) displayDev.innerText = (g && g.developer) ? g.developer : 'Inconnu';
+
+    const displayPub = document.getElementById('displayPub');
+    if (displayPub) displayPub.innerText = (g && g.publisher) ? g.publisher : 'Inconnu';
+
+    const descContent = document.getElementById('gameDescriptionContent');
+    if (descContent) descContent.innerText = g ? (g.summary || g.description || "Aucune description.") : "Aucune description.";
+
+    // --- REINITIALISATION DES ZONES DESCRIPTION ---
+    const modesContainer = document.getElementById('game-modes-container');
+    const displayModes = document.getElementById('displayModes');
+    if (modesContainer && displayModes) {
+        displayModes.innerText = '';
+        modesContainer.style.display = 'none';
+    }
+
+    const screenshotsContainer = document.getElementById('desc-screenshots-container');
+    if (screenshotsContainer) screenshotsContainer.innerHTML = '';
+
+    modal.show();
+}
+
+async function edit(id) {
+    const g = localGames.find(game => game.id == id);
+    if (!g) return;
+
+    const hasIgdbId = !!g.game_id;
+
+    openModal(g);
+
+    const platformSelect = document.getElementById('gamePlatform');
+    const screenshotsContainer = document.getElementById('desc-screenshots-container');
+
+    let localScreenshots = [];
+    try {
+        if (g.screenshots) {
+            localScreenshots = typeof g.screenshots === 'string' ? JSON.parse(g.screenshots) : g.screenshots;
+        }
+    } catch (e) { 
+        console.error("Erreur de lecture des captures locales", e); 
+    }
+
+    if (localScreenshots.length > 0) {
+        renderScreenshots(localScreenshots);
+    }
+
+    if (hasIgdbId) {
+        if (platformSelect) platformSelect.disabled = true; // On bloque le temps du chargement
+
+        try {
+            // On appelle l'API pour récupérer les infos non stockées en local (ex: Game Modes)
+            const res = await fetch(`/?action=get_igdb_details&id=${g.game_id}`);
+            if (res.ok) {
+                const data = await res.json();
+
+                // Gestion des modes de jeu (votre code original)
+                const modesContainer = document.getElementById('game-modes-container');
+                const displayModes = document.getElementById('displayModes');
+                if (modesContainer && displayModes) {
+                    if (data.game_modes && data.game_modes.length > 0) {
+                        displayModes.innerText = translateGameModes(data.game_modes);
+                        modesContainer.style.display = 'flex';
+                    } else {
+                        modesContainer.style.display = 'none';
+                    }
+                }
+
+                // Gestion des captures : si on n'avait rien en local, on affiche celles de l'API
+                if (localScreenshots.length === 0) {
+                    const apiVisuals = [...(data.screenshots || []), ...(data.artworks || [])];
+                    renderScreenshots(apiVisuals);
+                }
+            }
+        } catch (e) {
+            console.error("Erreur IGDB :", e);
+            if (platformSelect) {
+                platformSelect.innerHTML = defaultPlatformsHTML;
+                platformSelect.value = g.platform || 'PS5';
+            }
+        } finally {
+            if (platformSelect) platformSelect.disabled = false;
+        }
+    }
+}
+
+async function fetchGameDetails(id) {
+    const loading = document.getElementById('rawgLoading');
+    if (loading) loading.classList.remove('d-none');
+    try {
+        const res = await fetch(`/?action=get_igdb_details&id=${id}`);
+        if (!res.ok) throw new Error('Erreur API');
+
+        const g = await res.json();
+
+        if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
+            const cleanTitle = g.name.trim().toLowerCase();
+            const existingGame = localGames.find(game => game.title && game.title.trim().toLowerCase() === cleanTitle);
+            if (existingGame) {
+                const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate)
+                    ? LANG.alert_duplicate.replace('{name}', g.name).replace('{platform}', existingGame.platform)
+                    : (LANG.js_game_exists_simple || '').replace('{name}', g.name);
+                alert(msg);
+            }
+        }
+
+        // 1. ON OUVRE LA MODALE EN PREMIER (pour la réinitialiser)
+        openModal();
+
+        // 2. ON REMPLIT LES ELEMENTS VISUELS
+        const displayDev = document.getElementById('displayDev');
+        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
+
+        const displayPub = document.getElementById('displayPub');
+        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
+
+        const descContent = document.getElementById('gameDescriptionContent');
+        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
+
+        // --- GESTION DES MODES DE JEU ---
+        const modesContainer = document.getElementById('game-modes-container');
+        const displayModes = document.getElementById('displayModes');
+        if (modesContainer && displayModes) {
+            if (g.game_modes && g.game_modes.length > 0) {
+                displayModes.innerText = translateGameModes(g.game_modes);
+                modesContainer.style.display = 'flex';
+            } else {
+                modesContainer.style.display = 'none';
+            }
+        }
+
+        // --- GESTION DES CAPTURES D'ECRAN ---
+        const screenshotsContainer = document.getElementById('desc-screenshots-container');
+        if (screenshotsContainer) {
+            if (g.screenshots && g.screenshots.length > 0) {
+                let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
+                g.screenshots.forEach(imgUrl => {
+                    html += `<div class="col-6 col-md-4"><a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"></a></div>`;
+                });
+                html += `</div>`;
+                screenshotsContainer.innerHTML = html;
+            } else {
+                screenshotsContainer.innerHTML = '';
+            }
+        }
+
+        // 3. ON REMPLIT LES CHAMPS CACHÉS DU FORMULAIRE
+        const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
+        safeSet('gameTitle', g.name);
+        safeSet('gameDate', g.released);
+        safeSet('gameMeta', g.metacritic);
+        safeSet('gameImageHidden', g.background_image);
+        safeSet('gameDesc', g.description_raw);
+        safeSet('gameGenres', translateGenres(g.genres_list || ''));
+        safeSet('gameRawgId', id);
+        safeSet('gameDeveloper', g.developer || '');
+        safeSet('gamePublisher', g.publisher || '');
+
+        let allPlatformsString = '';
+        if (g.platforms && Array.isArray(g.platforms)) {
+            allPlatformsString = g.platforms.map(p => {
+                return (typeof p === 'object' && p.name) ? p.name : p;
+            }).join(', ');
+        }
+        safeSet('gamePlatformsList', allPlatformsString);
+
+        const allVisuals = [...(g.screenshots || []), ...(g.artworks || [])];
+        safeSet('gameScreenshots', JSON.stringify(allVisuals));
+
+        // 4. PREVIEW IMAGE
+        const prev = document.getElementById('previewImg');
+        const uploadPl = document.getElementById('uploadPlaceholder');
+        if (prev && uploadPl) {
+            if (g.background_image) {
+                prev.src = g.background_image;
+                prev.classList.remove('d-none');
+                uploadPl.classList.add('d-none');
+            } else {
+                prev.classList.add('d-none');
+                uploadPl.classList.remove('d-none');
+            }
+        }
+
+        // 5. PLATEFORMES DYNAMIQUES
+        const platformSelect = document.getElementById('gamePlatform');
+        if (platformSelect) {
+            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
+                platformSelect.innerHTML = '';
+                g.platforms.forEach(p => {
+                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
+                    const mappedName = mapIgdbPlatform(rawName);
+                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
+
+                    if (!alreadyExists) {
+                        const option = document.createElement('option');
+                        option.value = mappedName;
+                        option.textContent = mappedName;
+                        platformSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+
+    } catch (e) {
+        alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : LANG.js_import_error_generic);
+    } finally {
+        if (loading) loading.classList.add('d-none');
+    }
+}
 
 function translateGenres(genresString) {
     if (!genresString) return '';
@@ -267,8 +620,10 @@ function getProcessedGames() {
     let filtered = localGames.filter(g => {
         if (!window.isLoanedPage && g.format !== currentLibraryFormat) return false;
 
+        if (window.isDashboard && g.status === 'wishlist') return false;
+        if (window.isWishlistPage && g.status !== 'wishlist') return false;
+
         if (platformFilter !== 'all') {
-            if (g.platform === 'Multiplateforme') return true;
             if (!g.platform || !g.platform.includes(platformFilter)) return false;
         }
         if (statusFilter !== 'all' && g.status !== statusFilter) return false;
@@ -503,9 +858,9 @@ function generateGridCard(g) {
     const borderColor = getNeonColor(g.dominant_color, 0.5, g.platform);
 
     let metaHtml = '';
+
     let platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xea5b;</i>';
-    if (g.platform && g.platform.includes(',')) platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
-    else if (platformIcons[g.platform]) platIconHtml = `<i class="${platformIcons[g.platform]} me-1"></i>`;
+    if (platformIcons[g.platform]) platIconHtml = `<i class="${platformIcons[g.platform]} me-1"></i>`;
 
     metaHtml += `<span class="meta-tag">${platIconHtml}${g.platform}</span>`;
 
@@ -605,13 +960,9 @@ function generateListRow(g) {
 
     const price = g.estimated_price > 0 ? `<span class="meta-tag text-primary bg-primary-subtle border-primary-subtle">${g.estimated_price}€</span>` : '<span class="text-muted opacity-25">-</span>';
 
-    let platIconHtml = '';
-    if (g.platform && g.platform.includes(',')) {
-        platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe53b;</i>';
-    } else if (platformIcons[g.platform]) {
+    let platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe338;</i>';
+    if (platformIcons[g.platform]) {
         platIconHtml = `<i class="${platformIcons[g.platform]} me-1"></i>`;
-    } else {
-        platIconHtml = '<i class="material-icons-outlined icon-sm me-1">&#xe338;</i>';
     }
 
     let loanBtnHtml = '';
@@ -723,118 +1074,8 @@ function initViewButtons() {
         }
     }
 }
+
 function previewFile(input) { if (input.files && input.files[0]) { var reader = new FileReader(); reader.onload = function (e) { document.getElementById('previewImg').src = e.target.result; document.getElementById('previewImg').classList.remove('d-none'); document.getElementById('uploadPlaceholder').classList.add('d-none'); }; reader.readAsDataURL(input.files[0]); } }
-function toggleCustomPlatform() { const select = document.getElementById('gamePlatform'); const container = document.getElementById('multiPlatformContainer'); const hiddenInput = document.getElementById('gamePlatformCustom'); if (select && container && hiddenInput) { if (select.value === 'Multiplateforme') { container.classList.remove('d-none'); if (document.getElementById('platformInputsList').children.length === 0) addPlatformInput(); } else { container.classList.add('d-none'); hiddenInput.value = ''; } } }
-function addPlatformInput(value = '') { const list = document.getElementById('platformInputsList'); if (!list) return; const div = document.createElement('div'); div.className = 'input-group input-group-sm mb-1'; div.innerHTML = `<input type="text" class="form-control rounded-start-2 border-end-0 bg-white" value="${value}" placeholder="${LANG.placeholder_name}" oninput="updateHiddenPlatformInput()"><button type="button" class="btn btn-outline-danger border-start-0 rounded-end-2 bg-white text-danger" onclick="this.parentElement.remove(); updateHiddenPlatformInput()"><i class="material-icons-outlined icon-sm">&#xe5cd;</i></button>`; list.appendChild(div); updateHiddenPlatformInput(); }
-function updateHiddenPlatformInput() { const inputs = document.querySelectorAll('#platformInputsList input'); const values = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== ''); const hidden = document.getElementById('gamePlatformCustom'); if (hidden) hidden.value = values.join(', '); }
-
-function edit(id) { openModal(localGames.find(g => g.id == id)); }
-
-function openModal(g = null) {
-    if (!modal) {
-        const modalElement = document.getElementById('gameModal');
-        if (!modalElement) return;
-        modal = new bootstrap.Modal(modalElement);
-    }
-    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-
-    safeSet('gameId', g ? g.id : '');
-    safeSet('gameRawgId', '');
-    safeSet('gameTitle', g ? g.title : '');
-    safeSet('gameImageHidden', g ? (g.image_url || '') : '');
-
-    const prev = document.getElementById('previewImg');
-    const holder = document.getElementById('uploadPlaceholder');
-    if (prev && holder) {
-        if (g && g.image_url) {
-            let prevImgUrl = g.image_url;
-            if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
-            else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
-            prev.src = prevImgUrl;
-            prev.classList.remove('d-none');
-            holder.classList.add('d-none');
-        }
-        else {
-            prev.classList.add('d-none');
-            holder.classList.remove('d-none');
-        }
-    }
-
-    const priceVal = g ? (g.estimated_price || '') : '';
-    safeSet('gamePriceTablet', priceVal);
-    safeSet('gamePriceDesktop', priceVal);
-
-    const priceTablet = document.getElementById('gamePriceTablet');
-    const priceDesktop = document.getElementById('gamePriceDesktop');
-    if (priceTablet && priceDesktop) {
-        priceTablet.oninput = function () { priceDesktop.value = this.value; };
-        priceDesktop.oninput = function () { priceTablet.value = this.value; };
-    }
-
-    const listContainer = document.getElementById('platformInputsList');
-    if (listContainer) listContainer.innerHTML = '';
-
-    const platformSelect = document.getElementById('gamePlatform');
-    if (platformSelect) {
-        platformSelect.innerHTML = defaultPlatformsHTML;
-        if (g && g.platform) {
-            const platformExists = Array.from(platformSelect.options).some(opt => opt.value === g.platform);
-            if (platformExists) { platformSelect.value = g.platform; toggleCustomPlatform(); }
-            else { platformSelect.value = 'Multiplateforme'; toggleCustomPlatform(); const parts = g.platform.split(',').map(s => s.trim()); parts.forEach(p => addPlatformInput(p)); }
-        } else { platformSelect.value = 'PS5'; toggleCustomPlatform(); }
-    }
-
-    const formatToSet = g ? (g.format || currentLibraryFormat) : currentLibraryFormat;
-    const fmtDigital = document.getElementById('fmtDigital');
-    const fmtPhysical = document.getElementById('fmtPhysical');
-
-    if (fmtDigital && fmtPhysical) {
-        if (formatToSet === 'digital') {
-            fmtDigital.checked = true;
-            fmtPhysical.checked = false;
-        } else {
-            fmtPhysical.checked = true;
-            fmtDigital.checked = false;
-        }
-    }
-
-    const isWishlistPage = window.location.pathname.includes('wishlist');
-    safeSet('gameStatus', g ? (g.status || 'not_started') : (isWishlistPage ? 'wishlist' : 'not_started'));
-    safeSet('gameDate', g ? g.release_date : '');
-
-    safeSet('gameMeta', g ? g.igdb_rating : '');
-    safeSet('gameComment', g ? g.comment : '');
-    safeSet('gameDesc', g ? (g.summary || g.description || '') : '');
-    safeSet('gameGenres', g ? translateGenres(g.genres) : '');
-
-    // --- NOUVEAU : Gestion de l'affichage des onglets ---
-    safeSet('gameDeveloper', g ? (g.developer || '') : '');
-    safeSet('gamePublisher', g ? (g.publisher || '') : '');
-
-    const displayDev = document.getElementById('displayDev');
-    if (displayDev) displayDev.innerText = (g && g.developer) ? g.developer : 'Inconnu';
-
-    const displayPub = document.getElementById('displayPub');
-    if (displayPub) displayPub.innerText = (g && g.publisher) ? g.publisher : 'Inconnu';
-
-    const descContent = document.getElementById('gameDescriptionContent');
-    if (descContent) descContent.innerText = g ? (g.summary || g.description || "Aucune description.") : "Aucune description.";
-
-    const ytPlayer = document.getElementById('ytPlayer');
-    const ytLink = document.getElementById('ytLink');
-    
-    // Si on édite un jeu existant, on génère une recherche vidéo YouTube automatique
-    if (g && g.title) {
-        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.title + ' game trailer')}`;
-        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.title + ' game trailer')}`;
-    } else {
-        // S'il s'agit d'un "Ajout manuel", on laisse vide
-        if (ytPlayer) ytPlayer.src = ''; 
-        if (ytLink) ytLink.href = '#';
-    }
-
-    modal.show();
-}
 
 let loanModal;
 function openLoanModal(gameId, gameTitle) {
@@ -846,6 +1087,47 @@ function openLoanModal(gameId, gameTitle) {
     if (loanGameId) loanGameId.value = gameId;
     if (loanGameTitle) loanGameTitle.innerText = gameTitle;
     loanModal.show();
+}
+
+let lightboxModalInstance = null;
+
+function openLightbox(imgUrl) {
+    let lightboxEl = document.getElementById('lightboxModal');
+    
+    // 1. Si la modale n'existe pas encore dans la page, on la crée dynamiquement
+    if (!lightboxEl) {
+        const modalHtml = `
+        <div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-content bg-transparent border-0">
+                    <div class="modal-body p-0 text-center position-relative">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-2 shadow-sm bg-light rounded-circle p-2" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1065; opacity: 0.9;"></button>
+                        <img id="lightboxImage" src="" class="img-fluid rounded shadow-lg" style="max-height: 90vh; max-width: 100%; object-fit: contain;">
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        lightboxEl = document.getElementById('lightboxModal');
+        
+        // Empêche la fermeture de la première modale (gameModal) quand on ferme la Lightbox
+        lightboxEl.addEventListener('hidden.bs.modal', function () {
+            // Remet le scroll sur le body pour que la modale en dessous puisse continuer à scroller
+            if (document.getElementById('gameModal').classList.contains('show')) {
+                document.body.classList.add('modal-open');
+            }
+        });
+    }
+    
+    // 2. On change la source de l'image
+    document.getElementById('lightboxImage').src = imgUrl;
+    
+    // 3. On initialise et on affiche
+    if (!lightboxModalInstance) {
+        lightboxModalInstance = new bootstrap.Modal(lightboxEl);
+    }
+    lightboxModalInstance.show();
 }
 
 async function searchIgdb(autoOpen = false) {
@@ -899,103 +1181,5 @@ async function searchIgdb(autoOpen = false) {
         if (!autoOpen && loading) {
             loading.classList.add('d-none');
         }
-    }
-}
-
-async function fetchGameDetails(id) {
-    const loading = document.getElementById('rawgLoading');
-    if (loading) loading.classList.remove('d-none');
-    try {
-        const res = await fetch(`/?action=get_igdb_details&id=${id}`);
-        if (!res.ok) throw new Error('Erreur API');
-
-        const g = await res.json();
-
-        if (typeof localGames !== 'undefined' && Array.isArray(localGames)) {
-            const cleanTitle = g.name.trim().toLowerCase();
-            const existingGame = localGames.find(game => game.title && game.title.trim().toLowerCase() === cleanTitle);
-            if (existingGame) {
-                const msg = (typeof LANG !== 'undefined' && LANG.alert_duplicate)
-                    ? LANG.alert_duplicate.replace('{name}', g.name).replace('{platform}', existingGame.platform)
-                    : (LANG.js_game_exists_simple || '').replace('{name}', g.name);
-                alert(msg);
-            }
-        }
-
-        // 1. ON OUVRE LA MODALE EN PREMIER (pour la réinitialiser)
-        openModal();
-
-        // 2. ON REMPLIT LES ELEMENTS VISUELS
-        const displayDev = document.getElementById('displayDev');
-        if (displayDev) displayDev.innerText = g.developer || 'Inconnu';
-
-        const displayPub = document.getElementById('displayPub');
-        if (displayPub) displayPub.innerText = g.publisher || 'Inconnu';
-
-        const descContent = document.getElementById('gameDescriptionContent');
-        if (descContent) descContent.innerText = g.description_raw || "Aucune description.";
-
-        const ytPlayer = document.getElementById('ytPlayer');
-        const ytLink = document.getElementById('ytLink');
-        if (g.video_id) {
-            // Si IGDB a une vidéo officielle, on l'affiche
-            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed/${g.video_id}`;
-            if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${g.video_id}`;
-        } else {
-            // Si IGDB n'a pas de vidéo, on génère la recherche automatique comme solution de secours
-            if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(g.name + ' game trailer')}`;
-            if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(g.name + ' game trailer')}`;
-        }
-
-        // 3. ON REMPLIT LES CHAMPS CACHÉS DU FORMULAIRE
-        const safeSet = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val; };
-        safeSet('gameTitle', g.name);
-        safeSet('gameDate', g.released);
-        safeSet('gameMeta', g.metacritic);
-        safeSet('gameImageHidden', g.background_image);
-        safeSet('gameDesc', g.description_raw);
-        safeSet('gameGenres', translateGenres(g.genres_list || ''));
-        safeSet('gameRawgId', id);
-        safeSet('gameDeveloper', g.developer || '');
-        safeSet('gamePublisher', g.publisher || '');
-
-        // 4. PREVIEW IMAGE
-        const prev = document.getElementById('previewImg');
-        const uploadPl = document.getElementById('uploadPlaceholder');
-        if (prev && uploadPl) {
-            if (g.background_image) {
-                prev.src = g.background_image;
-                prev.classList.remove('d-none');
-                uploadPl.classList.add('d-none');
-            } else {
-                prev.classList.add('d-none');
-                uploadPl.classList.remove('d-none');
-            }
-        }
-
-        // 5. PLATEFORMES DYNAMIQUES
-        const platformSelect = document.getElementById('gamePlatform');
-        if (platformSelect) {
-            if (g.platforms && Array.isArray(g.platforms) && g.platforms.length > 0) {
-                platformSelect.innerHTML = ''; 
-                g.platforms.forEach(p => {
-                    const rawName = (typeof p === 'object' && p.name) ? p.name : p;
-                    const mappedName = mapIgdbPlatform(rawName); 
-                    const alreadyExists = [...platformSelect.options].some(opt => opt.value === mappedName);
-                    
-                    if (!alreadyExists) {
-                        const option = document.createElement('option');
-                        option.value = mappedName;
-                        option.textContent = mappedName; 
-                        platformSelect.appendChild(option);
-                    }
-                });
-            }
-        }
-
-    } catch (e) {
-        alert((typeof LANG !== 'undefined' && LANG.error_import) ? LANG.error_import : LANG.js_import_error_generic);
-    } finally {
-        if (loading) loading.classList.add('d-none');
     }
 }

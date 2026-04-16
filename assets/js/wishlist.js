@@ -1,3 +1,16 @@
+function translateGameModes(modesString) {
+    if (!modesString) return '';
+    const mapping = {
+        "Single player": "Solo",
+        "Multiplayer": "Multijoueur",
+        "Co-operative": "Coopération",
+        "Split screen": "Écran partagé",
+        "Massively Multiplayer Online (MMO)": "MMO",
+        "Battle Royale": "Battle Royale"
+    };
+    return modesString.split(',').map(m => mapping[m.trim()] || m.trim()).join(', ');
+}
+
 function openModal() {
     // On s'assure de vider tous les champs, y compris les nouveaux (Desc, Dev, Pub, Meta)
     const fields = ['gameId', 'gameRawgId', 'gameTitle', 'gameGenres', 'gameComment', 'gamePrice', 'gameDate', 'gameDateVisual', 'gameDesc', 'gameDeveloper', 'gamePublisher', 'gameMeta'];
@@ -11,7 +24,7 @@ function openModal() {
 
     const dateCol = document.getElementById('releaseDateCol');
     if (dateCol) dateCol.classList.add('d-none');
-    
+
     if (previewImg && uploadPlaceholder) {
         previewImg.src = '';
         previewImg.classList.add('d-none');
@@ -43,12 +56,6 @@ function openModal() {
         }
     }
 
-    // --- NOUVEAU : Réinitialisation de l'onglet Médias et des infos visuelles ---
-    const ytPlayer = document.getElementById('ytPlayer');
-    const ytLink = document.getElementById('ytLink');
-    if (ytPlayer) ytPlayer.src = '';
-    if (ytLink) ytLink.href = '#';
-
     const displayDev = document.getElementById('displayDev');
     if (displayDev) displayDev.innerText = 'Inconnu';
 
@@ -57,21 +64,31 @@ function openModal() {
 
     const descContent = document.getElementById('gameDescriptionContent');
     if (descContent) descContent.innerText = "Aucune description.";
-    // ----------------------------------------------------------------------------
+
+    // NOUVEAU : Réinitialisation
+    const modesContainer = document.getElementById('game-modes-container');
+    const displayModes = document.getElementById('displayModes');
+    if (modesContainer && displayModes) {
+        displayModes.innerText = '';
+        modesContainer.style.display = 'none';
+    }
+
+    const screenshotsContainer = document.getElementById('desc-screenshots-container');
+    if (screenshotsContainer) screenshotsContainer.innerHTML = '';
 
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
 
 function editGame(game) {
+    // --- 1. Remplissage standard des champs (votre code existant) ---
     document.getElementById('gameId').value = game.id;
     document.getElementById('gameRawgId').value = game.rawg_id || '';
     document.getElementById('gameTitle').value = game.title;
-    
+
     const platformSelect = document.getElementById('gamePlatform');
     if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
         platformSelect.innerHTML = defaultPlatformsHTML;
         const platformExists = Array.from(platformSelect.options).some(opt => opt.value === game.platform);
-        
         if (!platformExists && game.platform) {
             const option = document.createElement('option');
             option.value = game.platform;
@@ -79,7 +96,7 @@ function editGame(game) {
             platformSelect.appendChild(option);
         }
     }
-    
+
     if (document.getElementById('gamePlatform')) {
         document.getElementById('gamePlatform').value = game.platform;
     }
@@ -88,7 +105,6 @@ function editGame(game) {
     document.getElementById('gameComment').value = game.comment || '';
     document.getElementById('gamePrice').value = game.estimated_price || '';
 
-    // --- NOUVEAU : Remplissage des champs de Description, Développeur et Éditeur ---
     const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     safeSet('gameDesc', game.summary || game.description || '');
     safeSet('gameDeveloper', game.developer || '');
@@ -97,14 +113,11 @@ function editGame(game) {
 
     const displayDev = document.getElementById('displayDev');
     if (displayDev) displayDev.innerText = game.developer || 'Inconnu';
-
     const displayPub = document.getElementById('displayPub');
     if (displayPub) displayPub.innerText = game.publisher || 'Inconnu';
-
     const descContent = document.getElementById('gameDescriptionContent');
     if (descContent) descContent.innerText = game.summary || game.description || "Aucune description.";
-    // -------------------------------------------------------------------------------
-    
+
     document.getElementById('gameDate').value = game.release_date || '';
     const dateVisual = document.getElementById('gameDateVisual');
     const dateCol = document.getElementById('releaseDateCol');
@@ -114,19 +127,14 @@ function editGame(game) {
         if (dateCol) dateCol.classList.remove('d-none');
     } else {
         if (dateVisual) dateVisual.value = '';
-        if (dateCol) dateCol.classList.add('d-none'); 
+        if (dateCol) dateCol.classList.add('d-none');
     }
 
     const fmtPhys = document.getElementById('fmtPhysical');
     const fmtDigi = document.getElementById('fmtDigital');
     if (fmtPhys && fmtDigi) {
-        if (game.format === 'digital') {
-            fmtDigi.checked = true;
-            fmtPhys.checked = false;
-        } else {
-            fmtPhys.checked = true;
-            fmtDigi.checked = false;
-        }
+        if (game.format === 'digital') { fmtDigi.checked = true; fmtPhys.checked = false; }
+        else { fmtPhys.checked = true; fmtDigi.checked = false; }
     }
 
     const previewImg = document.getElementById('previewImg');
@@ -137,11 +145,10 @@ function editGame(game) {
         let prevImgUrl = game.image_url;
         if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
         else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
-        
         previewImg.src = prevImgUrl;
         previewImg.classList.remove('d-none');
         uploadPlaceholder.classList.add('d-none');
-        if (hiddenImg) hiddenImg.value = game.image_url; 
+        if (hiddenImg) hiddenImg.value = game.image_url;
     } else {
         previewImg.classList.add('d-none');
         uploadPlaceholder.classList.remove('d-none');
@@ -150,22 +157,74 @@ function editGame(game) {
 
     const deleteLink = document.getElementById('deleteLink');
     if (deleteLink) {
-        deleteLink.href = "/delete?id=" + game.id;
+        deleteLink.href = "/?action=delete&id=" + game.id;
         document.getElementById('deleteBtnContainer').classList.remove('d-none');
     }
 
-    // --- NOUVEAU : Affichage dynamique de la vidéo YouTube ---
-    const ytPlayer = document.getElementById('ytPlayer');
-    const ytLink = document.getElementById('ytLink');
-
-    if (game.title) {
-        if (ytPlayer) ytPlayer.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(game.title + ' game trailer')}`;
-        if (ytLink) ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(game.title + ' game trailer')}`;
-    } else {
-        if (ytPlayer) ytPlayer.src = '';
-        if (ytLink) ytLink.href = '#';
+    // --- 2. GESTION DU CACHE ET DE L'API (Partie modifiée) ---
+    const screenshotsContainer = document.getElementById('desc-screenshots-container');
+    
+    // Tentative de lecture des captures locales stockées en DB
+    let localScreenshots = [];
+    try {
+        if (game.screenshots) {
+            localScreenshots = typeof game.screenshots === 'string' ? JSON.parse(game.screenshots) : game.screenshots;
+        }
+    } catch (e) {
+        console.error("Erreur de lecture des captures locales", e);
     }
-    // ---------------------------------------------------------
+
+    // Si on a des captures en local, on les affiche de suite
+    if (localScreenshots.length > 0) {
+        renderScreenshots(localScreenshots); // Utilise la fonction globale de rendu
+        // On remplit le champ caché pour que GameController reçoive les URLs
+        const hiddenInput = document.getElementById('gameScreenshots');
+        if (hiddenInput) hiddenInput.value = JSON.stringify(localScreenshots);
+    } else if (screenshotsContainer) {
+        // Sinon, on affiche le loader le temps du fetch
+        screenshotsContainer.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>';
+    }
+
+    const igdbId = game.game_id || game.rawg_id; //
+    if (igdbId) {
+        fetch(`/?action=get_igdb_details&id=${igdbId}`)
+            .then(res => res.json())
+            .then(data => {
+                // Modes de jeu : Toujours mis à jour car non stockés en DB
+                const modesContainer = document.getElementById('game-modes-container');
+                const displayModes = document.getElementById('displayModes');
+                if (modesContainer && displayModes) {
+                    if (data.game_modes && data.game_modes.length > 0) {
+                        displayModes.innerText = translateGameModes(data.game_modes);
+                        modesContainer.style.display = 'flex';
+                    } else {
+                        modesContainer.style.display = 'none';
+                    }
+                }
+
+                // Captures d'écran : Uniquement si on n'avait rien en local
+                if (localScreenshots.length === 0) {
+                    const apiScreenshots = [...(data.screenshots || []), ...(data.artworks || [])];
+                    if (apiScreenshots.length > 0) {
+                        renderScreenshots(apiScreenshots);
+                        // On prépare le champ caché pour la sauvegarde (lors de l'acquisition par ex)
+                        const hiddenInput = document.getElementById('gameScreenshots');
+                        if (hiddenInput) hiddenInput.value = JSON.stringify(apiScreenshots);
+                    } else if (screenshotsContainer) {
+                        screenshotsContainer.innerHTML = '';
+                    }
+                }
+            })
+            .catch(() => {
+                if (screenshotsContainer && localScreenshots.length === 0) {
+                    screenshotsContainer.innerHTML = '';
+                }
+            });
+    } else {
+        if (screenshotsContainer && localScreenshots.length === 0) {
+            screenshotsContainer.innerHTML = '';
+        }
+    }
 
     new bootstrap.Modal(document.getElementById('gameModal')).show();
 }
@@ -174,7 +233,7 @@ function previewFile(input) {
     const file = input.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             const previewImg = document.getElementById('previewImg');
             previewImg.src = e.target.result;
             previewImg.classList.remove('d-none');
@@ -186,15 +245,15 @@ function previewFile(input) {
 
 /* --- SURCHARGES GLOBALES (Placées en dehors du DOMContentLoaded pour agir AVANT le premier rendu) --- */
 
-window.edit = function(id) {
+window.edit = function (id) {
     const game = localGames.find(g => g.id == id);
     if (game) {
         editGame(game);
     }
 };
 
-window.generateGridCard = function(g) {
-    const s = statusConfig['wishlist'] || statusConfig['playing']; 
+window.generateGridCard = function (g) {
+    const s = statusConfig['wishlist'] || statusConfig['playing'];
     let img = g.image_url ? g.image_url : '';
     if (img.startsWith('//')) {
         img = 'https:' + img;
@@ -242,7 +301,7 @@ window.generateGridCard = function(g) {
     const imagePlaceholder = `<div class="position-absolute top-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body-tertiary"><i class="material-icons-outlined icon-xl text-secondary opacity-25">&#xea5b;</i></div>`;
 
     // --- BOUTONS D'ACTION (Overlay Centré) ---
-    
+
     // 1. Bouton Acquérir (Spécifique Wishlist) - Vert
     const acquireBtn = `
         <a href="/?action=acquire&id=${g.id}" class="btn-icon-action btn-light text-success rounded-circle shadow-sm" title="${LANG.btn_acquire}" onclick="return confirm('${LANG.confirm_acquire}')">
@@ -293,7 +352,7 @@ window.generateGridCard = function(g) {
     </div>`;
 };
 
-window.generateListRow = function(g) {
+window.generateListRow = function (g) {
     let finalImg = g.image_url ? g.image_url : '';
     if (finalImg.startsWith('//')) {
         finalImg = 'https:' + finalImg;
@@ -346,7 +405,7 @@ window.generateListRow = function(g) {
     </tr>`;
 };
 
-window.loadMoreGames = function() {
+window.loadMoreGames = function () {
     if (displayedCount >= processedGamesCache.length) {
         toggleLoader(false);
         return;
@@ -400,22 +459,22 @@ window.loadMoreGames = function() {
 
 document.addEventListener('DOMContentLoaded', () => {
     const hiddenDateInput = document.getElementById('gameDate');
-    if(hiddenDateInput) {
+    if (hiddenDateInput) {
         const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
         Object.defineProperty(hiddenDateInput, 'value', {
-            set: function(val) {
+            set: function (val) {
                 const oldVal = this.value;
                 descriptor.set.call(this, val);
-                if(oldVal !== val) {
+                if (oldVal !== val) {
                     const visual = document.getElementById('gameDateVisual');
-                    if(visual) visual.value = val;
+                    if (visual) visual.value = val;
                 }
             },
-            get: function() { return descriptor.get.call(this); }
+            get: function () { return descriptor.get.call(this); }
         });
     }
-    
-    if(typeof updateView === 'function') {
+
+    if (typeof updateView === 'function') {
         updateView();
     }
 });
