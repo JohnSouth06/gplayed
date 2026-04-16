@@ -372,7 +372,6 @@ $shareLink = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" :
                 <input type="hidden" name="developer" id="gameDeveloper">
                 <input type="hidden" name="publisher" id="gamePublisher">
                 <input type="hidden" name="platforms_list" id="gamePlatformsList">
-                <input type="hidden" name="screenshots" id="gameScreenshots">
             </form>
         </div>
     </div>

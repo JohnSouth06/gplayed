@@ -80,7 +80,6 @@ function openModal() {
 }
 
 function editGame(game) {
-    // --- 1. Remplissage standard des champs (votre code existant) ---
     document.getElementById('gameId').value = game.id;
     document.getElementById('gameRawgId').value = game.rawg_id || '';
     document.getElementById('gameTitle').value = game.title;
@@ -89,6 +88,7 @@ function editGame(game) {
     if (platformSelect && typeof defaultPlatformsHTML !== 'undefined') {
         platformSelect.innerHTML = defaultPlatformsHTML;
         const platformExists = Array.from(platformSelect.options).some(opt => opt.value === game.platform);
+
         if (!platformExists && game.platform) {
             const option = document.createElement('option');
             option.value = game.platform;
@@ -105,6 +105,7 @@ function editGame(game) {
     document.getElementById('gameComment').value = game.comment || '';
     document.getElementById('gamePrice').value = game.estimated_price || '';
 
+    // --- Remplissage des champs de Description, Développeur et Éditeur ---
     const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     safeSet('gameDesc', game.summary || game.description || '');
     safeSet('gameDeveloper', game.developer || '');
@@ -113,10 +114,13 @@ function editGame(game) {
 
     const displayDev = document.getElementById('displayDev');
     if (displayDev) displayDev.innerText = game.developer || 'Inconnu';
+
     const displayPub = document.getElementById('displayPub');
     if (displayPub) displayPub.innerText = game.publisher || 'Inconnu';
+
     const descContent = document.getElementById('gameDescriptionContent');
     if (descContent) descContent.innerText = game.summary || game.description || "Aucune description.";
+    // -------------------------------------------------------------------------------
 
     document.getElementById('gameDate').value = game.release_date || '';
     const dateVisual = document.getElementById('gameDateVisual');
@@ -133,8 +137,13 @@ function editGame(game) {
     const fmtPhys = document.getElementById('fmtPhysical');
     const fmtDigi = document.getElementById('fmtDigital');
     if (fmtPhys && fmtDigi) {
-        if (game.format === 'digital') { fmtDigi.checked = true; fmtPhys.checked = false; }
-        else { fmtPhys.checked = true; fmtDigi.checked = false; }
+        if (game.format === 'digital') {
+            fmtDigi.checked = true;
+            fmtPhys.checked = false;
+        } else {
+            fmtPhys.checked = true;
+            fmtDigi.checked = false;
+        }
     }
 
     const previewImg = document.getElementById('previewImg');
@@ -145,6 +154,7 @@ function editGame(game) {
         let prevImgUrl = game.image_url;
         if (prevImgUrl.startsWith('//')) prevImgUrl = 'https:' + prevImgUrl;
         else if (!prevImgUrl.startsWith('http') && !prevImgUrl.startsWith('/')) prevImgUrl = '/' + prevImgUrl;
+
         previewImg.src = prevImgUrl;
         previewImg.classList.remove('d-none');
         uploadPlaceholder.classList.add('d-none');
@@ -161,36 +171,17 @@ function editGame(game) {
         document.getElementById('deleteBtnContainer').classList.remove('d-none');
     }
 
-    // --- 2. GESTION DU CACHE ET DE L'API (Partie modifiée) ---
+    // --- RECHERCHE IGDB EN ARRIERE-PLAN (Wishlist) ---
     const screenshotsContainer = document.getElementById('desc-screenshots-container');
-    
-    // Tentative de lecture des captures locales stockées en DB
-    let localScreenshots = [];
-    try {
-        if (game.screenshots) {
-            localScreenshots = typeof game.screenshots === 'string' ? JSON.parse(game.screenshots) : game.screenshots;
-        }
-    } catch (e) {
-        console.error("Erreur de lecture des captures locales", e);
-    }
-
-    // Si on a des captures en local, on les affiche de suite
-    if (localScreenshots.length > 0) {
-        renderScreenshots(localScreenshots); // Utilise la fonction globale de rendu
-        // On remplit le champ caché pour que GameController reçoive les URLs
-        const hiddenInput = document.getElementById('gameScreenshots');
-        if (hiddenInput) hiddenInput.value = JSON.stringify(localScreenshots);
-    } else if (screenshotsContainer) {
-        // Sinon, on affiche le loader le temps du fetch
+    if (screenshotsContainer) {
         screenshotsContainer.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>';
     }
 
-    const igdbId = game.game_id || game.rawg_id; //
+    const igdbId = game.game_id || game.rawg_id;
     if (igdbId) {
         fetch(`/?action=get_igdb_details&id=${igdbId}`)
             .then(res => res.json())
             .then(data => {
-                // Modes de jeu : Toujours mis à jour car non stockés en DB
                 const modesContainer = document.getElementById('game-modes-container');
                 const displayModes = document.getElementById('displayModes');
                 if (modesContainer && displayModes) {
@@ -202,28 +193,24 @@ function editGame(game) {
                     }
                 }
 
-                // Captures d'écran : Uniquement si on n'avait rien en local
-                if (localScreenshots.length === 0) {
-                    const apiScreenshots = [...(data.screenshots || []), ...(data.artworks || [])];
-                    if (apiScreenshots.length > 0) {
-                        renderScreenshots(apiScreenshots);
-                        // On prépare le champ caché pour la sauvegarde (lors de l'acquisition par ex)
-                        const hiddenInput = document.getElementById('gameScreenshots');
-                        if (hiddenInput) hiddenInput.value = JSON.stringify(apiScreenshots);
-                    } else if (screenshotsContainer) {
+                if (screenshotsContainer) {
+                    if (data.screenshots && data.screenshots.length > 0) {
+                        let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
+                        data.screenshots.forEach(imgUrl => {
+                            html += `<div class="col-6 col-md-4"><a href="${imgUrl}" target="_blank"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%;"></a></div>`;
+                        });
+                        html += `</div>`;
+                        screenshotsContainer.innerHTML = html;
+                    } else {
                         screenshotsContainer.innerHTML = '';
                     }
                 }
             })
             .catch(() => {
-                if (screenshotsContainer && localScreenshots.length === 0) {
-                    screenshotsContainer.innerHTML = '';
-                }
+                if (screenshotsContainer) screenshotsContainer.innerHTML = '';
             });
     } else {
-        if (screenshotsContainer && localScreenshots.length === 0) {
-            screenshotsContainer.innerHTML = '';
-        }
+        if (screenshotsContainer) screenshotsContainer.innerHTML = '';
     }
 
     new bootstrap.Modal(document.getElementById('gameModal')).show();

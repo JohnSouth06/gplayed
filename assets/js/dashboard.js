@@ -86,26 +86,6 @@ function mapIgdbPlatform(igdbName) {
     return igdbName;
 }
 
-function renderScreenshots(urls) {
-    const container = document.getElementById('desc-screenshots-container');
-    if (!container || !urls.length) return;
-
-    let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
-    urls.forEach(imgUrl => {
-        html += `
-            <div class="col-6 col-md-4">
-                <a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')">
-                    <img src="${imgUrl}" class="img-fluid rounded shadow-sm" 
-                         style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" 
-                         onmouseover="this.style.transform='scale(1.05)'" 
-                         onmouseout="this.style.transform='scale(1)'">
-                </a>
-            </div>`;
-    });
-    html += `</div>`;
-    container.innerHTML = html;
-}
-
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
 
 let currentView = localStorage.getItem('viewMode') || 'grid';
@@ -256,34 +236,18 @@ async function edit(id) {
 
     const hasIgdbId = !!g.game_id;
 
+    // 1. On ouvre la modale. Si on a un ID IGDB, on bloque le select sur "Chargement..."
     openModal(g);
 
     const platformSelect = document.getElementById('gamePlatform');
-    const screenshotsContainer = document.getElementById('desc-screenshots-container');
 
-    let localScreenshots = [];
-    try {
-        if (g.screenshots) {
-            localScreenshots = typeof g.screenshots === 'string' ? JSON.parse(g.screenshots) : g.screenshots;
-        }
-    } catch (e) { 
-        console.error("Erreur de lecture des captures locales", e); 
-    }
-
-    if (localScreenshots.length > 0) {
-        renderScreenshots(localScreenshots);
-    }
-
+    // 2. On récupère dynamiquement les plateformes IGDB + les infos additionnelles
     if (hasIgdbId) {
-        if (platformSelect) platformSelect.disabled = true; // On bloque le temps du chargement
-
         try {
-            // On appelle l'API pour récupérer les infos non stockées en local (ex: Game Modes)
             const res = await fetch(`/?action=get_igdb_details&id=${g.game_id}`);
             if (res.ok) {
                 const data = await res.json();
 
-                // Gestion des modes de jeu (votre code original)
                 const modesContainer = document.getElementById('game-modes-container');
                 const displayModes = document.getElementById('displayModes');
                 if (modesContainer && displayModes) {
@@ -295,10 +259,19 @@ async function edit(id) {
                     }
                 }
 
-                // Gestion des captures : si on n'avait rien en local, on affiche celles de l'API
-                if (localScreenshots.length === 0) {
-                    const apiVisuals = [...(data.screenshots || []), ...(data.artworks || [])];
-                    renderScreenshots(apiVisuals);
+                // --- GESTION DES CAPTURES D'ECRAN ---
+                const screenshotsContainer = document.getElementById('desc-screenshots-container');
+                if (screenshotsContainer) {
+                    if (data.screenshots && data.screenshots.length > 0) {
+                        let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
+                        data.screenshots.forEach(imgUrl => {
+                            html += `<div class="col-6 col-md-4"><a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')"><img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"></a></div>`;
+                        });
+                        html += `</div>`;
+                        screenshotsContainer.innerHTML = html;
+                    } else {
+                        screenshotsContainer.innerHTML = '';
+                    }
                 }
             }
         } catch (e) {
@@ -392,9 +365,6 @@ async function fetchGameDetails(id) {
             }).join(', ');
         }
         safeSet('gamePlatformsList', allPlatformsString);
-
-        const allVisuals = [...(g.screenshots || []), ...(g.artworks || [])];
-        safeSet('gameScreenshots', JSON.stringify(allVisuals));
 
         // 4. PREVIEW IMAGE
         const prev = document.getElementById('previewImg');

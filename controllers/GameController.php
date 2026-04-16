@@ -117,17 +117,9 @@ class GameController
     {
         $input = json_decode(file_get_contents('php://input'), true);
 
+        // L'ID de l'API (IGDB) est désormais LA source de vérité obligatoire
         if (empty($input['rawg_id']) || empty($input['status'])) {
             $this->apiResponse(false, 'L\'identifiant du jeu (ID IGDB) et le statut sont obligatoires.');
-        }
-
-        // Fusionner les screenshots et artworks s'ils sont envoyés séparément
-        $allVisuals = [];
-        if (isset($input['screenshots']) && is_array($input['screenshots'])) {
-            $allVisuals = array_merge($allVisuals, $input['screenshots']);
-        }
-        if (isset($input['artworks']) && is_array($input['artworks'])) {
-            $allVisuals = array_merge($allVisuals, $input['artworks']);
         }
 
         $gameData = [
@@ -139,14 +131,13 @@ class GameController
             'platform' => $input['platform'] ?? 'PC',
             'platform_custom' => $input['platform_custom'] ?? '',
             'comment' => $input['comment'] ?? '',
-            'image_url_hidden' => $input['background_image'] ?? '',
+            'image_url_hidden' => $input['background_image'] ?? '', // L'URL qui ira dans la table catalogue
             'metacritic' => $input['metacritic'] ?? null,
             'genres' => is_array($input['genres']) ? implode(', ', $input['genres']) : ($input['genres'] ?? null),
             'release_date' => $input['released'] ?? null,
             'description' => $input['description'] ?? '',
             'developer' => $input['developer'] ?? null,
-            'publisher' => $input['publisher'] ?? null,
-            'screenshots' => $allVisuals // Ajout des visuels ici
+            'publisher' => $input['publisher'] ?? null
         ];
 
         // Vérification des doublons
@@ -384,6 +375,7 @@ class GameController
     }
 
     // --- Save (Ajout/Modif) ---
+    // --- Save (Ajout/Modif) ---
     public function saveGame()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -423,8 +415,7 @@ class GameController
                 'description' => $_POST['description'] ?? '',
                 'estimated_price' => $_POST['estimated_price'] ?? null,
                 'developer' => $_POST['developer'] ?? null,
-                'publisher' => $_POST['publisher'] ?? null,
-                'screenshots' => $_POST['screenshots'] ?? null
+                'publisher' => $_POST['publisher'] ?? null
             ];
 
             // On appelle le modèle en passant `null` pour le paramètre $file (plus d'upload d'image local)
