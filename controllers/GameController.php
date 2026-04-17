@@ -1222,9 +1222,7 @@ class GameController
         require dirname(__DIR__) . '/views/layout.php';
     }
 
-    // À ajouter dans GameController.php
-    public function getOrFetchScreenshots($localId, $igdbId)
-    {
+    public function getOrFetchScreenshots($localId, $igdbId) {
         // On récupère les captures sur IGDB
         $body = "fields screenshots.url; where id = {$igdbId};";
         $results = $this->callIgdb('games', $body);

@@ -4,9 +4,9 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0); // Ne pas afficher à l'écran
 error_reporting(E_ALL);
+ini_set('log_errors', 1);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -40,6 +40,7 @@ $database = new Database();
 $db = $database->getConnection();
 $userModel = new User($db);
 $gameModel = new Game($db);
+$gameController = new GameController($db);
 
 function sendJson($success, $message, $data = [], $httpCode = 200)
 {
@@ -316,10 +317,8 @@ switch ($action) {
                 g.genres, 
                 g.release_date,
                 g.platforms_list,
-                g.summary,
-                g.developer,
-                g.publisher,
-                g.screenshots
+                g.summary,      -- AJOUTER CECI
+                g.screenshots   -- AJOUTER CECI
             FROM user_games ug 
             JOIN games g ON ug.game_id = g.id 
             WHERE ug.user_id = ? AND ug.status NOT IN ('wishlist', 'loaned') 
@@ -327,6 +326,12 @@ switch ($action) {
         ");
         $stmtGames->execute([$owner['id']]);
         $games = $stmtGames->fetchAll(PDO::FETCH_ASSOC);
+
+        // Mapping pour la compatibilité mobile
+        foreach ($games as &$game) {
+            $game['description'] = $game['summary'] ?? '';
+            $game['screenshots'] = !empty($game['screenshots']) ? explode(',', $game['screenshots']) : [];
+        }
 
         // Vérifier si l'utilisateur actuel suit ce profil
         $isFollowing = false;
