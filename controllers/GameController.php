@@ -146,7 +146,7 @@ class GameController
             'description' => $input['description'] ?? '',
             'developer' => $input['developer'] ?? null,
             'publisher' => $input['publisher'] ?? null,
-            'screenshots' => $allVisuals // Ajout des visuels ici
+            'screenshots' => is_array($input['screenshots']) ? implode(',', $input['screenshots']) : ($input['screenshots'] ?? '')
         ];
 
         // Vérification des doublons
@@ -192,11 +192,11 @@ class GameController
             'release_date' => $input['release_date'] ?? $existingGame['release_date'],
             'metacritic' => $input['metacritic_score'] ?? $existingGame['metacritic_score'],
             'comment' => $input['comment'] ?? $existingGame['comment'],
-            'description' => $input['description'] ?? $existingGame['description'],
             'genres' => $input['genres'] ?? $existingGame['genres'],
             'estimated_price' => $input['estimated_price'] ?? $existingGame['estimated_price'],
             'image_url_hidden' => $existingGame['image_url'],
-            'description' => $input['description'] ?? ($existingGame['summary'] ?? '')
+            'description' => $input['description'] ?? ($existingGame['summary'] ?? ''),
+            'screenshots' => $input['screenshots'] ?? $existingGame['screenshots']
         ];
 
         if (isset($input['platform_custom']) && $input['platform'] === 'Multiplateforme') {
@@ -1220,5 +1220,28 @@ class GameController
 
         $view = dirname(__DIR__) . '/views/public_collection.php';
         require dirname(__DIR__) . '/views/layout.php';
+    }
+
+    // À ajouter dans GameController.php
+    public function getOrFetchScreenshots($localId, $igdbId)
+    {
+        // On récupère les captures sur IGDB
+        $body = "fields screenshots.url; where id = {$igdbId};";
+        $results = $this->callIgdb('games', $body);
+
+        $screenshotsStr = '';
+        if ($results && isset($results[0]['screenshots'])) {
+            $urls = [];
+            foreach ($results[0]['screenshots'] as $shot) {
+                // Conversion haute définition
+                $urls[] = 'https:' . str_replace('t_thumb', 't_720p', $shot['url']);
+            }
+            $screenshotsStr = implode(',', $urls);
+
+            // On met à jour la base de données pour ne plus avoir à le refaire
+            $stmt = $this->db->prepare("UPDATE games SET screenshots = ? WHERE id = ?");
+            $stmt->execute([$screenshotsStr, $igdbId]);
+        }
+        return $screenshotsStr;
     }
 }

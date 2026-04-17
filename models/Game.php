@@ -21,13 +21,14 @@ class Game
     public function getAll($userId)
     {
         $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, 
-         g.summary, g.developer, g.publisher, g.rating AS igdb_rating, g.platforms_list,
-         g.screenshots, p.time_main AS playtime 
-        FROM " . $this->table . " ug
-                JOIN games g ON ug.game_id = g.id
-                LEFT JOIN playtime p ON ug.id = p.game_id 
-                WHERE ug.user_id = :user_id 
-                ORDER BY ug.created_at DESC";
+             g.summary, g.developer, g.publisher, g.rating AS igdb_rating, g.platforms_list,
+             g.screenshots, -- AJOUT de cette colonne
+             p.time_main AS playtime 
+            FROM " . $this->table . " ug
+            JOIN games g ON ug.game_id = g.id
+            LEFT JOIN playtime p ON ug.id = p.game_id 
+            WHERE ug.user_id = :user_id 
+            ORDER BY ug.created_at DESC";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':user_id', $userId);
@@ -134,19 +135,19 @@ class Game
         // 1. GESTION DU CATALOGUE (Nouvelle architecture)
         if ($igdbId && !$this->catalogGameExists($igdbId)) {
             $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, rating, screenshots) 
-                     VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating, :screenshots)";
+                            VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating, :screenshots)";
             $stmtCat = $this->conn->prepare($queryCatalog);
             $stmtCat->execute([
-                ':id' => $igdbId,
-                ':title' => $data['title'],
-                ':cover_url' => $data['image_url_hidden'],
-                ':genres' => $data['genres'],
+                ':id'           => $igdbId,
+                ':title'        => $data['title'],
+                ':cover_url'    => $data['image_url_hidden'],
+                ':genres'       => $data['genres'],
                 ':release_date' => $data['release_date'],
-                ':summary' => $data['description'],
-                ':dev' => $data['developer'] ?? null,
-                ':pub' => $data['publisher'] ?? null,
-                ':rating' => $data['metacritic'],
-                ':screenshots' => $screenshots
+                ':summary'      => $data['description'],
+                ':dev'          => $data['developer'] ?? null,
+                ':pub'          => $data['publisher'] ?? null,
+                ':rating'       => $data['metacritic'],
+                ':screenshots'  => $data['screenshots'] ?? ''
             ]);
         }
 
@@ -326,18 +327,21 @@ class Game
         }
 
         if (!$this->catalogGameExists($igdbId)) {
-            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, screenshots) 
-                         VALUES (:id, :title, :cover_url, :genres, :release_date, :screenshots)";
+            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, rating, screenshots) 
+                     VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating, :screenshots)";
             $stmtCat = $this->conn->prepare($queryCatalog);
-            $screenshots = isset($game['screenshots']) ? (is_array($game['screenshots']) ? json_encode($game['screenshots']) : $game['screenshots']) : null;
-
-            $stmtCat->bindParam(':id', $igdbId);
-            $stmtCat->bindParam(':title', $game['title']);
-            $stmtCat->bindParam(':cover_url', $img);
-            $stmtCat->bindParam(':genres', $game['genres']);
-            $stmtCat->bindParam(':release_date', $game['release_date']);
-            $stmtCat->bindParam(':screenshots', $screenshots);
-            $stmtCat->execute();
+            $stmtCat->execute([
+                ':id'           => $igdbId,
+                ':title'        => $game['title'],
+                ':cover_url'    => $img,
+                ':genres'       => $game['genres'],
+                ':release_date' => $game['release_date'],
+                ':summary'      => $game['description'] ?? '',  // Récupère la description
+                ':dev'          => $game['developer'] ?? null,
+                ':pub'          => $game['publisher'] ?? null,
+                ':rating'       => $game['metacritic'] ?? null,
+                ':screenshots'  => $game['screenshots'] ?? '' // Récupère les captures
+            ]);
         }
 
         $query = "INSERT INTO " . $this->table . " 
