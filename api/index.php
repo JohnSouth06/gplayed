@@ -209,17 +209,12 @@ switch ($action) {
                 $game['description'] = $game['summary'] ?? '';
 
                 // 1. Correction du nom de la clé : game_id au lieu de igdb_id
-                if (empty($game['screenshots']) && !empty($game['game_id'])) {
-                    $game['screenshots'] = $gameController->getOrFetchScreenshots($game['id'], $game['game_id']);
-                }
-
-                // 2. CONVERSION CRITIQUE : String -> Array pour le mobile
                 if (!empty($game['screenshots']) && is_string($game['screenshots'])) {
-                    $game['screenshots'] = explode(',', $game['screenshots']);
-                } else {
-                    // On renvoie un tableau vide plutôt qu'une chaîne vide
-                    $game['screenshots'] = [];
-                }
+                        $game['screenshots'] = explode(',', $game['screenshots']);
+                    } else {
+                        // On renvoie un tableau vide
+                        $game['screenshots'] = [];
+                    }
             }
             sendJson(true, 'Collection récupérée avec succès.', ['data' => $games]);
         }
