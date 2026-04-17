@@ -196,7 +196,12 @@ class GameController
             'estimated_price' => $input['estimated_price'] ?? $existingGame['estimated_price'],
             'image_url_hidden' => $existingGame['image_url'],
             'description' => $input['description'] ?? ($existingGame['summary'] ?? ''),
-            'screenshots' => $input['screenshots'] ?? $existingGame['screenshots']
+            'screenshots' => $input['screenshots'] ?? $existingGame['screenshots'],
+
+            'loaned_to'        => $input['loaned_to'] ?? $existingGame['loaned_to'] ?? null,
+            'loaned_date'      => $input['loaned_date'] ?? $existingGame['loaned_date'] ?? null,
+
+            'user_rating'      => $input['user_rating'] ?? $existingGame['user_rating'] ?? null,
         ];
 
         if (isset($input['platform_custom']) && $input['platform'] === 'Multiplateforme') {
@@ -1222,7 +1227,8 @@ class GameController
         require dirname(__DIR__) . '/views/layout.php';
     }
 
-    public function getOrFetchScreenshots($localId, $igdbId) {
+    public function getOrFetchScreenshots($localId, $igdbId)
+    {
         // On récupère les captures sur IGDB
         $body = "fields screenshots.url; where id = {$igdbId};";
         $results = $this->callIgdb('games', $body);
