@@ -4,9 +4,9 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0); // Ne pas afficher à l'écran
 error_reporting(E_ALL);
+ini_set('log_errors', 1);
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -34,10 +34,13 @@ require_once ROOT_PATH . '/models/User.php';
 require_once ROOT_PATH . '/controllers/AuthController.php';
 require_once ROOT_PATH . '/controllers/GameController.php';
 require_once ROOT_PATH . '/controllers/ProgressController.php';
+require_once ROOT_PATH . '/models/Game.php';
 
 $database = new Database();
 $db = $database->getConnection();
 $userModel = new User($db);
+$gameModel = new Game($db);
+$gameController = new GameController($db);
 
 function sendJson($success, $message, $data = [], $httpCode = 200)
 {
@@ -196,30 +199,24 @@ switch ($action) {
         }
         break;
 
-    // Dans votre fichier api/index.php
     case 'api_get_games':
         $userId = $currentUser['id'];
-        // On récupère les données brutes depuis le modèle
+
         $games = $gameModel->getAll($userId);
 
         if ($games !== false) {
             foreach ($games as &$game) {
-                // Mappage des champs existants
                 $game['description'] = $game['summary'] ?? '';
 
-                // LOGIQUE DE CACHE POUR LES SCREENSHOTS
-                if (empty($game['screenshots']) && !empty($game['igdb_id'])) {
-                    // Le serveur va chercher les images sur IGDB et les sauve en BDD
-                    $game['screenshots'] = $gameController->getOrFetchScreenshots($game['id'], $game['igdb_id']);
-                } else {
-                    // Déjà en BDD, chargement instantané
-                    $game['screenshots'] = $game['screenshots'] ?? '';
-                }
+                // 1. Correction du nom de la clé : game_id au lieu de igdb_id
+                if (!empty($game['screenshots']) && is_string($game['screenshots'])) {
+                        $game['screenshots'] = explode(',', $game['screenshots']);
+                    } else {
+                        // On renvoie un tableau vide
+                        $game['screenshots'] = [];
+                    }
             }
-            // On utilise la fonction de réponse JSON de votre fichier index.php
             sendJson(true, 'Collection récupérée avec succès.', ['data' => $games]);
-        } else {
-            sendJson(false, 'Erreur lors de la récupération des jeux.', [], 500);
         }
         break;
 
@@ -234,19 +231,28 @@ switch ($action) {
         $data = json_decode(file_get_contents('php://input'), true);
 
         if ($data) {
+            // Préparation des screenshots (fusion screenshots + artworks si nécessaire)
+            $screenshots = isset($data['screenshots']) && is_array($data['screenshots']) ? implode(',', $data['screenshots']) : '';
+
             $gameData = [
-                'rawg_id' => $data['rawg_id'] ?? null,
-                'title' => $data['title'] ?? '',
-                'platform' => $data['platform'] ?? '',
-                'platforms_list' => $data['platforms_list'] ?? '', // AJOUT : On récupère la liste envoyée par le mobile
-                'status' => $data['status'] ?? 'not_started',
-                'format' => $data['format'] ?? 'physical',
-                'image_url' => $data['background_image'] ?? null,
-                'metacritic_score' => $data['metacritic'] ?? null,
-                'genres' => $data['genres'] ?? ''
+                'rawg_id'        => $data['rawg_id'] ?? null,
+                'title'          => $data['title'] ?? 'Titre inconnu',
+                'platform'       => $data['platform'] ?? '',
+                'platforms_list' => $data['platforms_list'] ?? '',
+                'status'         => $data['status'] ?? 'not_started',
+                'format'         => $data['format'] ?? 'physical',
+                'image_url'      => $data['background_image'] ?? null,
+                'metacritic'     => $data['metacritic'] ?? null,
+                'genres'         => $data['genres'] ?? '',
+                'release_date'   => $data['released'] ?? null,
+                'description'    => $data['description'] ?? '',
+                'developer'      => $data['developer'] ?? null,
+                'publisher'      => $data['publisher'] ?? null,
+                'screenshots'    => $screenshots,
+                'comment'        => '',
+                'estimated_price' => null
             ];
 
-            // importEntry se chargera d'insérer dans 'games' (avec platforms_list) et 'user_games'
             $success = $gameModel->importEntry($gameData, $userId);
             sendJson($success, $success ? 'Jeu ajouté' : 'Erreur lors de l\'ajout');
         }
@@ -305,7 +311,9 @@ switch ($action) {
                 g.cover_url AS image_url, 
                 g.genres, 
                 g.release_date,
-                g.platforms_list  -- <--- AJOUTEZ CETTE LIGNE ICI
+                g.platforms_list,
+                g.summary,      -- AJOUTER CECI
+                g.screenshots   -- AJOUTER CECI
             FROM user_games ug 
             JOIN games g ON ug.game_id = g.id 
             WHERE ug.user_id = ? AND ug.status NOT IN ('wishlist', 'loaned') 
@@ -313,6 +321,12 @@ switch ($action) {
         ");
         $stmtGames->execute([$owner['id']]);
         $games = $stmtGames->fetchAll(PDO::FETCH_ASSOC);
+
+        // Mapping pour la compatibilité mobile
+        foreach ($games as &$game) {
+            $game['description'] = $game['summary'] ?? '';
+            $game['screenshots'] = !empty($game['screenshots']) ? explode(',', $game['screenshots']) : [];
+        }
 
         // Vérifier si l'utilisateur actuel suit ce profil
         $isFollowing = false;
