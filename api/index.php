@@ -4,7 +4,7 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-ini_set('display_errors', 0); // Ne pas afficher à l'écran
+ini_set('display_errors', 1); // Ne pas afficher à l'écran
 error_reporting(E_ALL);
 ini_set('log_errors', 1);
 
@@ -15,6 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // 1. AJOUT DU SESSION_START() OBLIGATOIRE POUR LE OAUTH STEAM
 session_start();
+
+$action = $_GET['action'] ?? '';
+if (!in_array($action, ['api_steam_login', 'api_steam_callback'])) {
+    session_write_close();
+}
 
 define('ROOT_PATH', dirname(__DIR__));
 
@@ -575,62 +580,69 @@ switch ($action) {
         break;
 
 
-    // 4. IMPORTATION D'UN JEU UNIQUE
-    case 'api_steam_import_single':
-        $userId = $currentUser['id'];
-        $data = json_decode(file_get_contents("php://input"), true);
+        // 4. IMPORTATION D'UN JEU UNIQUE
+        case 'api_steam_import_single':
+                $userId = $currentUser['id'];
+                $data = json_decode(file_get_contents("php://input"), true);
 
-        // On accepte 'steam_appid' ou 'appid' pour la compatibilité
-        $appId = $data['steam_appid'] ?? $data['appid'] ?? null; 
+                $appId = $data['steam_appid'] ?? $data['appid'] ?? null; 
 
-        if ($appId) {
-            $playtimeMinutes = $data['playtime_forever'] ?? 0;
+                if ($appId) {
+                    $playtimeMinutes = $data['playtime_forever'] ?? 0;
 
-            // Ajout d'un User-Agent pour éviter d'être bloqué par Steam
-            $opts = ["http" => ["header" => "User-Agent: PHP\r\n"]];
-            $context = stream_context_create($opts);
-            $steamApiUrl = "https://store.steampowered.com/api/appdetails?appids={$appId}&l=french";
-            $response = file_get_contents($steamApiUrl, false, $context);
-            $resData = json_decode($response, true);
+                    // 1. Récupération des détails Steam (inchangé)
+                    $steamApiUrl = "https://store.steampowered.com/api/appdetails?appids={$appId}&l=french";
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $steamApiUrl);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($ch, CURLOPT_USERAGENT, 'GPlayed API / 1.4');
+                    $response = curl_exec($ch);
+                    curl_close($ch);
+                    
+                    usleep(250000); 
+                    $resData = json_decode($response, true);
 
-            if (isset($resData[$appId]['success']) && $resData[$appId]['success']) {
-                $details = $resData[$appId]['data'];
+                    if (isset($resData[$appId]['success']) && $resData[$appId]['success']) {
+                        $details = $resData[$appId]['data'];
+                        $screenshotUrls = isset($details['screenshots']) ? array_column($details['screenshots'], 'path_full') : [];
 
-                // On utilise implode pour les screenshots comme pour IGDB
-                $screenshotUrls = isset($details['screenshots']) ? array_column($details['screenshots'], 'path_full') : [];
-                $screenshotsStr = implode(',', $screenshotUrls);
+                        $gameData = [
+                            'steam_appid'     => $appId,
+                            'title'           => $details['name'],
+                            'image_url'       => $details['header_image'] ?? null,
+                            'summary'         => $details['short_description'] ?? '',
+                            'genres'          => isset($details['genres']) ? implode(', ', array_column($details['genres'], 'description')) : '',
+                            'developer'       => isset($details['developers']) ? implode(', ', $details['developers']) : '',
+                            'publisher'       => isset($details['publishers']) ? implode(', ', $details['publishers']) : '',
+                            'release_date'    => $details['release_date']['date'] ?? null,
+                            'metacritic_score' => $details['metacritic']['score'] ?? null,
+                            'platforms_list'  => 'PC',
+                            'screenshots'     => implode(',', $screenshotUrls),
+                            'status'          => 'not_started',
+                            'platform'        => 'PC',
+                            'format'          => 'digital'
+                        ];
 
-                $gameData = [
-                    'steam_appid'     => $appId,
-                    'title'           => $details['name'],
-                    'image_url'       => $details['header_image'] ?? null,
-                    'summary'         => $details['short_description'] ?? '',
-                    'genres'          => isset($details['genres']) ? implode(', ', array_column($details['genres'], 'description')) : '',
-                    'developer'       => isset($details['developers']) ? implode(', ', $details['developers']) : '',
-                    'publisher'       => isset($details['publishers']) ? implode(', ', $details['publishers']) : '',
-                    'release_date'    => $details['release_date']['date'] ?? null,
-                    'metacritic_score' => $details['metacritic']['score'] ?? null, // Gardé pour le modèle
-                    'platforms_list'  => 'PC',
-                    'screenshots'     => $screenshotsStr, // Format virgule
-                    'status'          => 'not_started',
-                    'platform'        => 'PC',
-                    'format'          => 'digital'
-                ];
+                        // CHANGEMENT ICI : On récupère l'ID de la ligne créée dans user_games
+                        $userGameId = $gameModel->importEntry($gameData, $userId); //
 
-                $success = $gameModel->importEntry($gameData, $userId);
-
-                if ($success) {
-                    $internalId = $gameModel->getGameIdFromExternal($appId, 'steam');
-                    if ($playtimeMinutes > 0 && $internalId) {
-                        $playtimeModel->save($internalId, round($playtimeMinutes / 60, 1), null);
+                        if ($userGameId) {
+                            if ($playtimeMinutes > 0) {
+                                // On utilise $userGameId car playtime.game_id pointe vers user_games.id
+                                $playtimeModel->save($userGameId, round($playtimeMinutes / 60, 1), null); //
+                            }
+                            sendJson(true, 'Jeu traité');
+                        } else {
+                            sendJson(false, 'Erreur lors de l\'insertion en base de données');
+                        }
+                    } else {
+                        sendJson(true, 'Jeu ignoré (page introuvable)');
                     }
+                } else {
+                    sendJson(false, 'Aucun AppID fourni');
                 }
-                sendJson($success, 'Importation terminée');
-            } else {
-                sendJson(false, 'Erreur API Steam');
-            }
-        }
-        break;
+                break;
 
 
     // 5. FINALISATION DE LA SYNCHRONISATION

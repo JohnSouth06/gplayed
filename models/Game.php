@@ -290,6 +290,31 @@ class Game
         return $bestMatch;
     }
 
+    private function parseSteamDate($dateString)
+    {
+        if (empty($dateString)) return null;
+
+        // Suppression des points (ex: "nov." -> "nov") et mise en minuscule
+        $dateString = str_replace('.', '', mb_strtolower($dateString));
+
+        // Mapping des mois français vers anglais pour strtotime
+        $months = [
+            'janv' => 'january', 'févr' => 'february', 'mars' => 'march', 'avr' => 'april',
+            'mai' => 'may', 'juin' => 'june', 'juil' => 'july', 'août' => 'august',
+            'sept' => 'september', 'oct' => 'october', 'nov' => 'november', 'déc' => 'december'
+        ];
+
+        foreach ($months as $fr => $en) {
+            if (strpos($dateString, $fr) !== false) {
+                $dateString = str_replace($fr, $en, $dateString);
+                break;
+            }
+        }
+
+        $timestamp = strtotime($dateString);
+        return $timestamp ? date('Y-m-d', $timestamp) : null;
+    }
+
     private function normalizeGameTitle($title)
     {
         $title = mb_strtolower(trim($title), 'UTF-8');
@@ -324,65 +349,54 @@ class Game
     {
         $igdbId = $game['rawg_id'] ?? null;
         $steamId = $game['steam_appid'] ?? null;
-        
         $type = $steamId ? 'steam' : 'igdb';
         $extId = $steamId ? $steamId : $igdbId;
+        
         $internalGameId = $this->getGameIdFromExternal($extId, $type);
-    
+
         if (!$internalGameId) {
-            // Note : On utilise 'rating' à la place de 'metacritic_score'
-            $queryCatalog = "INSERT INTO games 
-            (title, rawg_id, steam_appid, cover_url, genres, release_date, summary, developer, publisher, rating, platforms_list, screenshots) 
-            VALUES (:title, :rawg_id, :steam_appid, :cover_url, :genres, :release_date, :summary, :dev, :pub, :meta, :plats, :screenshots)";
-            
+            $queryCatalog = "INSERT INTO games (title, rawg_id, steam_appid, cover_url, genres, release_date, summary, developer, publisher, metacritic_score, screenshots) 
+                            VALUES (:title, :rawg_id, :steam_appid, :cover_url, :genres, :release_date, :summary, :dev, :pub, :meta, :screenshots)";
             $stmtCat = $this->conn->prepare($queryCatalog);
             $stmtCat->execute([
-                ':title'        => $game['title'],
+                ':title'        => mb_substr($game['title'] ?? 'Inconnu', 0, 255),
                 ':rawg_id'      => $igdbId,
                 ':steam_appid'  => $steamId,
                 ':cover_url'    => $game['image_url'] ?? '',
-                ':genres'       => $game['genres'] ?? '',
-                ':release_date' => $game['release_date'] ?? null,
-                ':summary'      => $game['summary'] ?? '',
-                ':dev'          => $game['developer'] ?? null,
-                ':pub'          => $game['publisher'] ?? null,
-                ':meta'         => $game['metacritic_score'] ?? null, // Correspond à la colonne 'rating'
-                ':plats'        => $game['platforms_list'] ?? '',
-                ':screenshots'  => $game['screenshots'] ?? ''
+                ':genres'       => mb_substr($game['genres'] ?? '', 0, 255),
+                ':release_date' => $this->parseSteamDate($game['release_date'] ?? null),
+                ':summary'      => $game['summary'] ?? $game['description'] ?? '',
+                ':dev'          => mb_substr($game['developer'] ?? '', 0, 255),
+                ':pub'          => mb_substr($game['publisher'] ?? '', 0, 255),
+                ':meta'         => $game['metacritic_score'] ?? null,
+                ':screenshots'  => is_array($game['screenshots']) ? implode(',', array_slice($game['screenshots'], 0, 3)) : $game['screenshots']
             ]);
             $internalGameId = $this->conn->lastInsertId();
         }
 
-        // Sécurité : Si l'insertion a échoué, on ne lie pas à user_games
-        if (!$internalGameId || $internalGameId == 0) return false;
+        if (!$internalGameId) return false;
 
-        // 3. Liaison avec la collection de l'utilisateur (user_games)
-        // On vérifie les doublons pour cet utilisateur précis
-        $queryCheck = "SELECT id FROM " . $this->table . " WHERE user_id = :uid AND game_id = :gid LIMIT 1";
-        $stmtCheck = $this->conn->prepare($queryCheck);
-        $stmtCheck->execute([':uid' => $userId, ':gid' => $internalGameId]);
+        // Vérification doublon
+        $stmtCheck = $this->conn->prepare("SELECT id FROM user_games WHERE user_id = ? AND game_id = ?");
+        $stmtCheck->execute([$userId, $internalGameId]);
+        $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+        
+        if ($existing) return $existing['id']; // Renvoie l'ID existant
 
-        if ($stmtCheck->rowCount() > 0) return true; // Déjà possédé
-
-        $queryUser = "INSERT INTO " . $this->table . " 
-        (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
-        VALUES (:uid, :game_id, :platform, :format, :status, :comment, :color, :price)";
-
+        // Insertion dans user_games
+        $queryUser = "INSERT INTO user_games (user_id, game_id, platform, format, status, dominant_color) 
+                    VALUES (:uid, :gid, :plat, :form, :stat, :col)";
         $stmtUser = $this->conn->prepare($queryUser);
-
-        // Calcul de la couleur dominante si nécessaire
-        $dominantColor = $game['dominant_color'] ?? $this->getFallbackColor($game['platform'] ?? '');
-
-        return $stmtUser->execute([
-            ':uid'      => $userId,
-            ':game_id'  => $internalGameId,
-            ':platform' => $game['platform'] ?? 'PC',
-            ':format'   => $game['format'] ?? 'digital',
-            ':status'   => $game['status'] ?? 'not_started',
-            ':comment'  => $game['comment'] ?? '',
-            ':color'    => $dominantColor,
-            ':price'    => $game['estimated_price'] ?? null
+        $stmtUser->execute([
+            ':uid'  => $userId,
+            ':gid'  => $internalGameId,
+            ':plat' => $game['platform'] ?? 'PC',
+            ':form' => $game['format'] ?? 'digital',
+            ':stat' => $game['status'] ?? 'not_started',
+            ':col'  => $game['dominant_color'] ?? 'rgb(30, 30, 30)'
         ]);
+
+        return $this->conn->lastInsertId(); // RETOURNE L'ID DE USER_GAMES (Crucial !)
     }
 
     private function getAverageColor($filepath)
