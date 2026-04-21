@@ -1,8 +1,0 @@
-'js_btn_loan' => __('js_btn_loan'),
-'js_btn_edit' => __('js_btn_edit'),
-'js_btn_delete' => __('js_btn_delete'),
-'js_confirm_delete' => __('js_confirm_delete'),
-'js_loaned_to' => __('js_loaned_to'),
-'js_loaned_date' => __('js_loaned_date'),
-'js_confirm_return' => __('js_confirm_return'),
-'js_mark_returned' => __('js_mark_returned'),
