@@ -23,9 +23,9 @@ class Game
     public function getAll($userId)
     {
         $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, 
-             g.summary, g.developer, g.publisher, g.rating AS igdb_rating, g.platforms_list,
-             g.screenshots, -- AJOUT de cette colonne
-             p.time_main AS playtime 
+            g.summary, g.developer, g.publisher, g.rating, g.metacritic_score, g.steam_appid, g.platforms_list,
+            g.screenshots, 
+            p.time_main AS playtime 
             FROM " . $this->table . " ug
             JOIN games g ON ug.game_id = g.id
             LEFT JOIN playtime p ON ug.id = p.game_id 
@@ -71,10 +71,11 @@ class Game
     public function getOne($id, $userId)
     {
         $query = "SELECT ug.*, g.title, g.cover_url AS image_url, g.genres, g.release_date, 
-         g.summary, g.developer, g.publisher, g.platforms_list, g.screenshots 
-        FROM " . $this->table . " ug
-                JOIN games g ON ug.game_id = g.id 
-                WHERE ug.id = :id AND ug.user_id = :user_id LIMIT 1";
+            g.summary, g.developer, g.publisher, g.platforms_list, g.screenshots,
+            g.rating, g.metacritic_score, g.steam_appid
+            FROM " . $this->table . " ug
+            JOIN games g ON ug.game_id = g.id 
+            WHERE ug.id = :id AND ug.user_id = :user_id LIMIT 1";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id', $id);

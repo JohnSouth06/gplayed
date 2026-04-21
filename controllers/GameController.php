@@ -104,7 +104,7 @@ class GameController
                     'released' => $date,
                     'background_image' => $img,
                     'platforms' => $platforms,
-                    'metacritic' => isset($game['rating']) ? round($game['rating']) : null,
+                    'rating' => isset($game['rating']) ? round($game['rating']) : null,
                     'genres' => $genres
                 ];
             }
