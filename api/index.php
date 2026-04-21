@@ -89,7 +89,11 @@ $publicRoutes = [
     'api_mobile_verify',
     'api_forgot_password',
     'api_reset_password',
-    'app_bounce'
+    'app_bounce',
+    'api_login_google',
+    'api_google_callback',
+    'api_login_discord',
+    'api_discord_callback'
 ];
 
 if ($action === 'api_login') {
@@ -210,11 +214,11 @@ switch ($action) {
 
                 // 1. Correction du nom de la clé : game_id au lieu de igdb_id
                 if (!empty($game['screenshots']) && is_string($game['screenshots'])) {
-                        $game['screenshots'] = explode(',', $game['screenshots']);
-                    } else {
-                        // On renvoie un tableau vide
-                        $game['screenshots'] = [];
-                    }
+                    $game['screenshots'] = explode(',', $game['screenshots']);
+                } else {
+                    // On renvoie un tableau vide
+                    $game['screenshots'] = [];
+                }
             }
             sendJson(true, 'Collection récupérée avec succès.', ['data' => $games]);
         }
@@ -282,6 +286,27 @@ switch ($action) {
     case 'api_delete_progress':
         $progressController = new ProgressController($db);
         $progressController->apiDeleteProgress($currentUser['id']);
+        break;
+
+    // --- AUTHENTIFICATION SOCIALE ---
+    case 'api_login_google':
+        $authController = new AuthController($db);
+        $authController->loginGoogle(); // Utilise la méthode existante qui gère déjà app_redirect
+        break;
+
+    case 'api_google_callback':
+        $authController = new AuthController($db);
+        $authController->googleCallback();
+        break;
+
+    case 'api_login_discord':
+        $authController = new AuthController($db);
+        $authController->loginDiscord();
+        break;
+
+    case 'api_discord_callback':
+        $authController = new AuthController($db);
+        $authController->discordCallback();
         break;
 
     // --- RÉCUPÉRATION D'UNE COLLECTION PUBLIQUE ---
@@ -551,55 +576,69 @@ switch ($action) {
     // 4. IMPORTATION D'UN JEU UNIQUE
     case 'api_steam_import_single':
         $userId = $currentUser['id'];
-        $input = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents("php://input"), true);
 
-        if ($input && isset($input['appid'])) {
-            require_once ROOT_PATH . '/models/Playtime.php';
-            require_once ROOT_PATH . '/models/Game.php'; // On charge le modèle
+        if ($data && isset($data['steam_appid'])) {
+            $appId = $data['steam_appid'];
+            $playtimeMinutes = $data['playtime_forever'] ?? 0;
 
-            $playtimeModel = new Playtime($db);
-            $gameModel = new Game($db);
+            // 1. APPEL À L'API STEAM STORE POUR LES DÉTAILS RICHES
+            $steamApiUrl = "https://store.steampowered.com/api/appdetails?appids={$appId}&l=french";
+            $response = file_get_contents($steamApiUrl);
+            $resData = json_decode($response, true);
 
-            $name = $input['name'];
-            $appId = $input['appid'];
-            $playtimeMinutes = $input['playtime_forever'] ?? 0;
-            $lastPlayedTimestamp = $input['rtime_last_played'] ?? 0;
-            $oneYearAgo = time() - (365 * 24 * 60 * 60);
+            if (isset($resData[$appId]['success']) && $resData[$appId]['success']) {
+                $details = $resData[$appId]['data'];
 
-            $status = 'not_started';
-            if ($playtimeMinutes > 0) {
-                $status = 'playing';
-                if ($lastPlayedTimestamp > 0 && $lastPlayedTimestamp < $oneYearAgo) {
-                    $status = 'dropped';
+                // 2. EXTRACTION ET FORMATAGE DES DONNÉES
+                $genres = isset($details['genres']) ? implode(', ', array_column($details['genres'], 'description')) : '';
+                $developers = isset($details['developers']) ? implode(', ', $details['developers']) : '';
+                $publishers = isset($details['publishers']) ? implode(', ', $details['publishers']) : '';
+                
+                // Gestion des plateformes (ex: PC, Mac, Linux)
+                $plats = [];
+                if ($details['platforms']['windows']) $plats[] = 'PC';
+                if ($details['platforms']['mac']) $plats[] = 'Mac';
+                if ($details['platforms']['linux']) $plats[] = 'Linux';
+                $platformsList = implode(', ', $plats);
+
+                // Récupération des screenshots (URLs en plein écran)
+                $screenshots = isset($details['screenshots']) ? json_encode(array_column($details['screenshots'], 'path_full')) : '[]';
+
+                // 3. PRÉPARATION POUR LE MODÈLE GAME.PHP
+                $gameData = [
+                    'steam_appid'     => $appId,
+                    'title'           => $details['name'],
+                    'image_url'       => $details['header_image'] ?? null,
+                    'summary'         => $details['short_description'] ?? '',
+                    'genres'          => $genres,
+                    'developer'       => $developers,
+                    'publisher'       => $publishers,
+                    'release_date'    => $details['release_date']['date'] ?? null,
+                    'metacritic_score'=> $details['metacritic']['score'] ?? null,
+                    'platforms_list'  => $platformsList,
+                    'screenshots'     => $screenshots,
+                    // Paramètres utilisateur par défaut
+                    'status'          => 'not_started',
+                    'platform'        => 'PC',
+                    'format'          => 'digital'
+                ];
+
+                // importEntry s'occupe de renseigner 'games' ET 'user_games'
+                $success = $gameModel->importEntry($gameData, $userId);
+
+                if ($success) {
+                    // Récupération de l'ID interne pour le temps de jeu
+                    $internalId = $gameModel->getGameIdFromExternal($appId, 'steam');
+                    if ($playtimeMinutes > 0 && $internalId) {
+                        $playtimeModel->save($internalId, round($playtimeMinutes / 60, 1), null);
+                    }
                 }
+
+                sendJson($success, $success ? 'Importation réussie' : 'Erreur lors de l\'importation');
+            } else {
+                sendJson(false, 'Impossible de joindre l\'API Steam');
             }
-
-            $imageUrl = "https://cdn.cloudflare.steamstatic.com/steam/apps/" . $appId . "/header.jpg";
-
-            // LOGIQUE ADAPTÉE À LA NOUVELLE ARCHITECTURE
-            $gameData = [
-                'rawg_id' => $appId,
-                'title' => $name,
-                'image_url' => $imageUrl,
-                'status' => $status,
-                'platform' => 'PC',
-                'platforms_list' => 'PC',
-                'format' => 'digital',
-                'comment' => '',
-                'estimated_price' => null
-            ];
-
-            // importEntry s'occupe de renseigner 'games' ET 'user_games'
-            $success = $gameModel->importEntry($gameData, $userId);
-
-            if ($success) {
-                $newGameId = $db->lastInsertId();
-                if ($playtimeMinutes > 0 && $newGameId) {
-                    $playtimeModel->save($newGameId, round($playtimeMinutes / 60, 1), null);
-                }
-            }
-
-            sendJson($success, 'Importation terminée');
         } else {
             sendJson(false, 'Données manquantes', [], 400);
         }

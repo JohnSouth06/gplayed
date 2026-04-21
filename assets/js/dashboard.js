@@ -86,26 +86,6 @@ function mapIgdbPlatform(igdbName) {
     return igdbName;
 }
 
-function renderScreenshots(urls) {
-    const container = document.getElementById('desc-screenshots-container');
-    if (!container || !urls.length) return;
-
-    let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
-    urls.forEach(imgUrl => {
-        html += `
-            <div class="col-6 col-md-4">
-                <a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')">
-                    <img src="${imgUrl}" class="img-fluid rounded shadow-sm" 
-                         style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" 
-                         onmouseover="this.style.transform='scale(1.05)'" 
-                         onmouseout="this.style.transform='scale(1)'">
-                </a>
-            </div>`;
-    });
-    html += `</div>`;
-    container.innerHTML = html;
-}
-
 const platformIcons = { 'PS5': 'svg-icon ps-icon', 'PS4': 'svg-icon ps-icon', 'Xbox Series': 'svg-icon xbox-icon', 'Xbox': 'svg-icon xbox-icon', 'Switch': 'svg-icon switch-icon', 'PC': 'svg-icon pc-icon' };
 
 let currentView = localStorage.getItem('viewMode') || 'grid';
@@ -1182,4 +1162,25 @@ async function searchIgdb(autoOpen = false) {
             loading.classList.add('d-none');
         }
     }
+}
+
+
+function renderScreenshots(urls) {
+    const container = document.getElementById('desc-screenshots-container');
+    if (!container || !urls.length) return;
+
+    let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
+    urls.forEach(imgUrl => {
+        html += `
+            <div class="col-6 col-md-4">
+                <a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')">
+                    <img src="${imgUrl}" class="img-fluid rounded shadow-sm" 
+                         style="object-fit: cover; height: 100px; width: 100%; transition: transform 0.2s;" 
+                         onmouseover="this.style.transform='scale(1.05)'" 
+                         onmouseout="this.style.transform='scale(1)'">
+                </a>
+            </div>`;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
 }

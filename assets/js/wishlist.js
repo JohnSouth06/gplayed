@@ -478,3 +478,24 @@ document.addEventListener('DOMContentLoaded', () => {
         updateView();
     }
 });
+
+function renderScreenshots(urls) {
+    const container = document.getElementById('desc-screenshots-container');
+    if (!container) return;
+    
+    if (!urls || urls.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = `<h6 class="text-uppercase text-muted fw-bold mb-3">Captures d'écran</h6><div class="row g-2 mb-2">`;
+    urls.forEach(imgUrl => {
+        html += `<div class="col-6 col-md-4">
+            <a href="javascript:void(0)" onclick="openLightbox('${imgUrl}')">
+                <img src="${imgUrl}" class="img-fluid rounded shadow-sm" style="object-fit: cover; height: 100px; width: 100%;">
+            </a>
+        </div>`;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
+}
