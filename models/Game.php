@@ -9,13 +9,15 @@ class Game
         $this->conn = $db;
     }
 
-    public function catalogGameExists($id)
+    public function getGameIdFromExternal($externalId, $type = 'igdb')
     {
-        $query = "SELECT id FROM games WHERE id = :id LIMIT 1";
+        $column = ($type === 'steam') ? 'steam_appid' : 'rawg_id';
+        $query = "SELECT id FROM games WHERE $column = :ext_id LIMIT 1";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':ext_id', $externalId);
         $stmt->execute();
-        return $stmt->rowCount() > 0;
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? $row['id'] : false;
     }
 
     public function getAll($userId)
@@ -101,58 +103,59 @@ class Game
 
     public function save($data, $file, $userId)
     {
-        $igdbId = $data['rawg_id'] ?? null;
+        $igdbId = !empty($data['rawg_id']) ? $data['rawg_id'] : null;
+        $steamId = !empty($data['steam_appid']) ? $data['steam_appid'] : null;
         $imagePath = $data['image_url_hidden'] ?? '';
         $dominantColor = null;
 
-        // Conservation de la logique d'upload si on en a encore besoin
+        // 1. GESTION DE L'IMAGE ET COULEUR DOMINANTE
         if (!empty($file['image_upload']['name'])) {
             $uploaded = $this->uploadImage($file['image_upload']);
             if ($uploaded) {
-                if (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
-                    @unlink(dirname(__DIR__) . '/' . $imagePath);
-                }
                 $imagePath = $uploaded;
                 $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
             }
-        } elseif (!empty($imagePath) && filter_var($imagePath, FILTER_VALIDATE_URL)) {
+        } elseif (!empty($imagePath)) {
             $dominantColor = $this->getAverageColor($imagePath);
-        } elseif (!empty($imagePath) && file_exists(dirname(__DIR__) . '/' . $imagePath)) {
-            $dominantColor = $this->getAverageColor(dirname(__DIR__) . '/' . $imagePath);
         }
 
         $finalPlatform = $data['platform'] ?? 'PC';
-
         if (empty($dominantColor)) {
             $dominantColor = $this->getFallbackColor($finalPlatform);
         }
 
-        $format = $data['format'] ?? 'digital';
-        $releaseDate = !empty($data['release_date']) ? $data['release_date'] : null;
-        $metaScore = (isset($data['metacritic']) && $data['metacritic'] !== '') ? $data['metacritic'] : null;
-        $price = (isset($data['estimated_price']) && $data['estimated_price'] !== '') ? $data['estimated_price'] : null;
+        // 2. ÉTAPE A : RÉCUPÉRATION OU CRÉATION DANS LE RÉFÉRENTIEL 'GAMES'
+        $internalGameId = null;
 
-        // 1. GESTION DU CATALOGUE (Nouvelle architecture)
-        if ($igdbId && !$this->catalogGameExists($igdbId)) {
-            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, rating, screenshots) 
-                            VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating, :screenshots)";
-            $stmtCat = $this->conn->prepare($queryCatalog);
-            $stmtCat->execute([
-                ':id'           => $igdbId,
-                ':title'        => $data['title'],
-                ':cover_url'    => $data['image_url_hidden'],
-                ':genres'       => $data['genres'],
-                ':release_date' => $data['release_date'],
-                ':summary'      => $data['description'],
-                ':dev'          => $data['developer'] ?? null,
-                ':pub'          => $data['publisher'] ?? null,
-                ':rating'       => $data['metacritic'],
-                ':screenshots'  => $data['screenshots'] ?? ''
-            ]);
+        if ($igdbId || $steamId) {
+            // On cherche si le jeu existe déjà via un ID externe
+            $internalGameId = $this->getGameIdFromExternal($igdbId ?: $steamId, $steamId ? 'steam' : 'igdb');
+
+            if (!$internalGameId) {
+                // Création de la fiche Master (sans spécifier 'id' pour laisser l'auto-incrément)
+                $queryCatalog = "INSERT INTO games (title, rawg_id, steam_appid, cover_url, genres, release_date, summary, developer, publisher, metacritic_score, screenshots) 
+                            VALUES (:title, :rawg_id, :steam_appid, :cover_url, :genres, :release_date, :summary, :dev, :pub, :meta, :screenshots)";
+                $stmtCat = $this->conn->prepare($queryCatalog);
+                $stmtCat->execute([
+                    ':title'        => $data['title'],
+                    ':rawg_id'      => $igdbId,
+                    ':steam_appid'  => $steamId,
+                    ':cover_url'    => $imagePath,
+                    ':genres'       => $data['genres'] ?? null,
+                    ':release_date' => $data['release_date'] ?? null,
+                    ':summary'      => $data['description'] ?? null,
+                    ':dev'          => $data['developer'] ?? null,
+                    ':pub'          => $data['publisher'] ?? null,
+                    ':meta'         => $data['metacritic'] ?? null,
+                    ':screenshots'  => $data['screenshots'] ?? ''
+                ]);
+                $internalGameId = $this->conn->lastInsertId();
+            }
         }
 
-        // 2. GESTION DE LA COLLECTION UTILISATEUR
+        // 3. ÉTAPE B : GESTION DE LA COLLECTION UTILISATEUR (USER_GAMES)
         if (!empty($data['game_id'])) {
+            // Cas d'une modification (Update)
             $query = "UPDATE " . $this->table . " SET 
             platform=:platform, format=:format, status=:status, 
             comment=:comment, dominant_color=:color, estimated_price=:price 
@@ -160,20 +163,21 @@ class Game
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':id', $data['game_id']);
         } else {
+            // Cas d'un nouvel ajout (Insert)
             $query = "INSERT INTO " . $this->table . " 
             (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
-            VALUES (:uid, :igdb_id, :platform, :format, :status, :comment, :color, :price)";
+            VALUES (:uid, :game_id, :platform, :format, :status, :comment, :color, :price)";
             $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':igdb_id', $igdbId);
+            $stmt->bindParam(':game_id', $internalGameId);
         }
 
         $stmt->bindParam(':uid', $userId);
         $stmt->bindParam(':platform', $finalPlatform);
-        $stmt->bindParam(':format', $format);
+        $stmt->bindParam(':format', $data['format'] ?? 'physical');
         $stmt->bindParam(':status', $data['status']);
-        $stmt->bindParam(':comment', $data['comment']);
+        $stmt->bindParam(':comment', $data['comment'] ?? null);
         $stmt->bindParam(':color', $dominantColor);
-        $stmt->bindParam(':price', $price);
+        $stmt->bindParam(':price', $data['estimated_price'] ?? null);
 
         return $stmt->execute();
     }
@@ -319,60 +323,66 @@ class Game
     public function importEntry($game, $userId)
     {
         $igdbId = $game['rawg_id'] ?? null;
-        if (!$igdbId) return false;
-
-        $img = $game['image_url'] ?? '';
-        if (!empty($img)) {
-            $img = str_replace(' ', '%20', $img);
-        }
-
-        if (!$this->catalogGameExists($igdbId)) {
-            $queryCatalog = "INSERT INTO games (id, title, cover_url, genres, release_date, summary, developer, publisher, rating, screenshots) 
-                     VALUES (:id, :title, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating, :screenshots)";
+        $steamId = $game['steam_appid'] ?? null;
+        
+        $type = $steamId ? 'steam' : 'igdb';
+        $extId = $steamId ? $steamId : $igdbId;
+        $internalGameId = $this->getGameIdFromExternal($extId, $type);
+    
+        if (!$internalGameId) {
+            // Note : On utilise 'rating' à la place de 'metacritic_score'
+            $queryCatalog = "INSERT INTO games 
+            (title, rawg_id, steam_appid, cover_url, genres, release_date, summary, developer, publisher, rating, platforms_list, screenshots) 
+            VALUES (:title, :rawg_id, :steam_appid, :cover_url, :genres, :release_date, :summary, :dev, :pub, :meta, :plats, :screenshots)";
+            
             $stmtCat = $this->conn->prepare($queryCatalog);
             $stmtCat->execute([
-                ':id'           => $igdbId,
                 ':title'        => $game['title'],
-                ':cover_url'    => $img,
-                ':genres'       => $game['genres'],
-                ':release_date' => $game['release_date'],
-                ':summary'      => $game['description'] ?? '',  // Récupère la description
+                ':rawg_id'      => $igdbId,
+                ':steam_appid'  => $steamId,
+                ':cover_url'    => $game['image_url'] ?? '',
+                ':genres'       => $game['genres'] ?? '',
+                ':release_date' => $game['release_date'] ?? null,
+                ':summary'      => $game['summary'] ?? '',
                 ':dev'          => $game['developer'] ?? null,
                 ':pub'          => $game['publisher'] ?? null,
-                ':rating'       => $game['metacritic'] ?? null,
-                ':screenshots'  => $game['screenshots'] ?? '' // Récupère les captures
+                ':meta'         => $game['metacritic_score'] ?? null, // Correspond à la colonne 'rating'
+                ':plats'        => $game['platforms_list'] ?? '',
+                ':screenshots'  => $game['screenshots'] ?? ''
             ]);
+            $internalGameId = $this->conn->lastInsertId();
         }
 
-        $query = "INSERT INTO " . $this->table . " 
-                  (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
-                  VALUES (:uid, :game_id, :platform, :format, :status, :comment, :color, :price)";
-        $stmt = $this->conn->prepare($query);
+        // Sécurité : Si l'insertion a échoué, on ne lie pas à user_games
+        if (!$internalGameId || $internalGameId == 0) return false;
 
-        $dominantColor = $game['dominant_color'] ?? null;
-        if ($dominantColor === 'rgb(30, 30, 30)') {
-            $dominantColor = null;
-        }
+        // 3. Liaison avec la collection de l'utilisateur (user_games)
+        // On vérifie les doublons pour cet utilisateur précis
+        $queryCheck = "SELECT id FROM " . $this->table . " WHERE user_id = :uid AND game_id = :gid LIMIT 1";
+        $stmtCheck = $this->conn->prepare($queryCheck);
+        $stmtCheck->execute([':uid' => $userId, ':gid' => $internalGameId]);
 
-        if (empty($dominantColor) && !empty($img)) {
-            $pathForColor = filter_var($img, FILTER_VALIDATE_URL) ? $img : dirname(__DIR__) . '/' . $img;
-            $dominantColor = $this->getAverageColor($pathForColor);
-        }
+        if ($stmtCheck->rowCount() > 0) return true; // Déjà possédé
 
-        if (empty($dominantColor)) {
-            $dominantColor = $this->getFallbackColor($game['platform'] ?? '');
-        }
+        $queryUser = "INSERT INTO " . $this->table . " 
+        (user_id, game_id, platform, format, status, comment, dominant_color, estimated_price) 
+        VALUES (:uid, :game_id, :platform, :format, :status, :comment, :color, :price)";
 
-        $stmt->bindParam(':uid', $userId);
-        $stmt->bindParam(':game_id', $igdbId);
-        $stmt->bindParam(':platform', $game['platform']);
-        $stmt->bindParam(':format', $game['format']);
-        $stmt->bindParam(':status', $game['status']);
-        $stmt->bindParam(':comment', $game['comment']);
-        $stmt->bindParam(':color', $dominantColor);
-        $stmt->bindParam(':price', $game['estimated_price']);
+        $stmtUser = $this->conn->prepare($queryUser);
 
-        return $stmt->execute();
+        // Calcul de la couleur dominante si nécessaire
+        $dominantColor = $game['dominant_color'] ?? $this->getFallbackColor($game['platform'] ?? '');
+
+        return $stmtUser->execute([
+            ':uid'      => $userId,
+            ':game_id'  => $internalGameId,
+            ':platform' => $game['platform'] ?? 'PC',
+            ':format'   => $game['format'] ?? 'digital',
+            ':status'   => $game['status'] ?? 'not_started',
+            ':comment'  => $game['comment'] ?? '',
+            ':color'    => $dominantColor,
+            ':price'    => $game['estimated_price'] ?? null
+        ]);
     }
 
     private function getAverageColor($filepath)
