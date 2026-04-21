@@ -146,7 +146,7 @@ class Game
                     ':summary'      => $data['description'] ?? null,
                     ':dev'          => $data['developer'] ?? null,
                     ':pub'          => $data['publisher'] ?? null,
-                    ':meta'         => $data['metacritic'] ?? null,
+                    ':meta'         => $data['metacritic_score'] ?? null,
                     ':screenshots'  => $data['screenshots'] ?? ''
                 ]);
                 $internalGameId = $this->conn->lastInsertId();

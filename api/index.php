@@ -253,7 +253,7 @@ switch ($action) {
                 'status'         => $data['status'] ?? 'not_started',
                 'format'         => $data['format'] ?? 'physical',
                 'image_url'      => $data['background_image'] ?? null,
-                'metacritic'     => $data['metacritic'] ?? null,
+                'metacritic_score'     => $data['metacritic_score'] ?? null,
                 'genres'         => $data['genres'] ?? '',
                 'release_date'   => $data['released'] ?? null,
                 'description'    => $data['description'] ?? '',
@@ -344,8 +344,10 @@ switch ($action) {
                 g.genres, 
                 g.release_date,
                 g.platforms_list,
-                g.summary,      -- AJOUTER CECI
-                g.screenshots   -- AJOUTER CECI
+                g.summary,
+                g.screenshots,
+                g.rating,
+                g.metacritic_score
             FROM user_games ug 
             JOIN games g ON ug.game_id = g.id 
             WHERE ug.user_id = ? AND ug.status NOT IN ('wishlist', 'loaned') 
