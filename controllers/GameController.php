@@ -130,35 +130,25 @@ class GameController
             $allVisuals = array_merge($allVisuals, $input['artworks']);
         }
 
-        $gameData = [
-            'game_id' => '',
-            'rawg_id' => $input['rawg_id'],
-            'title' => $input['title'] ?? 'Titre inconnu',
-            'status' => $input['status'],
-            'format' => $input['format'] ?? 'physical',
-            'platform' => $input['platform'] ?? 'PC',
-            'platform_custom' => $input['platform_custom'] ?? '',
-            'comment' => $input['comment'] ?? '',
+            $gameData = [
+            'game_id'          => '',
+            'rawg_id'          => $input['rawg_id'],
+            'title'            => $input['title'] ?? 'Titre inconnu',
+            'status'           => $input['status'],
+            'format'           => $input['format'] ?? 'physical',
+            'platform'         => $input['platform'] ?? 'PC',
+            'comment'          => $input['comment'] ?? '',
             'image_url_hidden' => $input['background_image'] ?? '',
-            'metacritic' => $input['metacritic'] ?? null,
-            'genres' => is_array($input['genres']) ? implode(', ', $input['genres']) : ($input['genres'] ?? null),
-            'release_date' => $input['released'] ?? null,
-            'description' => $input['description'] ?? '',
-            'developer' => $input['developer'] ?? null,
-            'publisher' => $input['publisher'] ?? null,
-            'screenshots' => is_array($input['screenshots']) ? implode(',', $input['screenshots']) : ($input['screenshots'] ?? '')
+            'rating'           => $input['rating'] ?? null,
+            'genres'           => is_array($input['genres'] ?? null) ? implode(', ', $input['genres']) : ($input['genres'] ?? null),
+            'platforms_list'   => is_array($input['platforms'] ?? null) ? implode(', ', $input['platforms']) : ($input['platforms'] ?? null),
+            'release_date'     => $input['released'] ?? null,
+            'description'      => $input['description'] ?? '',
+            'developer'        => $input['developer'] ?? null,
+            'publisher'        => $input['publisher'] ?? null,
+            'screenshots'      => is_array($input['screenshots'] ?? null) ? implode(',', $input['screenshots']) : ($input['screenshots'] ?? '')
         ];
 
-        // Vérification des doublons
-        $platformToCheck = ($gameData['platform'] === 'Multiplateforme' && !empty($gameData['platform_custom']))
-            ? $gameData['platform_custom']
-            : $gameData['platform'];
-
-        if ($this->gameModel->checkDuplicate($userId, $gameData['rawg_id'], $gameData['title'], $platformToCheck)) {
-            $this->apiResponse(false, 'Ce jeu existe déjà dans votre collection sur cette plateforme.');
-        }
-
-        // On passe `null` à la place du fichier pour l'upload d'image
         if ($this->gameModel->save($gameData, null, $userId)) {
             $this->apiResponse(true, 'Le jeu a bien été sauvegardé !');
         } else {
@@ -673,7 +663,7 @@ class GameController
             $response = [
                 'name' => $data['name'],
                 'released' => isset($data['first_release_date']) ? date('Y-m-d', $data['first_release_date']) : '',
-                'metacritic' => isset($data['rating']) ? round($data['rating']) : '',
+                'rating' => isset($data['rating']) ? round($data['rating']) : null,
                 'background_image' => $img,
                 'description_raw' => $data['summary'] ?? '',
                 'developer' => $developer,
