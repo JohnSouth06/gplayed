@@ -327,6 +327,8 @@ class Game
         return $title;
     }
 
+// Fichier : johnsouth06/gplayed/gplayed-1.4.0/models/Game.php
+
     public function importEntry($game, $userId)
     {
         $igdbId = $game['rawg_id'] ?? null;
@@ -338,12 +340,22 @@ class Game
 
         if (!$internalGameId) {
             $queryCatalog = "INSERT INTO games (title, rawg_id, steam_appid, cover_url, genres, release_date, summary, developer, publisher, rating, screenshots, platforms_list) 
-                        VALUES (:title, :rawg_id, :steam_appid, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating, :screenshots, :platforms)";
+                            VALUES (:title, :rawg_id, :steam_appid, :cover_url, :genres, :release_date, :summary, :dev, :pub, :rating, :screenshots, :platforms)";
             $stmtCat = $this->conn->prepare($queryCatalog);
+            
+            // Liaison de TOUS les paramètres
             $stmtCat->execute([
-                // ...
+                ':title'        => $game['title'] ?? 'Titre inconnu',
+                ':rawg_id'      => $igdbId,
+                ':steam_appid'  => $steamId,
+                ':cover_url'    => $game['image_url'] ?? null,
+                ':genres'       => $game['genres'] ?? null,
+                ':release_date' => $game['release_date'] ?? null,
+                ':summary'      => $game['summary'] ?? null,
+                ':dev'          => $game['developer'] ?? null,
+                ':pub'          => $game['publisher'] ?? null,
                 ':rating'       => $game['rating'] ?? null,
-                ':screenshots'  => is_array($game['screenshots']) ? implode(',', array_slice($game['screenshots'], 0, 3)) : ($game['screenshots'] ?? ''),
+                ':screenshots'  => $game['screenshots'] ?? '',
                 ':platforms'    => $game['platforms_list'] ?? null
             ]);
             $internalGameId = $this->conn->lastInsertId();
@@ -351,14 +363,13 @@ class Game
 
         if (!$internalGameId) return false;
 
-        // Vérification doublon
+        // Vérification doublon user_games
         $stmtCheck = $this->conn->prepare("SELECT id FROM user_games WHERE user_id = ? AND game_id = ?");
         $stmtCheck->execute([$userId, $internalGameId]);
         $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
         
-        if ($existing) return $existing['id']; // Renvoie l'ID existant
+        if ($existing) return $existing['id'];
 
-        // Insertion dans user_games
         $queryUser = "INSERT INTO user_games (user_id, game_id, platform, format, status, dominant_color) 
                     VALUES (:uid, :gid, :plat, :form, :stat, :col)";
         $stmtUser = $this->conn->prepare($queryUser);
@@ -371,7 +382,7 @@ class Game
             ':col'  => $game['dominant_color'] ?? 'rgb(30, 30, 30)'
         ]);
 
-        return $this->conn->lastInsertId(); // RETOURNE L'ID DE USER_GAMES (Crucial !)
+        return $this->conn->lastInsertId();
     }
 
     private function getAverageColor($filepath)

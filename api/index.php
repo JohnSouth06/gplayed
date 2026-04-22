@@ -237,37 +237,54 @@ switch ($action) {
         $gameController->apiSearchIgdb($currentUser['id'], $query);
         break;
 
-    case 'api_save_game':
-        $userId = $currentUser['id'];
-        $data = json_decode(file_get_contents('php://input'), true);
+case 'api_save_game':
+    $userId = $currentUser['id'];
+    $data = json_decode(file_get_contents('php://input'), true);
 
-        if ($data) {
-            // Préparation des screenshots (fusion screenshots + artworks si nécessaire)
-            $screenshots = isset($data['screenshots']) && is_array($data['screenshots']) ? implode(',', $data['screenshots']) : '';
+    if ($data && isset($data['rawg_id'])) {
+        $igdbId = intval($data['rawg_id']);
+        
+        // Récupération des détails complets via le contrôleur
+        $body = "fields summary, first_release_date, rating, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, screenshots.url, artworks.url; where id = {$igdbId};";
+        $igdbResults = $gameController->callIgdb('games', $body);
+        $igdbData = ($igdbResults && isset($igdbResults[0])) ? $igdbResults[0] : [];
 
-            $gameData = [
-                'rawg_id'        => $data['rawg_id'] ?? null,
-                'title'          => $data['title'] ?? 'Titre inconnu',
-                'platform'       => $data['platform'] ?? '',
-                'platforms_list' => $data['platforms_list'] ?? '',
-                'status'         => $data['status'] ?? 'not_started',
-                'format'         => $data['format'] ?? 'physical',
-                'image_url'      => $data['background_image'] ?? null,
-                'metacritic_score'     => $data['metacritic_score'] ?? null,
-                'genres'         => $data['genres'] ?? '',
-                'release_date'   => $data['released'] ?? null,
-                'description'    => $data['description'] ?? '',
-                'developer'      => $data['developer'] ?? null,
-                'publisher'      => $data['publisher'] ?? null,
-                'screenshots'    => $screenshots,
-                'comment'        => '',
-                'estimated_price' => null
-            ];
-
-            $success = $gameModel->importEntry($gameData, $userId);
-            sendJson($success, $success ? 'Jeu ajouté' : 'Erreur lors de l\'ajout');
+        // Extraction des développeurs et éditeurs
+        $developer = ''; $publisher = '';
+        if (isset($igdbData['involved_companies'])) {
+            foreach ($igdbData['involved_companies'] as $ic) {
+                if ($ic['developer']) $developer = $ic['company']['name'];
+                if ($ic['publisher']) $publisher = $ic['company']['name'];
+            }
         }
-        break;
+
+        // Préparation des screenshots HD
+        $screens = [];
+        if (isset($igdbData['screenshots'])) {
+            foreach ($igdbData['screenshots'] as $s) $screens[] = 'https:' . str_replace('t_thumb', 't_720p', $s['url']);
+        }
+
+        $gameData = [
+            'rawg_id'        => $igdbId,
+            'title'          => $data['title'] ?? $igdbData['name'],
+            'platform'       => $data['platform'] ?? '',
+            'platforms_list' => $data['platforms_list'] ?? '',
+            'status'         => $data['status'] ?? 'not_started',
+            'format'         => $data['format'] ?? 'physical',
+            'image_url'      => $data['background_image'] ?? null,
+            'rating'         => $igdbData['rating'] ?? null,
+            'genres'         => $data['genres'] ?? '',
+            'release_date'   => isset($igdbData['first_release_date']) ? date('Y-m-d', $igdbData['first_release_date']) : null,
+            'summary'        => $igdbData['summary'] ?? '',
+            'developer'      => $developer,
+            'publisher'      => $publisher,
+            'screenshots'    => implode(',', $screens)
+        ];
+
+        $success = $gameModel->importEntry($gameData, $userId);
+        sendJson($success !== false, $success ? 'Jeu enrichi et ajouté' : 'Erreur insertion');
+    }
+    break;
 
     case 'api_update_game':
         $gameController = new GameController($db);

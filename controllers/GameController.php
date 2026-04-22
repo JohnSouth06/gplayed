@@ -474,7 +474,7 @@ class GameController
     }
 
     // --- IGDB API HELPER ---
-    private function getIgdbToken()
+    public function getIgdbToken()
     {
         if (isset($_SESSION['igdb_token']) && isset($_SESSION['igdb_expiry']) && time() < $_SESSION['igdb_expiry']) {
             return $_SESSION['igdb_token'];
@@ -509,7 +509,7 @@ class GameController
         return null;
     }
 
-    private function callIgdb($endpoint, $body)
+    public function callIgdb($endpoint, $body)
     {
         $token = $this->getIgdbToken();
         if (!$token) return null;
