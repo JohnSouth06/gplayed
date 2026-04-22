@@ -112,6 +112,63 @@ class GameController
 
         $this->apiResponse(true, 'Recherche IGDB terminée.', ['data' => $formatted]);
     }
+
+    public function apiSearchBarcode($userId, $barcode)
+    {
+        $barcode = trim($barcode);
+        if (empty($barcode)) {
+            $this->apiResponse(false, 'Code-barres manquant.');
+        }
+
+        // --- ÉTAPE 1 : Tentative directe sur IGDB (Gratuit) ---
+        $strippedBarcode = ltrim($barcode, '0');
+        $body = "fields game.id, game.name, game.cover.url, game.first_release_date, game.platforms.name, game.genres.name; 
+                where (uid = \"{$barcode}\" | uid = \"{$strippedBarcode}\") 
+                & (category = 10 | category = 11);";
+        
+        $externalResults = $this->callIgdb('external_games', $body);
+        $results = [];
+
+        if ($externalResults && is_array($externalResults)) {
+            foreach ($externalResults as $item) {
+                if (isset($item['game'])) $results[] = $item['game'];
+            }
+        }
+
+        // --- ÉTAPE 2 : Fallback via UPCitemdb (Gratuit - 100 req/jour) ---
+        if (empty($results)) {
+            // On interroge l'API publique de UPCitemdb
+            $url = "https://api.upcitemdb.com/prod/trial/lookup?upc=" . urlencode($barcode);
+            
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $data = json_decode($response, true);
+
+            if (isset($data['items'][0]['title'])) {
+                $productTitle = $data['items'][0]['title'];
+                
+                // Nettoyage rapide du titre (optionnel)
+                $searchTitle = preg_replace('/(Nintendo Switch|PS4|PS5|Xbox|Jeu).*/i', '', $productTitle);
+
+                // On lance une recherche textuelle sur IGDB avec le titre trouvé
+                $bodySearch = "fields id, name, cover.url, first_release_date, platforms.name, genres.name; 
+                            search \"" . addslashes(trim($searchTitle)) . "\"; limit 5;";
+                $results = $this->callIgdb('games', $bodySearch);
+            }
+        }
+
+        if (empty($results)) {
+            $this->apiResponse(false, "Aucun jeu trouvé pour le code $barcode.");
+        }
+
+        $this->apiResponse(true, 'Résultats trouvés', ['data' => $results]);
+    }
+
     // --- SAUVEGARDER/AJOUTER UN JEU (CORRIGÉ) ---
     public function apiSaveGame($userId)
     {
@@ -130,7 +187,7 @@ class GameController
             $allVisuals = array_merge($allVisuals, $input['artworks']);
         }
 
-            $gameData = [
+        $gameData = [
             'game_id'          => '',
             'rawg_id'          => $input['rawg_id'],
             'title'            => $input['title'] ?? 'Titre inconnu',
