@@ -4,7 +4,7 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-ini_set('display_errors', 0); // Ne pas afficher à l'écran
+ini_set('display_errors', 1); // Ne pas afficher à l'écran
 error_reporting(E_ALL);
 ini_set('log_errors', 1);
 
@@ -15,6 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // 1. AJOUT DU SESSION_START() OBLIGATOIRE POUR LE OAUTH STEAM
 session_start();
+
+$action = $_GET['action'] ?? '';
+if (!in_array($action, ['api_steam_login', 'api_steam_callback'])) {
+    session_write_close();
+}
 
 define('ROOT_PATH', dirname(__DIR__));
 
@@ -35,12 +40,14 @@ require_once ROOT_PATH . '/controllers/AuthController.php';
 require_once ROOT_PATH . '/controllers/GameController.php';
 require_once ROOT_PATH . '/controllers/ProgressController.php';
 require_once ROOT_PATH . '/models/Game.php';
+require_once ROOT_PATH . '/models/Playtime.php'; //
 
 $database = new Database();
 $db = $database->getConnection();
 $userModel = new User($db);
 $gameModel = new Game($db);
 $gameController = new GameController($db);
+$playtimeModel = new Playtime($db); //
 
 function sendJson($success, $message, $data = [], $httpCode = 200)
 {
@@ -64,19 +71,16 @@ if (isset($_SERVER['Authorization'])) {
 }
 
 $token = null;
-// Essayer de lire depuis le Header
 if (!empty($headers) && preg_match('/Bearer\s(\S+)/', $headers, $matches)) {
     $token = $matches[1];
-}
-// MODIFICATION : Essayer de lire depuis l'URL (GET) pour api_steam_login
-elseif (isset($_GET['token'])) {
+} elseif (isset($_GET['token'])) {
     $token = $_GET['token'];
 }
 
 $currentUser = null;
 if ($token) {
     $currentUser = $userModel->getUserByToken($token);
-}
+} 
 
 // 4. Routage API
 $action = $_GET['action'] ?? '';
@@ -89,7 +93,11 @@ $publicRoutes = [
     'api_mobile_verify',
     'api_forgot_password',
     'api_reset_password',
-    'app_bounce'
+    'app_bounce',
+    'api_login_google',
+    'api_google_callback',
+    'api_login_discord',
+    'api_discord_callback'
 ];
 
 if ($action === 'api_login') {
@@ -210,11 +218,11 @@ switch ($action) {
 
                 // 1. Correction du nom de la clé : game_id au lieu de igdb_id
                 if (!empty($game['screenshots']) && is_string($game['screenshots'])) {
-                        $game['screenshots'] = explode(',', $game['screenshots']);
-                    } else {
-                        // On renvoie un tableau vide
-                        $game['screenshots'] = [];
-                    }
+                    $game['screenshots'] = explode(',', $game['screenshots']);
+                } else {
+                    // On renvoie un tableau vide
+                    $game['screenshots'] = [];
+                }
             }
             sendJson(true, 'Collection récupérée avec succès.', ['data' => $games]);
         }
@@ -230,31 +238,49 @@ switch ($action) {
         $userId = $currentUser['id'];
         $data = json_decode(file_get_contents('php://input'), true);
 
-        if ($data) {
-            // Préparation des screenshots (fusion screenshots + artworks si nécessaire)
-            $screenshots = isset($data['screenshots']) && is_array($data['screenshots']) ? implode(',', $data['screenshots']) : '';
+        if ($data && isset($data['rawg_id'])) {
+            $igdbId = intval($data['rawg_id']);
+
+            // Récupération des détails complets via le contrôleur
+            $body = "fields summary, first_release_date, rating, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, screenshots.url, artworks.url; where id = {$igdbId};";
+            $igdbResults = $gameController->callIgdb('games', $body);
+            $igdbData = ($igdbResults && isset($igdbResults[0])) ? $igdbResults[0] : [];
+
+            // Extraction des développeurs et éditeurs
+            $developer = '';
+            $publisher = '';
+            if (isset($igdbData['involved_companies'])) {
+                foreach ($igdbData['involved_companies'] as $ic) {
+                    if ($ic['developer']) $developer = $ic['company']['name'];
+                    if ($ic['publisher']) $publisher = $ic['company']['name'];
+                }
+            }
+
+            // Préparation des screenshots HD
+            $screens = [];
+            if (isset($igdbData['screenshots'])) {
+                foreach ($igdbData['screenshots'] as $s) $screens[] = 'https:' . str_replace('t_thumb', 't_720p', $s['url']);
+            }
 
             $gameData = [
-                'rawg_id'        => $data['rawg_id'] ?? null,
-                'title'          => $data['title'] ?? 'Titre inconnu',
+                'rawg_id'        => $igdbId,
+                'title'          => $data['title'] ?? $igdbData['name'],
                 'platform'       => $data['platform'] ?? '',
                 'platforms_list' => $data['platforms_list'] ?? '',
                 'status'         => $data['status'] ?? 'not_started',
                 'format'         => $data['format'] ?? 'physical',
                 'image_url'      => $data['background_image'] ?? null,
-                'metacritic'     => $data['metacritic'] ?? null,
+                'rating'         => $igdbData['rating'] ?? null,
                 'genres'         => $data['genres'] ?? '',
-                'release_date'   => $data['released'] ?? null,
-                'description'    => $data['description'] ?? '',
-                'developer'      => $data['developer'] ?? null,
-                'publisher'      => $data['publisher'] ?? null,
-                'screenshots'    => $screenshots,
-                'comment'        => '',
-                'estimated_price' => null
+                'release_date'   => isset($igdbData['first_release_date']) ? date('Y-m-d', $igdbData['first_release_date']) : null,
+                'summary'        => $igdbData['summary'] ?? '',
+                'developer'      => $developer,
+                'publisher'      => $publisher,
+                'screenshots'    => implode(',', $screens)
             ];
 
             $success = $gameModel->importEntry($gameData, $userId);
-            sendJson($success, $success ? 'Jeu ajouté' : 'Erreur lors de l\'ajout');
+            sendJson($success !== false, $success ? 'Jeu enrichi et ajouté' : 'Erreur insertion');
         }
         break;
 
@@ -282,6 +308,27 @@ switch ($action) {
     case 'api_delete_progress':
         $progressController = new ProgressController($db);
         $progressController->apiDeleteProgress($currentUser['id']);
+        break;
+
+    // --- AUTHENTIFICATION SOCIALE ---
+    case 'api_login_google':
+        $authController = new AuthController($db);
+        $authController->loginGoogle(); // Utilise la méthode existante qui gère déjà app_redirect
+        break;
+
+    case 'api_google_callback':
+        $authController = new AuthController($db);
+        $authController->googleCallback();
+        break;
+
+    case 'api_login_discord':
+        $authController = new AuthController($db);
+        $authController->loginDiscord();
+        break;
+
+    case 'api_discord_callback':
+        $authController = new AuthController($db);
+        $authController->discordCallback();
         break;
 
     // --- RÉCUPÉRATION D'UNE COLLECTION PUBLIQUE ---
@@ -312,8 +359,10 @@ switch ($action) {
                 g.genres, 
                 g.release_date,
                 g.platforms_list,
-                g.summary,      -- AJOUTER CECI
-                g.screenshots   -- AJOUTER CECI
+                g.summary,
+                g.screenshots,
+                g.rating,
+                g.metacritic_score
             FROM user_games ug 
             JOIN games g ON ug.game_id = g.id 
             WHERE ug.user_id = ? AND ug.status NOT IN ('wishlist', 'loaned') 
@@ -551,57 +600,64 @@ switch ($action) {
     // 4. IMPORTATION D'UN JEU UNIQUE
     case 'api_steam_import_single':
         $userId = $currentUser['id'];
-        $input = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents("php://input"), true);
 
-        if ($input && isset($input['appid'])) {
-            require_once ROOT_PATH . '/models/Playtime.php';
-            require_once ROOT_PATH . '/models/Game.php'; // On charge le modèle
+        $appId = $data['steam_appid'] ?? $data['appid'] ?? null;
 
-            $playtimeModel = new Playtime($db);
-            $gameModel = new Game($db);
+        if ($appId) {
+            $playtimeMinutes = $data['playtime_forever'] ?? 0;
 
-            $name = $input['name'];
-            $appId = $input['appid'];
-            $playtimeMinutes = $input['playtime_forever'] ?? 0;
-            $lastPlayedTimestamp = $input['rtime_last_played'] ?? 0;
-            $oneYearAgo = time() - (365 * 24 * 60 * 60);
+            // 1. Récupération des détails Steam (inchangé)
+            $steamApiUrl = "https://store.steampowered.com/api/appdetails?appids={$appId}&l=french";
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $steamApiUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'GPlayed API / 1.4');
+            $response = curl_exec($ch);
+            curl_close($ch);
 
-            $status = 'not_started';
-            if ($playtimeMinutes > 0) {
-                $status = 'playing';
-                if ($lastPlayedTimestamp > 0 && $lastPlayedTimestamp < $oneYearAgo) {
-                    $status = 'dropped';
+            usleep(250000);
+            $resData = json_decode($response, true);
+
+            if (isset($resData[$appId]['success']) && $resData[$appId]['success']) {
+                $details = $resData[$appId]['data'];
+                $screenshotUrls = isset($details['screenshots']) ? array_column($details['screenshots'], 'path_full') : [];
+
+                $gameData = [
+                    'steam_appid'     => $appId,
+                    'title'           => $details['name'],
+                    'image_url'       => $details['header_image'] ?? null,
+                    'summary'         => $details['short_description'] ?? '',
+                    'genres'          => isset($details['genres']) ? implode(', ', array_column($details['genres'], 'description')) : '',
+                    'developer'       => isset($details['developers']) ? implode(', ', $details['developers']) : '',
+                    'publisher'       => isset($details['publishers']) ? implode(', ', $details['publishers']) : '',
+                    'release_date'    => $details['release_date']['date'] ?? null,
+                    'metacritic_score' => $details['metacritic']['score'] ?? null,
+                    'platforms_list'  => 'PC',
+                    'screenshots'     => implode(',', $screenshotUrls),
+                    'status'          => 'not_started',
+                    'platform'        => 'PC',
+                    'format'          => 'digital'
+                ];
+
+                // CHANGEMENT ICI : On récupère l'ID de la ligne créée dans user_games
+                $userGameId = $gameModel->importEntry($gameData, $userId); //
+
+                if ($userGameId) {
+                    if ($playtimeMinutes > 0) {
+                        // On utilise $userGameId car playtime.game_id pointe vers user_games.id
+                        $playtimeModel->save($userGameId, round($playtimeMinutes / 60, 1), null); //
+                    }
+                    sendJson(true, 'Jeu traité');
+                } else {
+                    sendJson(false, 'Erreur lors de l\'insertion en base de données');
                 }
+            } else {
+                sendJson(true, 'Jeu ignoré (page introuvable)');
             }
-
-            $imageUrl = "https://cdn.cloudflare.steamstatic.com/steam/apps/" . $appId . "/header.jpg";
-
-            // LOGIQUE ADAPTÉE À LA NOUVELLE ARCHITECTURE
-            $gameData = [
-                'rawg_id' => $appId,
-                'title' => $name,
-                'image_url' => $imageUrl,
-                'status' => $status,
-                'platform' => 'PC',
-                'platforms_list' => 'PC',
-                'format' => 'digital',
-                'comment' => '',
-                'estimated_price' => null
-            ];
-
-            // importEntry s'occupe de renseigner 'games' ET 'user_games'
-            $success = $gameModel->importEntry($gameData, $userId);
-
-            if ($success) {
-                $newGameId = $db->lastInsertId();
-                if ($playtimeMinutes > 0 && $newGameId) {
-                    $playtimeModel->save($newGameId, round($playtimeMinutes / 60, 1), null);
-                }
-            }
-
-            sendJson($success, 'Importation terminée');
         } else {
-            sendJson(false, 'Données manquantes', [], 400);
+            sendJson(false, 'Aucun AppID fourni');
         }
         break;
 
